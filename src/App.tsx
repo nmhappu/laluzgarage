@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { SystemBars } from './components/SystemBars';
+import { BackButtonHandler } from './components/BackButtonHandler';
 
 function AppContent() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ function AppContent() {
   return (
     <Router>
       <SystemBars />
+      <BackButtonHandler />
       <div className="flex flex-col md:flex-row h-mobile-screen overflow-hidden bg-workshop-bg">
         <Navigation />
         

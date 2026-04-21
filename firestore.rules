@@ -11,130 +11,28 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isEmailVerified() {
-      // In development/sandbox environments, we check if signed in.
-      // In production, strictly enforce request.auth.token.email_verified == true
-      return isSignedIn();
-    }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email != null && (
-          request.auth.token.email.lower() == 'psbackup8194@gmail.com' ||
-          request.auth.token.email.lower() == 'appu@appu.dev' ||
-          request.auth.token.email.lower() == 'pncsns8194@gmail.com'
-        )) ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
-    function isOwner(data) {
-      return isSignedIn() && 
-             data != null && 
-             'technicianId' in data && 
-             data.technicianId == request.auth.uid;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // --- Validation Blueprints ---
-    
-    function isValidCustomer(data) {
-      return data.keys().hasAll(['name', 'phone', 'technicianId', 'createdAt', 'updatedAt']) &&
-             data.keys().size() <= 10 &&
-             data.name is string && data.name.size() <= 100 &&
-             data.phone is string && data.phone.size() <= 20 &&
-             data.technicianId == request.auth.uid &&
-             data.createdAt == request.time &&
-             data.updatedAt == request.time;
-    }
-
-    function isValidVehicle(data) {
-      return data.keys().hasAll(['customerId', 'make', 'plateNumber', 'technicianId', 'createdAt', 'updatedAt']) &&
-             data.keys().size() <= 15 &&
-             data.make is string && data.make.size() <= 50 &&
-             data.plateNumber is string && data.plateNumber.size() <= 20 &&
-             data.technicianId == request.auth.uid &&
-             data.createdAt == request.time &&
-             data.updatedAt == request.time &&
-             exists(/databases/$(database)/documents/customers/$(data.customerId)) &&
-             (!('color' in data) || data.color is string);
-    }
-
-    function isValidPart(data) {
-      return data.keys().hasAll(['name', 'sku', 'stockQuantity', 'price']) &&
-             data.name is string && data.name.size() <= 100 &&
-             data.sku is string && data.sku.size() <= 50 &&
-             data.stockQuantity is int &&
-             data.price is number;
-    }
-
-    function isValidServiceRecord(data) {
-      return data.keys().hasAll(['vehicleId', 'customerId', 'technicianId', 'date', 'description', 'status', 'laborCost', 'partsUsed', 'createdAt', 'updatedAt']) &&
-             data.description is string && data.description.size() <= 2000 &&
-             data.status in ['pending', 'in-progress', 'completed', 'cancelled'] &&
-             data.technicianId == request.auth.uid &&
-             data.createdAt <= request.time &&
-             data.updatedAt <= request.time &&
-             exists(/databases/$(database)/documents/vehicles/$(data.vehicleId)) &&
-             (!('expectedDeliveryDate' in data) || data.expectedDeliveryDate is string) &&
-             (!('technicianName' in data) || data.technicianName is string) &&
-             (!('completionMileage' in data) || data.completionMileage is int) &&
-             (!('isDeadVehicle' in data) || data.isDeadVehicle is bool);
-    }
-
-    // --- Collection Rules ---
+    // --- Collection Rules (Open to all signed-in users) ---
 
     match /customers/{customerId} {
-      allow read: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(customerId) && isValidCustomer(request.resource.data);
-      allow update: if isEmailVerified() && (isOwner(resource.data) || isAdmin()) && 
-                      request.resource.data.technicianId == resource.data.technicianId &&
-                      request.resource.data.createdAt == resource.data.createdAt &&
-                      request.resource.data.updatedAt == request.time &&
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'email', 'address', 'updatedAt']));
-      allow delete: if isSignedIn() && (isOwner(resource.data) || isAdmin());
+      allow read, write: if isSignedIn();
     }
 
     match /vehicles/{vehicleId} {
-      allow read: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(vehicleId) && isValidVehicle(request.resource.data);
-      allow update: if isEmailVerified() && (isOwner(resource.data) || isAdmin()) &&
-                      request.resource.data.technicianId == resource.data.technicianId &&
-                      request.resource.data.updatedAt == request.time &&
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['make', 'model', 'color', 'plateNumber', 'vin', 'passwordOrPin', 'updatedAt', 'customerId']));
-      allow delete: if isSignedIn() && (isOwner(resource.data) || isAdmin());
+      allow read, write: if isSignedIn();
     }
 
     match /parts/{partId} {
-      allow read: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(partId) && isValidPart(request.resource.data);
-      allow update: if isEmailVerified() && 
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'sku', 'category', 'stockQuantity', 'price', 'minStockLevel', 'location', 'updatedAt']));
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /serviceRecords/{recordId} {
-      allow read: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(recordId) && isValidServiceRecord(request.resource.data);
-      allow update: if isEmailVerified() && (isOwner(resource.data) || isAdmin()) &&
-                      (!('technicianId' in request.resource.data) || request.resource.data.technicianId == resource.data.technicianId) &&
-                      request.resource.data.updatedAt == request.time &&
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-                        'description', 'remarks', 'status', 'laborCost', 'partsCost', 
-                        'totalCost', 'partsUsed', 'mileage', 'updatedAt', 
-                        'expectedDeliveryDate', 'technicianName', 'completionMileage',
-                        'isDeadVehicle'
-                      ]));
-      allow delete: if isSignedIn() && (isOwner(resource.data) || isAdmin());
+      allow read, write: if isSignedIn();
     }
 
     match /admins/{adminId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
     match /test/{docId} {

@@ -18,6 +18,7 @@
     "@capacitor/app": "^6.0.0",
     "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.4",
     "@capacitor/status-bar": "^6.0.0",
     "@eslint/js": "^10.0.1",
     "@firebase/eslint-plugin-security-rules": "^0.0.1",

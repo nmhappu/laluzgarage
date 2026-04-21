@@ -6,6 +6,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { ServiceRecord, Vehicle, Customer, Part } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
 import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/CustomSelect";
 
 export function ServiceHistory() {
   const [records, setRecords] = useState<ServiceRecord[]>([]);
@@ -457,24 +464,25 @@ export function ServiceHistory() {
                  <div className="flex flex-col gap-3">
                    <div className="flex-1 space-y-3">
                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
-                           <span className="text-workshop-text">{getCustomerName(record.customerId)}</span>
-                           <span className="text-workshop-muted opacity-30">|</span>
-                           <span className="text-workshop-text">{v?.make} {v?.model}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-tight">
-                           <span className="text-workshop-secondary">{v?.plateNumber}</span>
-                           <span className="text-workshop-muted opacity-30">|</span>
-                           <div className="flex items-center gap-1.5 overflow-hidden">
-                              <span className={cn("font-mono whitespace-nowrap", record.isDeadVehicle ? "text-rose-500 italic opacity-80" : "text-workshop-warning")}>
-                                {record.isDeadVehicle ? "DEAD" : `${record.mileage.toLocaleString()} KM`}
-                              </span>
-                              {record.completionMileage && (
-                                <>
-                                  <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
-                                  <span className="text-[#4ade80] font-mono whitespace-nowrap">{record.completionMileage.toLocaleString()} KM</span>
-                                </>
-                              )}
+                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight">
+                              <span className="text-workshop-text">{getCustomerName(record.customerId)}</span>
+                              <span className="text-workshop-muted opacity-30">|</span>
+                              <span className="text-workshop-text">{v?.make} {v?.model}</span>
+                              <span className="text-workshop-muted opacity-30">|</span>
+                              <span className="text-workshop-secondary">{v?.plateNumber}</span>
+                           </div>
+                           <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
+                              <div className="flex items-center gap-1.5 overflow-hidden">
+                                 <span className={cn("font-mono whitespace-nowrap", record.isDeadVehicle ? "text-rose-500 italic opacity-80" : "text-workshop-warning")}>
+                                   {record.isDeadVehicle ? "DEAD" : `${record.mileage.toLocaleString()} KM`}
+                                 </span>
+                                 {record.completionMileage && (
+                                   <>
+                                     <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
+                                     <span className="text-[#4ade80] font-mono whitespace-nowrap">{record.completionMileage.toLocaleString()} KM</span>
+                                   </>
+                                 )}
+                              </div>
                            </div>
                         </div>
                      </div>
@@ -564,8 +572,7 @@ export function ServiceHistory() {
                      </div>
                    </div>
                  </div>
-              </div>
-            </motion.div>
+             </motion.div>
           );
         })}
       </div>
@@ -733,17 +740,21 @@ export function ServiceHistory() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Service Vehicle</label>
-                      <select 
-                        required
-                        value={newRecord.vehicleId}
-                        onChange={e => setNewRecord({...newRecord, vehicleId: e.target.value})}
-                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text"
+                      <Select 
+                        value={newRecord.vehicleId} 
+                        onValueChange={(val) => setNewRecord({...newRecord, vehicleId: val})}
                       >
-                        <option value="">Select current vehicle...</option>
-                        {vehicles.map(v => (
-                          <option key={v.id} value={v.id}>{v.plateNumber} — {v.make} {v.model}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select current vehicle..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicles.map(v => (
+                            <SelectItem key={v.id} value={v.id!}>
+                              {v.plateNumber} — {v.make} {v.model}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Current KM Reading</label>
@@ -810,18 +821,18 @@ export function ServiceHistory() {
                          <h3 className="font-bold text-workshop-muted uppercase tracking-widest text-[10px]">Parts Allocation</h3>
                       </div>
                       <div className="relative">
-                        <select 
-                          value=""
-                          onChange={(e) => addPartToRecord(e.target.value)}
-                          className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-sm appearance-none cursor-pointer text-workshop-text"
-                        >
-                           <option value="">+ Allocate part...</option>
-                           {parts.map(p => (
-                             <option key={p.id} value={p.id} disabled={p.stockQuantity <= 0}>
-                               {p.name} ({p.stockQuantity} rem.)
-                             </option>
-                           ))}
-                        </select>
+                        <Select onValueChange={(val) => addPartToRecord(val)}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="+ Allocate part..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {parts.map(p => (
+                              <SelectItem key={p.id} value={p.id!} disabled={p.stockQuantity <= 0}>
+                                {p.name} ({p.stockQuantity} rem.)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
@@ -989,9 +1000,15 @@ export function ServiceHistory() {
                        </div>
                        <div>
                           <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest">Vehicle Details</p>
-                          <p className="font-bold text-workshop-text">
+                          <p className="font-bold text-workshop-text text-sm">
                              {getVehicleInfo(selectedRecord.vehicleId)?.make} {getVehicleInfo(selectedRecord.vehicleId)?.model}
-                             <span className="text-workshop-muted font-normal opacity-40"> | </span><span className="font-mono text-[10px] text-workshop-secondary uppercase tracking-widest">{getVehicleInfo(selectedRecord.vehicleId)?.plateNumber}</span>
+                             <span className="text-workshop-muted font-normal opacity-40"> | </span><span className="font-mono text-workshop-secondary uppercase tracking-widest">{getVehicleInfo(selectedRecord.vehicleId)?.plateNumber}</span>
+                             {getVehicleInfo(selectedRecord.vehicleId)?.color && (
+                               <>
+                                 <span className="text-workshop-muted font-normal opacity-40"> | </span>
+                                 <span className="text-white font-bold uppercase tracking-widest">{getVehicleInfo(selectedRecord.vehicleId)?.color}</span>
+                               </>
+                             )}
                           </p>
                           <p className="text-[10px] font-semibold text-workshop-muted mt-1 tracking-tight">Owned by {getCustomerName(selectedRecord.customerId)}</p>
                        </div>
@@ -1109,36 +1126,25 @@ export function ServiceHistory() {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                     <div className="p-4 bg-workshop-secondary/10 rounded-xl border border-workshop-secondary/20">
                        <p className="text-[10px] font-bold text-workshop-secondary uppercase tracking-widest mb-1">Vehicle Reference</p>
-                       <p className="font-bold text-workshop-text text-sm flex items-center gap-2">
-                          {getVehicleInfo(editingRecord.vehicleId)?.make} {getVehicleInfo(editingRecord.vehicleId)?.model} 
+                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="font-bold text-workshop-text text-sm flex items-center gap-2">
+                             {getVehicleInfo(editingRecord.vehicleId)?.make} {getVehicleInfo(editingRecord.vehicleId)?.model} 
+                             <span className="text-workshop-muted font-normal opacity-40">|</span>
+                             <span className="font-mono text-sm text-workshop-secondary uppercase">{getVehicleInfo(editingRecord.vehicleId)?.plateNumber}</span>
+                             {getVehicleInfo(editingRecord.vehicleId)?.color && (
+                               <>
+                                 <span className="text-workshop-muted font-normal opacity-40">|</span>
+                                 <span className="text-white text-sm font-bold uppercase tracking-tight">{getVehicleInfo(editingRecord.vehicleId)?.color}</span>
+                               </>
+                             )}
+                          </p>
                           <span className="text-workshop-muted font-normal opacity-40">|</span>
-                          <span className="font-mono text-sm text-workshop-secondary uppercase">{getVehicleInfo(editingRecord.vehicleId)?.plateNumber}</span>
-                       </p>
-                    </div>
-                    <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-border">
-                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted block mb-1">Entry Odometer</label>
-                       <div className="relative">
-                         <input 
-                           required
-                           type="number" 
-                           disabled={editingRecord.isDeadVehicle}
-                           value={editingRecord.isDeadVehicle ? '' : editingRecord.mileage}
-                           onChange={e => setEditingRecord({...editingRecord, mileage: Number(e.target.value)})}
-                           className={cn(
-                             "w-full bg-workshop-bg border border-workshop-border px-3 py-1.5 rounded-lg outline-none text-sm font-bold focus:ring-1 focus:ring-workshop-accent text-workshop-text",
-                             editingRecord.isDeadVehicle && "opacity-40 grayscale"
-                           )}
-                         />
-                         <button
-                           type="button"
-                           onClick={() => setEditingRecord({...editingRecord, isDeadVehicle: !editingRecord.isDeadVehicle, mileage: 0})}
-                           className={cn(
-                             "absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[8px] font-black uppercase transition-all",
-                             editingRecord.isDeadVehicle ? "bg-rose-500 text-white" : "bg-workshop-surface text-workshop-muted border border-workshop-border"
-                           )}
-                         >
-                           {editingRecord.isDeadVehicle ? "Dead" : "Alive"}
-                         </button>
+                          <span className={cn(
+                            "font-mono text-sm font-black uppercase tracking-tight",
+                            editingRecord.isDeadVehicle ? "text-rose-500 italic" : "text-workshop-warning"
+                          )}>
+                            {editingRecord.isDeadVehicle ? "DEAD" : `${editingRecord.mileage.toLocaleString()} KM`}
+                          </span>
                        </div>
                     </div>
                     {(editingRecord.status === 'completed' || (editingRecord.completionMileage && editingRecord.completionMileage > 0)) && (
@@ -1154,15 +1160,6 @@ export function ServiceHistory() {
                          />
                        </div>
                     )}
-                    <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-border">
-                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted block mb-1">Expected Delivery Date</label>
-                       <input 
-                         type="date" 
-                         value={editingRecord.expectedDeliveryDate || ''}
-                         onChange={e => setEditingRecord({...editingRecord, expectedDeliveryDate: e.target.value})}
-                         className="w-full bg-workshop-bg border border-workshop-border px-3 py-1.5 rounded-lg outline-none text-sm font-bold focus:ring-1 focus:ring-workshop-accent text-workshop-text"
-                       />
-                    </div>
                  </div>
 
                  <div className="space-y-1.5">
@@ -1190,18 +1187,18 @@ export function ServiceHistory() {
                     <div className="space-y-4">
                        <h3 className="font-bold text-workshop-muted uppercase tracking-widest text-[10px]">Adjust Parts Used</h3>
                        <div className="relative">
-                         <select 
-                           value=""
-                           onChange={(e) => addPartToEditingRecord(e.target.value)}
-                           className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-sm appearance-none cursor-pointer focus:ring-1 focus:ring-workshop-accent text-workshop-text shadow-sm"
-                         >
-                            <option value="">+ Add or Replace part...</option>
-                            {parts.map(p => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} (Stock: {p.stockQuantity})
-                              </option>
-                            ))}
-                         </select>
+                         <Select onValueChange={(val) => addPartToEditingRecord(val)}>
+                           <SelectTrigger className="w-full shadow-sm">
+                             <SelectValue placeholder="+ Add or Replace part..." />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {parts.map(p => (
+                               <SelectItem key={p.id} value={p.id!}>
+                                 {p.name} (Stock: {p.stockQuantity})
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
                        </div>
                        
                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">

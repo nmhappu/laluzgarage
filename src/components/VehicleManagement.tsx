@@ -6,6 +6,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Vehicle, Customer, ServiceRecord } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
 import { format } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/CustomSelect";
 
 export function VehicleManagement() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -381,17 +388,21 @@ export function VehicleManagement() {
               <form onSubmit={handleEditVehicle} className="space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Customer (Owner)</label>
-                  <select 
-                    required
-                    value={editingVehicle.customerId}
-                    onChange={e => setEditingVehicle({...editingVehicle, customerId: e.target.value})}
-                    className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none appearance-none cursor-pointer text-workshop-text"
+                  <Select 
+                    value={editingVehicle.customerId} 
+                    onValueChange={(val) => setEditingVehicle({...editingVehicle, customerId: val})}
                   >
-                    <option value="">Select current client...</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select current client..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id!}>
+                          {c.name} ({c.phone})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -560,17 +571,21 @@ export function VehicleManagement() {
               <form onSubmit={handleAddVehicle} className="space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Customer (Owner)</label>
-                  <select 
-                    required
-                    value={newVehicle.customerId}
-                    onChange={e => setNewVehicle({...newVehicle, customerId: e.target.value})}
-                    className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none appearance-none cursor-pointer text-workshop-text"
+                  <Select 
+                    value={newVehicle.customerId} 
+                    onValueChange={(val) => setNewVehicle({...newVehicle, customerId: val})}
                   >
-                    <option value="">Select current client...</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select current client..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id!}>
+                          {c.name} ({c.phone})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

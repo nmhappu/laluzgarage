@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Car, Package, ClipboardList, LogOut, Home } from 'lucide-react';
+import { LayoutDashboard, Car, Package, ClipboardList, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 

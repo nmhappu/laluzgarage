@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "Details of the workshop customer.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the customer." },
+        "phone": { "type": "string", "description": "Primary contact number." },
+        "email": { "type": "string", "format": "email", "description": "Email address for communication." },
+        "address": { "type": "string", "description": "Postal address for billing and records." },
+        "technicianId": { "type": "string", "description": "UID of the technician who created this record." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of record creation." }
+      },
+      "required": ["name", "phone", "technicianId", "createdAt"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Details of the vehicle owned by a customer.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string", "description": "Reference to the Customer document ID." },
+        "make": { "type": "string", "description": "Manufacturer (e.g., BMW, Audi)." },
+        "model": { "type": "string", "description": "Model of the vehicle (e.g., M3, A4)." },
+        "color": { "type": "string", "description": "Exterior color of the vehicle." },
+        "plateNumber": { "type": "string", "description": "Registration plate number." },
+        "vin": { "type": "string", "description": "Vehicle Identification Number (Chassis)." },
+        "technicianId": { "type": "string", "description": "UID of the technician who registered this vehicle." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of record creation." }
+      },
+      "required": ["customerId", "make", "plateNumber", "technicianId", "createdAt"]
+    },
+    "Part": {
+      "title": "Part",
+      "description": "Inventory item for spare parts and supplies.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the part." },
+        "sku": { "type": "string", "description": "Unique SKU or barcode for the part." },
+        "category": { "type": "string", "description": "Classification (e.g., Engine, Brakes)." },
+        "stockQuantity": { "type": "integer", "description": "Current quantity in stock." },
+        "price": { "type": "number", "description": "Unit price of the part." },
+        "minStockLevel": { "type": "integer", "description": "Threshold for low stock warnings." },
+        "location": { "type": "string", "description": "Storage location in the warehouse." }
+      },
+      "required": ["name", "sku", "stockQuantity", "price"]
+    },
+    "ServiceRecord": {
+      "title": "Service Record",
+      "description": "Log of a service job performed on a vehicle.",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string", "description": "Reference to the Vehicle document ID." },
+        "customerId": { "type": "string", "description": "Reference to the Customer document ID." },
+        "technicianId": { "type": "string", "description": "UID of the technician performing the service." },
+        "date": { "type": "string", "format": "date-time", "description": "Detailed date of the service." },
+        "mileage": { "type": "integer", "description": "Mileage at the time of service." },
+        "description": { "type": "string", "description": "Details of work performed." },
+        "remarks": { "type": "string", "description": "Technician remarks and advice." },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in-progress", "completed", "cancelled"],
+          "description": "Current status of the service job."
+        },
+        "laborCost": { "type": "number", "description": "Cost of labor." },
+        "partsCost": { "type": "number", "description": "Total cost of parts used." },
+        "totalCost": { "type": "number", "description": "Grand total for the service (labor + parts)." },
+        "expectedDeliveryDate": { "type": "string", "format": "date-time", "description": "Expected completion date." },
+        "technicianName": { "type": "string", "description": "Name of the advisor handling the job." },
+        "completionMileage": { "type": "integer", "description": "Mileage recorded at the time of job completion." },
+        "isDeadVehicle": { "type": "boolean", "description": "Flag indicating if the vehicle was dead upon arrival." },
+        "partsUsed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "partId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "integer" },
+              "unitPrice": { "type": "number" }
+            },
+            "required": ["partId", "name", "quantity", "unitPrice"]
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["vehicleId", "customerId", "technicianId", "date", "description", "status", "laborCost"]
+    }
+  },
+  "firestore": {
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Collection of workshop clients."
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Collection of vehicles registered to clients."
+    },
+    "/parts/{partId}": {
+      "schema": "Part",
+      "description": "Inventory of spare parts."
+    },
+    "/serviceRecords/{recordId}": {
+      "schema": "ServiceRecord",
+      "description": "History of services performed."
+    }
+  }
+}

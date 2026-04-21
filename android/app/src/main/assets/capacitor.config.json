@@ -1,0 +1,5 @@
+{
+	"appId": "com.gearbox.workshop",
+	"appName": "GearBox Workshop Manager",
+	"webDir": "dist"
+}

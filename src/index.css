@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Zen+Dots&family=Open+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-logo: "Zen Dots", cursive;
+
+  /* Image-Inspired Dark Mode Palette */
+  --color-workshop-bg: #0B0D11;
+  --color-workshop-surface: #12141C;
+  --color-workshop-card: #181B24;
+  --color-workshop-accent: #10B981; /* Precise Green */
+  --color-workshop-secondary: #3B82F6; /* Precise Blue */
+  --color-workshop-warning: #FBBF24; /* Precise Yellow */
+  --color-workshop-border: #1E232E;
+  --color-workshop-text: #F8FAFC;
+  --color-workshop-muted: #94A3B8;
+}
+
+@layer base {
+  body {
+    @apply bg-workshop-bg text-workshop-text font-sans antialiased select-none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize scrolling for iOS */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Utilities for mobile optimization */
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+@utility h-mobile-screen {
+  height: 100dvh;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+}

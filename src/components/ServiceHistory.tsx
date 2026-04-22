@@ -457,9 +457,10 @@ export function ServiceHistory() {
                  <div className="flex flex-col gap-3">
                    <div className="flex-1 space-y-3">
                      <div className="flex flex-col gap-1">
-                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight">
-                              <span className="text-workshop-text">{getCustomerName(record.customerId)}</span>
-                              <span className="text-workshop-muted opacity-30">|</span>
+                           <div className="text-workshop-text text-sm md:text-[15px] font-black uppercase tracking-tight">
+                              {getCustomerName(record.customerId)}
+                           </div>
+                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight opacity-70">
                               <span className="text-workshop-text">{v?.make} {v?.model}</span>
                               <span className="text-workshop-muted opacity-30">|</span>
                               <span className="text-workshop-secondary">{v?.plateNumber}</span>

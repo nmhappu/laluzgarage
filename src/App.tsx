@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { CustomerManagement } from './components/CustomerManagement';
-import { VehicleManagement } from './components/VehicleManagement';
 import { Inventory } from './components/Inventory';
 import { ServiceHistory } from './components/ServiceHistory';
 import { motion } from 'motion/react';
@@ -40,7 +39,6 @@ function AppContent() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<CustomerManagement />} />
-                <Route path="/vehicles" element={<VehicleManagement />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/services" element={<ServiceHistory />} />
               </Routes>

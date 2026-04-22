@@ -94,10 +94,10 @@ export function Dashboard() {
           <h1 className="text-2xl md:text-4xl font-black text-workshop-text tracking-tighter uppercase">Dashboard</h1>
         </div>
         <div className="relative group">
-          <div className="absolute inset-0 bg-workshop-accent/20 blur-xl rounded-xl group-hover:bg-workshop-accent/40 transition-all duration-500" />
+          <div className="absolute inset-0 bg-workshop-accent/20 blur-xl rounded group-hover:bg-workshop-accent/40 transition-all duration-500" />
           <button 
             onClick={() => setShowIntake(true)}
-            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all active:scale-95"
+            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:bg-emerald-500 transition-all active:scale-95"
           >
             <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             New Customer
@@ -118,13 +118,13 @@ export function Dashboard() {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-col"
+        className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10"
       >
         {stats.map((stat) => (
           <div 
             key={stat.label}
             className={cn(
-              "flex items-center justify-between py-6 md:py-8 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
+              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
             )}
           >
             <div className="flex items-center gap-4">
@@ -149,13 +149,13 @@ export function Dashboard() {
       {/* Pending Services Log - List Style */}
       <div className="space-y-6 pt-8">
         <h2 className="text-xl font-black text-workshop-text uppercase tracking-tighter">Recent Activities</h2>
-        <div className="flex flex-col">
+        <div className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10">
           {pendingQueue.length > 0 ? (
             <>
               {pendingQueue.slice(0, 5).map((job) => (
                 <div 
                   key={job.id}
-                  className="flex items-center justify-between py-6 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
+                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors">

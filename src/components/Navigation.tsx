@@ -1,11 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Car, Package, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/vehicles', icon: Car, label: 'Vehicles' },
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/services', icon: ClipboardList, label: 'Services' },
 ];

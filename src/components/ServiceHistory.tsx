@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
-import { Search, User, Car, ScanHeart, ChevronRight, Trash2, ArrowRight, RefreshCw, Phone, Eye, Edit3 } from 'lucide-react';
+import { Search, User, Car, ScanHeart, ChevronRight, Trash2, ArrowRight, RefreshCw, Phone, Eye, Edit3, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { ServiceRecord, Vehicle, Customer, Part } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
@@ -465,7 +465,7 @@ export function ServiceHistory() {
                               <span className="text-workshop-muted opacity-30">|</span>
                               <span className="text-workshop-secondary">{v?.plateNumber}</span>
                            </div>
-                           <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
+                           <div className="flex items-center justify-between gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
                               <div className="flex items-center gap-1.5">
                                  <span className={cn("font-mono whitespace-nowrap pr-1", record.isDeadVehicle ? "text-rose-500 italic opacity-80" : "text-workshop-warning")}>
                                    {record.isDeadVehicle ? "DEAD" : `${record.mileage.toLocaleString()} KM`}
@@ -477,11 +477,24 @@ export function ServiceHistory() {
                                    </>
                                  )}
                               </div>
+
+                              {v?.passwordOrPin && (
+                                <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-2 py-0.5 rounded border border-[#4ade80]/10">
+                                  {v.passwordOrPin.toLowerCase() === 'key' ? (
+                                    <>
+                                      <Key className="w-3 h-3" />
+                                      <span className="text-[10px] font-black tracking-[0.15em]">KEY</span>
+                                    </>
+                                  ) : (
+                                    <span className="font-mono font-black text-xs tracking-wider"># {v.passwordOrPin}</span>
+                                  )}
+                                </div>
+                              )}
                            </div>
                         </div>
                      </div>
 
-                     <div className="max-w-md bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
+                     <div className="w-full bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
                         <p className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
                           "{record.description}"
                         </p>

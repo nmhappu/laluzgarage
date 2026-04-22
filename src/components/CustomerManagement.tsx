@@ -255,6 +255,7 @@ export function CustomerManagement() {
                   <input 
                     required
                     type="tel" 
+                    inputMode="tel"
                     value={newCustomer.phone}
                     onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})}
                     className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"
@@ -342,6 +343,7 @@ export function CustomerManagement() {
                   <input 
                     required
                     type="tel" 
+                    inputMode="tel"
                     value={editingCustomer.phone}
                     onChange={e => setEditingCustomer({...editingCustomer, phone: e.target.value})}
                     className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"

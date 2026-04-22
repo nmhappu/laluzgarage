@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { Plus, Search, AlertCircle, Tag, Edit2, Trash2, X, MapPin } from 'lucide-react';
+import { Plus, Search, Tag, Edit2, Trash2, X, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
@@ -124,37 +124,15 @@ export function Inventory() {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="md:col-span-2 lg:col-span-2 relative flex items-center">
-          <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
-          <input 
-            type="text" 
-            placeholder="Search by name or SKU..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-workshop-accent focus:border-workshop-accent text-sm text-workshop-text"
-          />
-        </div>
-        <div className="bg-workshop-surface p-4 rounded-xl border border-workshop-warning/30 flex items-center justify-between shadow-sm overflow-hidden relative group">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-workshop-warning/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
-           <div className="flex items-center gap-4 relative z-10">
-              <div className="p-3 bg-workshop-warning/10 rounded-lg border border-workshop-warning/20 shadow-inner">
-                <AlertCircle className="w-6 h-6 text-workshop-warning" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-workshop-warning uppercase tracking-[0.2em] mb-1">Low Stock Warning</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-workshop-text font-sans tabular-nums leading-none">
-                    {parts.filter(p => p.stockQuantity <= p.minStockLevel).length}
-                  </p>
-                  <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest leading-none">Items</p>
-                </div>
-              </div>
-           </div>
-           <button className="relative z-10 bg-workshop-warning/10 text-workshop-warning font-black text-[10px] uppercase tracking-[0.2em] px-5 py-2.5 rounded-xl hover:bg-workshop-warning/20 transition-all active:scale-95 shadow-sm border border-workshop-warning/20">
-             Reorder
-           </button>
-        </div>
+      <div className="relative flex items-center">
+        <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
+        <input 
+          type="text" 
+          placeholder="Search by name or SKU..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-workshop-accent focus:border-workshop-accent text-sm text-workshop-text"
+        />
       </div>
 
       <div className="bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden">
@@ -189,10 +167,7 @@ export function Inventory() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <span className={cn(
-                        "text-lg font-black font-sans tabular-nums",
-                        part.stockQuantity <= 0 ? "text-rose-500" : 
-                        part.stockQuantity <= part.minStockLevel ? "text-workshop-warning" : 
-                        "text-workshop-accent"
+                        "text-lg font-black font-sans tabular-nums text-workshop-accent"
                       )}>
                         {part.stockQuantity}
                       </span>
@@ -263,10 +238,7 @@ export function Inventory() {
                 <div className="flex items-center gap-4">
                    <div className="flex items-center gap-2">
                     <span className={cn(
-                      "text-base font-black font-sans tabular-nums",
-                      part.stockQuantity <= 0 ? "text-rose-500" : 
-                      part.stockQuantity <= part.minStockLevel ? "text-workshop-warning" : 
-                      "text-workshop-accent"
+                      "text-base font-black font-sans tabular-nums text-workshop-accent"
                     )}>
                       {part.stockQuantity}
                     </span>
@@ -392,7 +364,7 @@ export function Inventory() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Min Stock Warning</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Minimum Stock Level</label>
                     <input 
                       type="number" 
                       value={editingPart.minStockLevel}

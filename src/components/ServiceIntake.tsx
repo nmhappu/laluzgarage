@@ -363,6 +363,8 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Contact Number</label>
                         <input 
+                          type="tel"
+                          inputMode="tel"
                           value={customerForm.phone}
                           onChange={e => setCustomerForm({...customerForm, phone: e.target.value})}
                           className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"

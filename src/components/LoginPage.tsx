@@ -60,7 +60,7 @@ export function LoginPage() {
             <div className="w-16 h-16 bg-workshop-accent rounded-xl flex items-center justify-center shadow-lg shadow-workshop-accent/10 mb-2">
               <Wrench className="w-8 h-8 text-workshop-bg" />
             </div>
-            <h1 className="text-3xl font-black text-workshop-text tracking-tighter uppercase">LaluzGarage</h1>
+            <h1 className="text-3xl font-black text-workshop-text tracking-tighter uppercase">LaluZ Garage</h1>
             <p className="text-workshop-muted text-xs font-bold uppercase tracking-[0.2em] opacity-60">Workshop Management Core</p>
           </div>
 

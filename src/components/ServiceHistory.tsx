@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
-import { Plus, Search, User, Car, ScanHeart, ChevronRight, Trash2, ArrowRight, RefreshCw, Phone, Eye, Edit3 } from 'lucide-react';
+import { Search, User, Car, ScanHeart, ChevronRight, Trash2, ArrowRight, RefreshCw, Phone, Eye, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { ServiceRecord, Vehicle, Customer, Part } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
@@ -362,13 +362,6 @@ export function ServiceHistory() {
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase">Service History</h1>
           <p className="text-workshop-muted text-sm">Track and manage vehicle maintenance history.</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-bold uppercase text-xs tracking-widest hover:bg-emerald-500 transition-all font-black active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-          <span>New Job Card</span>
-        </button>
       </header>
 
       {/* Status Tabs */}
@@ -472,8 +465,8 @@ export function ServiceHistory() {
                               <span className="text-workshop-secondary">{v?.plateNumber}</span>
                            </div>
                            <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
-                              <div className="flex items-center gap-1.5 overflow-hidden">
-                                 <span className={cn("font-mono whitespace-nowrap", record.isDeadVehicle ? "text-rose-500 italic opacity-80" : "text-workshop-warning")}>
+                              <div className="flex items-center gap-1.5">
+                                 <span className={cn("font-mono whitespace-nowrap pr-1", record.isDeadVehicle ? "text-rose-500 italic opacity-80" : "text-workshop-warning")}>
                                    {record.isDeadVehicle ? "DEAD" : `${record.mileage.toLocaleString()} KM`}
                                  </span>
                                  {record.completionMileage && (

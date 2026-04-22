@@ -20,7 +20,7 @@ export function Navigation() {
         <div className="p-8">
           <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
             <h1 className="text-workshop-text text-xl font-logo tracking-tighter flex items-center gap-2 transition-colors group-hover:text-workshop-accent">
-              LaluzGarage
+              LaluZ Garage
             </h1>
           </NavLink>
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em]">Workshop Manager</p>
@@ -73,7 +73,7 @@ export function Navigation() {
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
           <NavLink to="/" className="flex items-center gap-2">
-            <span className="text-workshop-text text-lg font-logo tracking-tighter">LaluzGarage</span>
+            <span className="text-workshop-text text-lg font-logo tracking-tighter">LaluZ Garage</span>
           </NavLink>
           
           <button 

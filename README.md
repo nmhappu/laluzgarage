@@ -1,4 +1,4 @@
-# Laluz Garage - Mobile Instructions
+# GearBox Workshop Manager - Mobile Instructions
 
 This project is now configured for native Android development using **Capacitor**.
 

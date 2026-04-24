@@ -57,6 +57,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     mileage: '',
     description: '',
     expectedDeliveryDate: '',
+    serviceDate: new Date().toISOString().split('T')[0],
     isDeadVehicle: false
   });
 
@@ -166,7 +167,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
         customerId,
         technicianId: auth.currentUser?.uid,
         technicianName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown Advisor',
-        date: new Date().toISOString(),
+        date: jobForm.serviceDate + "T" + new Date().toISOString().split('T')[1],
         expectedDeliveryDate: jobForm.expectedDeliveryDate,
         mileage: Number(jobForm.mileage),
         isDeadVehicle: jobForm.isDeadVehicle,
@@ -568,14 +569,28 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Expected Delivery Date</label>
-                    <input 
-                      type="date"
-                      value={jobForm.expectedDeliveryDate}
-                      onChange={e => setJobForm({...jobForm, expectedDeliveryDate: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Service Date</label>
+                      <input 
+                        type="date"
+                        value={jobForm.serviceDate}
+                        onChange={e => setJobForm({...jobForm, serviceDate: e.target.value})}
+                        className={cn(
+                          "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold",
+                          jobForm.serviceDate === new Date().toISOString().split('T')[0] ? "text-workshop-muted" : "text-workshop-text"
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Expected Delivery Date</label>
+                      <input 
+                        type="date"
+                        value={jobForm.expectedDeliveryDate}
+                        onChange={e => setJobForm({...jobForm, expectedDeliveryDate: e.target.value})}
+                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text"
+                      />
+                    </div>
                   </div>
                 </div>
 

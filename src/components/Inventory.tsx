@@ -305,17 +305,31 @@ export function Inventory() {
                 <div className="flex gap-3 pt-4">
                   <button 
                     type="button" 
-                    onClick={() => setShowEditModal(false)}
-                    className="flex-1 px-4 py-3 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-colors"
+                    onClick={() => {
+                      setPartToDelete(editingPart);
+                      setShowDeleteConfirm(true);
+                      setShowEditModal(false);
+                    }}
+                    className="p-3 border border-rose-500/20 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    title="Delete Asset"
                   >
-                    Discard Changes
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                  <button 
-                    type="submit" 
-                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/10 hover:bg-emerald-500 transition-all"
-                  >
-                    Commit Update
-                  </button>
+                  <div className="flex flex-1 gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 px-4 py-3 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-colors"
+                    >
+                      Discard Changes
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/10 hover:bg-emerald-500 transition-all"
+                    >
+                      Commit Update
+                    </button>
+                  </div>
                 </div>
               </form>
             </motion.div>

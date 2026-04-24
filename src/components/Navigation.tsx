@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -57,13 +57,29 @@ export function Navigation() {
               <p className="text-[10px] uppercase text-workshop-muted font-black tracking-widest opacity-60">Active session</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
-          >
-            <LogOut className="w-3 h-3" />
-            End session
-          </button>
+          
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
+            <button 
+              onClick={logout}
+              className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
+            >
+              <LogOut className="w-3 h-3" />
+              End session
+            </button>
+
+            <NavLink 
+              to="/settings" 
+              className={({ isActive }) => cn(
+                "flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all",
+                isActive 
+                  ? "text-workshop-accent" 
+                  : "text-workshop-muted hover:text-workshop-text"
+              )}
+            >
+              <Settings className="w-3 h-3" />
+              <span>Settings</span>
+            </NavLink>
+          </div>
         </div>
       </aside>
 
@@ -75,13 +91,25 @@ export function Navigation() {
             <span className="text-workshop-text text-lg font-logo tracking-tighter">LaluZ Garage</span>
           </NavLink>
           
-          <button 
-            onClick={logout}
-            className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5 pointer-events-none" />
-          </button>
+          <div className="flex items-center gap-4">
+            <NavLink 
+              to="/settings"
+              className={({ isActive }) => cn(
+                "p-2 transition-colors",
+                isActive ? "text-workshop-accent" : "text-workshop-muted hover:text-workshop-text"
+              )}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </NavLink>
+            <button 
+              onClick={logout}
+              className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5 pointer-events-none" />
+            </button>
+          </div>
         </div>
       </nav>
 

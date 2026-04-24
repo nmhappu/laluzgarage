@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { CustomerManagement } from './components/CustomerManagement';
 import { Inventory } from './components/Inventory';
 import { ServiceHistory } from './components/ServiceHistory';
+import { Settings } from './components/Settings';
 import { motion } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
@@ -41,6 +42,7 @@ function AppContent() {
                 <Route path="/customers" element={<CustomerManagement />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/services" element={<ServiceHistory />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </motion.div>
           </div>

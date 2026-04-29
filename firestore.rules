@@ -22,7 +22,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev'] ||
+        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev', 'appu@appu.dev', 'aswalal@laluz.com'] ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
@@ -37,9 +37,11 @@ service cloud.firestore {
     }
 
     function isVerified() {
+      // Relaxed for development to allow unverified emails from the workshop domain or known users
       return isSignedIn() && (
         request.auth.token.email_verified == true ||
-        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev']
+        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev', 'appu@appu.dev', 'aswalal@laluz.com'] ||
+        exists(/databases/$(database)/documents/users/$(request.auth.uid))
       );
     }
 

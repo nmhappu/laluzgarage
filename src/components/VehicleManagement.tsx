@@ -295,8 +295,8 @@ export function VehicleManagement() {
                                 <span className={cn(
                                   "px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest mb-1 inline-block border",
                                   record.status === 'completed' ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20" :
-                                  record.status === 'in-progress' ? "bg-workshop-secondary/10 text-workshop-secondary border-workshop-secondary/20" :
-                                  "bg-workshop-warning/10 text-workshop-warning border-workshop-warning/20"
+                                  record.status === 'in-progress' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                                  "bg-rose-500/10 text-rose-500 border-rose-500/20"
                                 )}>
                                   {record.status}
                                 </span>

@@ -5,6 +5,7 @@ import { Plus, Search, Tag, Trash2, X, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
 import { formatCurrency } from '../lib/utils';
+import { Portal } from './Portal';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function Inventory() {
@@ -31,6 +32,24 @@ export function Inventory() {
   useEffect(() => {
     fetchParts();
   }, []);
+
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (showEditModal) {
+        setShowEditModal(false);
+        e.preventDefault();
+      } else if (showAddModal) {
+        setShowAddModal(false);
+        e.preventDefault();
+      } else if (showDeleteConfirm) {
+        setShowDeleteConfirm(false);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("appBackButton", handleBackButton);
+    return () => window.removeEventListener("appBackButton", handleBackButton);
+  }, [showEditModal, showAddModal, showDeleteConfirm]);
 
   const fetchParts = async () => {
     setLoading(true);
@@ -211,20 +230,21 @@ export function Inventory() {
       {/* Edit Modal */}
       <AnimatePresence>
         {showEditModal && editingPart && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowEditModal(false)}
-              className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowEditModal(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
+              >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-workshop-text uppercase tracking-tight">Edit Inventory Asset</h2>
                 <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-workshop-surface rounded-full transition-colors">
@@ -334,26 +354,28 @@ export function Inventory() {
               </form>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteConfirm && partToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)}
-              className="absolute inset-0 bg-workshop-bg/90 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
+              >
               <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
                 <Trash2 className="w-8 h-8" />
               </div>
@@ -377,26 +399,28 @@ export function Inventory() {
               </div>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
 
       {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddModal(false)}
-              className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAddModal(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
+              >
               <h2 className="text-xl font-bold mb-6 text-workshop-text uppercase tracking-tight">Catalogue New Inventory Asset</h2>
               <form onSubmit={handleAddPart} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
@@ -480,6 +504,7 @@ export function Inventory() {
               </form>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
     </div>

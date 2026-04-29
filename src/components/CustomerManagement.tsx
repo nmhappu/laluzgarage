@@ -4,8 +4,9 @@ import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { Plus, Search, Phone, Mail, MapPin, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
-import { cn, formatCurrency } from '../lib/utils';
+import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
+import { Portal } from './Portal';
 
 export function CustomerManagement() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -31,6 +32,27 @@ export function CustomerManagement() {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (showEditModal) {
+        setShowEditModal(false);
+        e.preventDefault();
+      } else if (showAddModal) {
+        setShowAddModal(false);
+        e.preventDefault();
+      } else if (showDeleteConfirm) {
+        setShowDeleteConfirm(false);
+        e.preventDefault();
+      } else if (selectedCustomerForTransactions) {
+        setSelectedCustomerForTransactions(null);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("appBackButton", handleBackButton);
+    return () => window.removeEventListener("appBackButton", handleBackButton);
+  }, [showEditModal, showAddModal, showDeleteConfirm, selectedCustomerForTransactions]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -218,20 +240,21 @@ export function CustomerManagement() {
       {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddModal(false)}
-              className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAddModal(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
+              >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-workshop-text uppercase tracking-tight">New Customer</h2>
                 <button onClick={() => setShowAddModal(false)} className="text-workshop-muted hover:text-workshop-text transition-colors">
@@ -301,26 +324,28 @@ export function CustomerManagement() {
               </form>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
 
       {/* Edit Modal */}
       <AnimatePresence>
         {showEditModal && editingCustomer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowEditModal(false)}
-              className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowEditModal(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
+              >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-workshop-text uppercase tracking-tight">Edit Client</h2>
                 <button onClick={() => setShowEditModal(false)} className="text-workshop-muted hover:text-workshop-text">
@@ -386,26 +411,28 @@ export function CustomerManagement() {
               </form>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteConfirm && customerToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)}
-              className="absolute inset-0 bg-workshop-bg/90 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
+              >
               <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
                 <Trash2 className="w-8 h-8" />
               </div>
@@ -429,25 +456,28 @@ export function CustomerManagement() {
               </div>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
-      {/* Transactions Modal */}
+
+      {/* Edit Modal */}
       <AnimatePresence>
         {selectedCustomerForTransactions && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedCustomerForTransactions(null)}
-              className="absolute inset-0 bg-workshop-bg/95 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-workshop-card w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-workshop-border"
-            >
+          <Portal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedCustomerForTransactions(null)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-workshop-border"
+              >
               <div className="bg-workshop-surface p-8 text-workshop-text relative border-b border-workshop-border">
                 <button 
                   onClick={() => setSelectedCustomerForTransactions(null)}
@@ -539,6 +569,7 @@ export function CustomerManagement() {
               </div>
             </motion.div>
           </div>
+          </Portal>
         )}
       </AnimatePresence>
     </div>

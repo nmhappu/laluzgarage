@@ -66,7 +66,7 @@
         "partsCost": { "type": "number", "description": "Total cost of parts used." },
         "totalCost": { "type": "number", "description": "Grand total for the service (labor + parts)." },
         "expectedDeliveryDate": { "type": "string", "format": "date-time", "description": "Expected completion date." },
-        "technicianName": { "type": "string", "description": "Name of the advisor handling the job." },
+        "technicianName": { "type": "string", "description": "Name of the service manager or technician handling the job." },
         "completionMileage": { "type": "integer", "description": "Mileage recorded at the time of job completion." },
         "isDeadVehicle": { "type": "boolean", "description": "Flag indicating if the vehicle was dead upon arrival." },
         "partsUsed": {
@@ -86,6 +86,20 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["vehicleId", "customerId", "technicianId", "date", "description", "status", "laborCost"]
+    },
+    "WorkshopUser": {
+      "title": "Workshop User",
+      "description": "Details of the workshop staff member.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the staff member." },
+        "email": { "type": "string", "format": "email", "description": "Work email address." },
+        "role": { "type": "string", "enum": ["admin", "manager", "technician"], "description": "System access role." },
+        "status": { "type": "string", "enum": ["online", "offline"], "description": "Current availability status." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "role", "status", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -104,6 +118,10 @@
     "/serviceRecords/{recordId}": {
       "schema": "ServiceRecord",
       "description": "History of services performed."
+    },
+    "/users/{userId}": {
+      "schema": "WorkshopUser",
+      "description": "Collection of workshop staff members."
     }
   }
 }

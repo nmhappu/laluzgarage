@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut, Settings, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { Portal } from './Portal';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
@@ -11,6 +14,7 @@ const navItems = [
 
 export function Navigation() {
   const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   return (
     <>
@@ -60,7 +64,7 @@ export function Navigation() {
           
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
             <button 
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
             >
               <LogOut className="w-3 h-3" />
@@ -103,7 +107,7 @@ export function Navigation() {
               <Settings className="w-5 h-5" />
             </NavLink>
             <button 
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"
               title="Logout"
             >
@@ -145,6 +149,56 @@ export function Navigation() {
           ))}
         </div>
       </nav>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <Portal>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowLogoutConfirm(false)}
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
+              >
+                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 border border-amber-500/20">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                
+                <h2 className="text-xl font-black text-workshop-text uppercase tracking-tight mb-2">End Session?</h2>
+                <p className="text-workshop-muted text-sm mb-8 leading-relaxed">
+                  Are you sure you want to log out? You will need to sign in again to access the workshop dashboard.
+                </p>
+
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-4 py-2.5 bg-workshop-surface text-workshop-muted rounded-xl text-sm font-black uppercase tracking-widest border border-workshop-border hover:text-workshop-text hover:bg-workshop-border transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setShowLogoutConfirm(false);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-rose-900/20 hover:bg-rose-700 transition-all"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </Portal>
+        )}
+      </AnimatePresence>
     </>
   );
 }

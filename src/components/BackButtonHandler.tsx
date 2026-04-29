@@ -12,6 +12,15 @@ export function BackButtonHandler() {
   useEffect(() => {
     const initListener = async () => {
       const handler = await App.addListener('backButton', () => {
+        // First, check if there are any custom handlers (e.g. for closing modals)
+        const customEvent = new CustomEvent('appBackButton', { cancelable: true });
+        const handled = !window.dispatchEvent(customEvent);
+
+        if (handled) {
+          // A modal or something else handled the back button
+          return;
+        }
+
         if (location.pathname !== '/') {
           // If not on dashboard, navigate back to dashboard
           navigate('/');

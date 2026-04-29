@@ -54,7 +54,7 @@ export function Dashboard() {
 
       // Pending Services Logs (Oldest First)
       const queue = enrichedRecords
-        .filter((s) => s.status === 'pending')
+        .filter((s) => s.status === 'pending' || s.status === 'in-progress')
         .sort((a, b) => {
           const dateA = new Date(a.date).getTime();
           const dateB = new Date(b.date).getTime();
@@ -82,7 +82,7 @@ export function Dashboard() {
 
   const stats = [
     { label: 'Total Customers', value: metrics.totalCustomers, icon: Users, color: 'text-blue-400' },
-    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-workshop-warning' },
+    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-rose-500' },
     { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-emerald-400' },
     { label: 'Shared Inventory', value: '1,240', icon: Package, color: 'text-workshop-secondary' },
   ];
@@ -170,9 +170,14 @@ export function Dashboard() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="flex items-center justify-end gap-2 text-workshop-warning mb-1">
+                      <div className={cn(
+                        "flex items-center justify-end gap-2 mb-1",
+                        job.status === 'in-progress' ? "text-yellow-500" : "text-rose-500"
+                      )}>
                         <Clock className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Pending</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">
+                          {job.status === 'in-progress' ? 'In-Progress' : 'Pending'}
+                        </span>
                       </div>
                       <p className="text-[9px] text-workshop-muted font-bold opacity-40 uppercase">
                         {job.expectedDeliveryDate ? format(new Date(job.expectedDeliveryDate), 'dd MMM') : 'No Date'}

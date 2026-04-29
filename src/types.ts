@@ -63,3 +63,15 @@ export interface ServiceRecord {
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
 }
+
+export type UserRole = 'admin' | 'manager' | 'technician';
+
+export interface WorkshopUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: 'online' | 'offline';
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
+}

@@ -21,15 +21,26 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && (
+        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
     function isManager() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'manager'];
+      return isSignedIn() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager')
+      );
+    }
+
+    function isVerified() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev']
+      );
     }
 
     function isValidId(id) {
@@ -89,46 +100,35 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     match /users/{userId} {
-      // Allow reading user profile if signed in. 
-      // For listing, we allow it for all signed in workshop members to see their teammates.
       allow read: if isSignedIn();
-      
-      // Only admins can create new users via this path (or the first user setup)
-      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) && (
+      allow create: if isVerified() && isValidWorkshopUser(incoming()) && (
         !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || isAdmin()
       );
-      
-      allow update: if isSignedIn() && (
-        // Self-update for status
-        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && incoming().updatedAt == request.time) ||
-        // Admin update for roles
+      allow update: if isVerified() && isValidWorkshopUser(incoming()) && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
         isAdmin()
       );
-      
-      allow delete: if isAdmin() && request.auth.uid != userId; // Prevent self-deletion
+      allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /customers/{customerId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidCustomer(incoming());
-      allow update: if isSignedIn() && (
-        isValidCustomer(incoming()) || 
-        (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt']) && incoming().updatedAt == request.time)
-      );
+      allow create: if isVerified() && isValidCustomer(incoming());
+      allow update: if isVerified() && isValidCustomer(incoming());
       allow delete: if isAdmin();
     }
 
     match /vehicles/{vehicleId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidVehicle(incoming());
-      allow update: if isSignedIn(); // Simplified for now to prevent blockages
+      allow create: if isVerified() && isValidVehicle(incoming());
+      allow update: if isVerified() && isValidVehicle(incoming());
       allow delete: if isAdmin();
     }
 
     match /parts/{partId} {
       allow read: if isSignedIn();
-      allow create: if isManager() && isValidPart(incoming());
-      allow update: if isSignedIn() && (
+      allow create: if isVerified() && isManager() && isValidPart(incoming());
+      allow update: if isVerified() && (
         isValidPart(incoming()) ||
         incoming().diff(existing()).affectedKeys().hasOnly(['stockQuantity'])
       );
@@ -137,11 +137,8 @@ service cloud.firestore {
 
     match /serviceRecords/{recordId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidServiceRecord(incoming());
-      allow update: if isSignedIn() && (
-        // Action: Status Change
-        (incoming().diff(existing()).affectedKeys().hasAny(['status', 'updatedAt']) && incoming().updatedAt == request.time) ||
-        // Action: Edit Record
+      allow create: if isVerified() && isValidServiceRecord(incoming());
+      allow update: if isVerified() && (
         isAdmin() || (existing().technicianId == request.auth.uid && existing().status != 'completed')
       );
       allow delete: if isAdmin();

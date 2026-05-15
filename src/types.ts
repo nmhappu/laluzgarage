@@ -4,8 +4,6 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
-  email: string;
-  address: string;
   technicianId: string;
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
@@ -64,13 +62,10 @@ export interface ServiceRecord {
   updatedAt: FieldValue | Timestamp;
 }
 
-export type UserRole = 'admin' | 'manager' | 'technician';
-
 export interface WorkshopUser {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
   status: 'online' | 'offline';
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;

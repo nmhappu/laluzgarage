@@ -7,7 +7,8 @@ import {
   User,
   updateProfile
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -39,6 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
       await updateProfile(userCredential.user, { displayName });
+      
+      // Add to users collection
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        id: userCredential.user.uid,
+        name: displayName,
+        email: email,
+        status: 'offline',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
       // Force user state refresh to include displayName
       setUser({ ...userCredential.user, displayName });
     }

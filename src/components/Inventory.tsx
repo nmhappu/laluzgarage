@@ -158,16 +158,48 @@ export function Inventory() {
       </div>
 
       <div className="-mx-4 md:-mx-8 lg:-mx-10 overflow-hidden">
-        <div className="divide-y divide-workshop-border/30">
-          {filteredParts.map((part) => (
-            <div 
-              key={part.id} 
-              className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-white/[0.02] transition-all cursor-pointer group"
-              onClick={() => {
-                setEditingPart(part);
-                setShowEditModal(true);
-              }}
-            >
+        <motion.div 
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.02,
+                delayChildren: 0.1
+              }
+            }
+          }}
+          className="divide-y divide-workshop-border/30"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredParts.map((part) => (
+              <motion.div 
+                layout
+                key={part.id} 
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: {
+                      duration: 0.3,
+                      ease: [0.23, 1, 0.32, 1] // Quintic ease-out for smoothness
+                    }
+                  }
+                }}
+                exit={{ 
+                  opacity: 0, 
+                  scale: 0.98,
+                  transition: { duration: 0.2 } 
+                }}
+                className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-white/[0.01] transition-colors cursor-pointer group"
+                onClick={() => {
+                  setEditingPart(part);
+                  setShowEditModal(true);
+                }}
+              >
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm md:text-[15px] font-bold text-workshop-text tracking-tight uppercase group-hover:text-workshop-accent transition-colors">
@@ -215,9 +247,10 @@ export function Inventory() {
                    </span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+          </AnimatePresence>
+        </motion.div>
 
         {filteredParts.length === 0 && !loading && (
           <div className="py-24 text-center">

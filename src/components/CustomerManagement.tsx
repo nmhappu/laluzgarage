@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
-import { Plus, Search, Phone, Mail, MapPin, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck } from 'lucide-react';
+import { Plus, Search, Phone, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
@@ -21,9 +21,7 @@ export function CustomerManagement() {
   
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
     name: '',
-    phone: '',
-    email: '',
-    address: ''
+    phone: ''
   });
 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -84,7 +82,7 @@ export function CustomerManagement() {
         updatedAt: serverTimestamp()
       });
       setShowAddModal(false);
-      setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      setNewCustomer({ name: '', phone: '' });
       fetchCustomers();
     } catch (e: unknown) {
       console.error(e);
@@ -163,13 +161,40 @@ export function CustomerManagement() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <AnimatePresence>
+      <motion.div 
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.05
+            }
+          }
+        }}
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
+        <AnimatePresence mode="popLayout">
           {filteredCustomers.map((customer) => (
             <motion.div
+              layout
               key={customer.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              variants={{
+                hidden: { opacity: 0, scale: 0.98, y: 10 },
+                show: { 
+                  opacity: 1, 
+                  scale: 1, 
+                  y: 0,
+                  transition: {
+                    duration: 0.3,
+                    ease: [0.23, 1, 0.32, 1]
+                  }
+                }
+              }}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, scale: 0.95 }}
               className="bg-workshop-card p-6 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative"
             >
               <div className="flex items-start justify-between mb-4">
@@ -207,16 +232,6 @@ export function CustomerManagement() {
                   <Phone className="w-3.5 h-3.5 text-workshop-secondary" />
                   <span className="font-medium text-workshop-text">{customer.phone}</span>
                 </div>
-                {customer.email && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-3.5 h-3.5 text-workshop-secondary" />
-                    <span className="truncate">{customer.email}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                   <MapPin className="w-3.5 h-3.5 text-workshop-secondary" />
-                   <span className="truncate">{customer.address || 'No address provided'}</span>
-                </div>
               </div>
                 <div className="mt-6 pt-4 border-t border-workshop-border flex justify-end relative z-10">
                   <button 
@@ -229,7 +244,7 @@ export function CustomerManagement() {
             </motion.div>
           ))}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {loading && filteredCustomers.length === 0 && (
         <div className="text-center py-20 text-workshop-muted text-sm">
@@ -284,27 +299,6 @@ export function CustomerManagement() {
                     className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"
                     placeholder="+91 00000 00000"
                   />
-                </div>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Email Address</label>
-                    <input 
-                      type="email" 
-                      value={newCustomer.email}
-                      onChange={e => setNewCustomer({...newCustomer, email: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"
-                      placeholder="client@domain.com"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Postal Address</label>
-                    <textarea 
-                      value={newCustomer.address}
-                      onChange={e => setNewCustomer({...newCustomer, address: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none h-20 resize-none text-workshop-text"
-                      placeholder="Enter street and city details..."
-                    />
-                  </div>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button 
@@ -373,25 +367,6 @@ export function CustomerManagement() {
                     onChange={e => setEditingCustomer({...editingCustomer, phone: e.target.value})}
                     className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"
                   />
-                </div>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Email Address</label>
-                    <input 
-                      type="email" 
-                      value={editingCustomer.email || ''}
-                      onChange={e => setEditingCustomer({...editingCustomer, email: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Postal Address</label>
-                    <textarea 
-                      value={editingCustomer.address || ''}
-                      onChange={e => setEditingCustomer({...editingCustomer, address: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none h-20 resize-none text-workshop-text"
-                    />
-                  </div>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button 

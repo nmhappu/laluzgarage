@@ -758,18 +758,41 @@ export function ServiceHistory() {
             );
           }
 
-          return filtered.map((record, i) => {
-            const v = getVehicleInfo(record.vehicleId);
-            const customer = customers.find((c) => c.id === record.customerId);
-            return (
-              <motion.div
-                key={record.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => setEditingRecord({ ...record })}
-                className="relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden hover:border-workshop-accent/30 transition-all group cursor-pointer"
-              >
+          return (
+            <motion.div 
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.04
+                  }
+                }
+              }}
+              className="space-y-4"
+            >
+              {filtered.map((record) => {
+                const v = getVehicleInfo(record.vehicleId);
+                const customer = customers.find((c) => c.id === record.customerId);
+                return (
+                  <motion.div
+                    key={record.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      show: { 
+                        opacity: 1, 
+                        y: 0,
+                        transition: {
+                          duration: 0.3,
+                          ease: [0.23, 1, 0.32, 1]
+                        }
+                      }
+                    }}
+                    onClick={() => setEditingRecord({ ...record })}
+                    className="relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden hover:border-workshop-accent/30 transition-all group cursor-pointer"
+                  >
                 {v?.make?.toUpperCase() === "OLA" && (
                   <div className="absolute inset-y-0 left-0 w-1/2 pointer-events-none opacity-[0.03] overflow-hidden grayscale brightness-200">
                     <img
@@ -975,9 +998,11 @@ export function ServiceHistory() {
                 </div>
               </motion.div>
             );
-          });
-        })()}
-      </div>
+          })}
+        </motion.div>
+      );
+    })()}
+</div>
 
       {loading && (
         <div className="text-center py-20 text-workshop-muted text-sm">

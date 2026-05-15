@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut, Settings, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext';
 import { Portal } from './Portal';
 
 const navItems = [
@@ -14,12 +15,16 @@ const navItems = [
 
 export function Navigation() {
   const { user, logout } = useAuth();
+  const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border">
+      <aside className={cn(
+        "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-500 ease-in-out",
+        isModalOpen && "blur-xl scale-[0.98] opacity-30 grayscale saturate-0 pointer-events-none"
+      )}>
         <div className="p-8">
           <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
             <h1 className="text-workshop-text text-xl font-logo tracking-tighter flex items-center gap-2 transition-colors group-hover:text-workshop-accent">
@@ -29,23 +34,43 @@ export function Navigation() {
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em]">Workshop Manager</p>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <motion.nav 
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+          className="flex-1 px-4 py-4 space-y-1"
+        >
           {navItems.map((item) => (
-            <NavLink
+            <motion.div
               key={item.to}
-              to={item.to}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
-                isActive 
-                  ? "bg-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/20" 
-                  : "text-workshop-muted hover:bg-workshop-card hover:text-workshop-text"
-              )}
+              variants={{
+                hidden: { opacity: 0, x: -10 },
+                show: { opacity: 1, x: 0 }
+              }}
             >
-              <item.icon className="w-4 h-4" />
-              <span>{item.label}</span>
-            </NavLink>
+              <NavLink
+                to={item.to}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all group",
+                  isActive 
+                    ? "bg-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/20" 
+                    : "text-workshop-muted hover:bg-workshop-card hover:text-workshop-text"
+                )}
+              >
+                <item.icon className="w-4 h-4 transition-transform group-active:scale-90" />
+                <span>{item.label}</span>
+              </NavLink>
+            </motion.div>
           ))}
-        </nav>
+        </motion.nav>
 
         <div className="p-6 bg-workshop-bg flex flex-col gap-4 border-t border-workshop-border">
           <div className="flex items-center gap-3">
@@ -62,7 +87,7 @@ export function Navigation() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
+          <div className="flex items-center justify-start gap-2 pt-2 border-t border-workshop-border/30">
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
@@ -70,25 +95,15 @@ export function Navigation() {
               <LogOut className="w-3 h-3" />
               End session
             </button>
-
-            <NavLink 
-              to="/settings" 
-              className={({ isActive }) => cn(
-                "flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all",
-                isActive 
-                  ? "text-workshop-accent" 
-                  : "text-workshop-muted hover:text-workshop-text"
-              )}
-            >
-              <Settings className="w-3 h-3" />
-              <span>Settings</span>
-            </NavLink>
           </div>
         </div>
       </aside>
 
       {/* Mobile Top Bar */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col">
+      <nav className={cn(
+        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-500 ease-in-out",
+        isModalOpen && "blur-xl -translate-y-full opacity-0 pointer-events-none"
+      )}>
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
           <NavLink to="/" className="flex items-center gap-2">
@@ -96,16 +111,6 @@ export function Navigation() {
           </NavLink>
           
           <div className="flex items-center gap-4">
-            <NavLink 
-              to="/settings"
-              className={({ isActive }) => cn(
-                "p-2 transition-colors",
-                isActive ? "text-workshop-accent" : "text-workshop-muted hover:text-workshop-text"
-              )}
-              title="Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </NavLink>
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"
@@ -118,14 +123,17 @@ export function Navigation() {
       </nav>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom">
+      <nav className={cn(
+        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-500 ease-in-out",
+        isModalOpen && "blur-xl translate-y-full opacity-0 pointer-events-none"
+      )}>
         <div className="flex items-center justify-between gap-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) => cn(
-                "flex flex-col items-center gap-0 transition-all duration-300 flex-1 min-w-[56px]",
+                "flex flex-col items-center gap-0 transition-all duration-300 flex-1 min-w-[56px] active:scale-90",
                 isActive ? "text-workshop-accent" : "text-workshop-muted"
               )}
             >

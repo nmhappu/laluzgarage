@@ -21,28 +21,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev', 'appu@appu.dev', 'aswalal@laluz.com'] ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
-      );
+      return isSignedIn();
     }
 
     function isManager() {
-      return isSignedIn() && (
-        isAdmin() ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager')
-      );
+      return isSignedIn();
     }
 
     function isVerified() {
-      // Relaxed for development to allow unverified emails from the workshop domain or known users
-      return isSignedIn() && (
-        request.auth.token.email_verified == true ||
-        request.auth.token.email in ['pncsns8194@gmail.com', 'me@appu.dev', 'appu@appu.dev', 'aswalal@laluz.com'] ||
-        exists(/databases/$(database)/documents/users/$(request.auth.uid))
-      );
+      return isSignedIn();
     }
 
     function isValidId(id) {
@@ -50,22 +37,21 @@ service cloud.firestore {
     }
 
     // --- Entity Validations ---
+    function isImmutable(field) {
+      return incoming()[field] == existing()[field];
+    }
 
     function isValidCustomer(data) {
       return data.keys().hasAll(['name', 'phone', 'technicianId', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 20 &&
-             data.technicianId == request.auth.uid &&
-             data.createdAt == request.time;
+             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 20;
     }
 
     function isValidVehicle(data) {
       return data.keys().hasAll(['customerId', 'make', 'plateNumber', 'technicianId', 'createdAt']) &&
              data.customerId is string && isValidId(data.customerId) &&
              data.make is string && data.make.size() > 0 && data.make.size() <= 50 &&
-             data.plateNumber is string && data.plateNumber.size() > 0 && data.plateNumber.size() <= 20 &&
-             data.technicianId == request.auth.uid &&
-             data.createdAt == request.time;
+             data.plateNumber is string && data.plateNumber.size() > 0 && data.plateNumber.size() <= 20;
     }
 
     function isValidPart(data) {
@@ -80,70 +66,53 @@ service cloud.firestore {
       return data.keys().hasAll(['vehicleId', 'customerId', 'technicianId', 'date', 'description', 'status', 'laborCost', 'partsCost', 'totalCost', 'createdAt', 'updatedAt']) &&
              data.vehicleId is string && isValidId(data.vehicleId) &&
              data.customerId is string && isValidId(data.customerId) &&
-             data.technicianId == request.auth.uid &&
              data.status in ['pending', 'in-progress', 'completed', 'cancelled'] &&
              data.laborCost is number && data.laborCost >= 0 &&
              data.partsCost is number && data.partsCost >= 0 &&
-             data.totalCost is number && data.totalCost >= 0 &&
-             data.createdAt is timestamp &&
-             data.updatedAt is timestamp;
+             data.totalCost is number && data.totalCost >= 0;
     }
 
     function isValidWorkshopUser(data) {
-      return data.keys().hasAll(['name', 'email', 'role', 'status', 'createdAt', 'updatedAt']) &&
+      return data.keys().hasAll(['name', 'email', 'status', 'createdAt', 'updatedAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
-             data.role in ['admin', 'manager', 'technician'] &&
-             data.status in ['online', 'offline'] &&
-             data.createdAt is timestamp &&
-             data.updatedAt is timestamp;
+             data.status in ['online', 'offline'];
     }
 
     // --- Collection Rules ---
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidWorkshopUser(incoming()) && (
-        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || isAdmin()
-      );
-      allow update: if isVerified() && isValidWorkshopUser(incoming()) && (
-        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
-        isAdmin()
-      );
-      allow delete: if isAdmin() && request.auth.uid != userId;
+      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidWorkshopUser(incoming()) && isImmutable('createdAt') && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn();
     }
 
     match /customers/{customerId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidCustomer(incoming());
-      allow update: if isVerified() && isValidCustomer(incoming());
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isValidCustomer(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidCustomer(incoming()) && isImmutable('createdAt');
+      allow delete: if isSignedIn();
     }
 
     match /vehicles/{vehicleId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidVehicle(incoming());
-      allow update: if isVerified() && isValidVehicle(incoming());
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isValidVehicle(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidVehicle(incoming()) && isImmutable('createdAt');
+      allow delete: if isSignedIn();
     }
 
     match /parts/{partId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isManager() && isValidPart(incoming());
-      allow update: if isVerified() && (
-        isValidPart(incoming()) ||
-        incoming().diff(existing()).affectedKeys().hasOnly(['stockQuantity'])
-      );
-      allow delete: if isAdmin();
+      allow create, update: if isSignedIn() && isValidPart(incoming());
+      allow delete: if isSignedIn();
     }
 
     match /serviceRecords/{recordId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidServiceRecord(incoming());
-      allow update: if isVerified() && (
-        isAdmin() || (existing().technicianId == request.auth.uid && existing().status != 'completed')
-      );
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isValidServiceRecord(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidServiceRecord(incoming()) && isImmutable('createdAt') && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn();
     }
 
     match /test/{docId} {

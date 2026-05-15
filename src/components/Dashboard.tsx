@@ -87,13 +87,42 @@ export function Dashboard() {
     { label: 'Shared Inventory', value: '1,240', icon: Package, color: 'text-workshop-secondary' },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.3,
+        ease: [0.23, 1, 0.32, 1]
+      }
+    }
+  };
+
   return (
     <div className="space-y-8 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
           <h1 className="text-2xl md:text-4xl font-black text-workshop-text tracking-tighter uppercase">Dashboard</h1>
-        </div>
-        <div className="relative group">
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative group"
+        >
           <div className="absolute inset-0 bg-workshop-accent/20 blur-xl rounded group-hover:bg-workshop-accent/40 transition-all duration-500" />
           <button 
             onClick={() => setShowIntake(true)}
@@ -102,7 +131,7 @@ export function Dashboard() {
             <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             New Customer
           </button>
-        </div>
+        </motion.div>
       </header>
 
       <AnimatePresence>
@@ -116,13 +145,15 @@ export function Dashboard() {
 
       {/* Dashboard Watchlist Style */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
         className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10"
       >
         {stats.map((stat) => (
-          <div 
+          <motion.div 
             key={stat.label}
+            variants={itemVariants}
             className={cn(
               "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
             )}
@@ -142,19 +173,33 @@ export function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </motion.div>
 
       {/* Pending Services Log - List Style */}
       <div className="space-y-6 pt-8">
-        <h2 className="text-xl font-black text-workshop-text uppercase tracking-tighter">Recent Activities</h2>
-        <div className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10">
+        <motion.h2 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-xl font-black text-workshop-text uppercase tracking-tighter"
+        >
+          Recent Activities
+        </motion.h2>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10"
+        >
           {pendingQueue.length > 0 ? (
             <>
               {pendingQueue.slice(0, 5).map((job) => (
-                <div 
+                <motion.div 
                   key={job.id}
+                  variants={itemVariants}
                   className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
                 >
                   <div className="flex items-center gap-4">
@@ -184,16 +229,20 @@ export function Dashboard() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 opacity-20">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-20 opacity-20"
+            >
               <Package className="w-16 h-16 mb-4" />
               <p className="font-black uppercase tracking-widest text-xs">No pending activities</p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -7,8 +7,6 @@
       "properties": {
         "name": { "type": "string", "description": "Full name of the customer." },
         "phone": { "type": "string", "description": "Primary contact number." },
-        "email": { "type": "string", "format": "email", "description": "Email address for communication." },
-        "address": { "type": "string", "description": "Postal address for billing and records." },
         "technicianId": { "type": "string", "description": "UID of the technician who created this record." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of record creation." }
       },
@@ -94,12 +92,11 @@
       "properties": {
         "name": { "type": "string", "description": "Full name of the staff member." },
         "email": { "type": "string", "format": "email", "description": "Work email address." },
-        "role": { "type": "string", "enum": ["admin", "manager", "technician"], "description": "System access role." },
         "status": { "type": "string", "enum": ["online", "offline"], "description": "Current availability status." },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "email", "role", "status", "createdAt", "updatedAt"]
+      "required": ["name", "email", "status", "createdAt", "updatedAt"]
     }
   },
   "firestore": {

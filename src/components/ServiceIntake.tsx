@@ -42,9 +42,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
   // Form states
   const [customerForm, setCustomerForm] = useState({
     name: '',
-    phone: '',
-    email: '',
-    address: ''
+    phone: ''
   });
   
   const [vehicleForm, setVehicleForm] = useState({
@@ -400,24 +398,6 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                             onChange={e => setCustomerForm({...customerForm, phone: e.target.value})}
                             className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                             placeholder="+1 234 567 890"
-                          />
-                        </div>
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Email (Optional)</label>
-                          <input 
-                            value={customerForm.email}
-                            onChange={e => setCustomerForm({...customerForm, email: e.target.value})}
-                            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                            placeholder="john@example.com"
-                          />
-                        </div>
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Residential/Workshop Address</label>
-                          <textarea 
-                            value={customerForm.address}
-                            onChange={e => setCustomerForm({...customerForm, address: e.target.value})}
-                            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold resize-none h-24"
-                            placeholder="Enter place/address details..."
                           />
                         </div>
                       </div>

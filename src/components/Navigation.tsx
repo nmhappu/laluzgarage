@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, ClipboardList, Users, LogOut, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -10,7 +10,7 @@ import { Portal } from './Portal';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/customers', icon: Users, label: 'Customer' },
+  { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/services', icon: ClipboardList, label: 'Services' },
 ];
@@ -19,6 +19,15 @@ export function Navigation() {
   const { user, logout } = useAuth();
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const location = useLocation();
+
+  const getPageTitle = () => {
+    const item = navItems.find(item => item.to === location.pathname);
+    if (!item || location.pathname === '/') return 'LaluZ Garage';
+    return item.label;
+  };
+
+  const pageTitle = getPageTitle();
 
   return (
     <>
@@ -27,11 +36,20 @@ export function Navigation() {
         "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-500 ease-in-out",
         isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
       )}>
-        <div className="p-8">
+        <div className="p-8 h-32">
           <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
-            <h1 className="text-workshop-text text-xl font-logo font-semibold tracking-tight flex items-center gap-2 transition-colors group-hover:text-workshop-accent">
-              Laluz Garage
-            </h1>
+            <AnimatePresence mode="wait">
+              <motion.h1 
+                key={pageTitle}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="text-workshop-text text-xl font-logo font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
+              >
+                {pageTitle}
+              </motion.h1>
+            </AnimatePresence>
           </NavLink>
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em]">Workshop Manager</p>
         </div>
@@ -110,8 +128,19 @@ export function Navigation() {
       )}>
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
-          <NavLink to="/" className="flex items-center gap-2">
-            <span className="text-workshop-text text-lg font-logo font-semibold tracking-tight">Laluz Garage</span>
+          <NavLink to="/" className="flex items-center gap-2 h-full items-center">
+            <AnimatePresence mode="wait">
+              <motion.span 
+                key={pageTitle}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="text-workshop-text text-lg font-logo font-semibold tracking-tight"
+              >
+                {pageTitle}
+              </motion.span>
+            </AnimatePresence>
           </NavLink>
           
           <div className="flex items-center gap-2">

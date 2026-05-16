@@ -64,7 +64,7 @@ export function LoginPage() {
             <div className="w-16 h-16 bg-workshop-accent rounded-xl flex items-center justify-center shadow-lg shadow-workshop-accent/10 mb-2">
               <Wrench className="w-8 h-8 text-workshop-bg" />
             </div>
-            <h1 className="text-3xl font-logo font-semibold text-workshop-text tracking-tight">Laluz Garage</h1>
+            <h1 className="text-3xl font-logo font-semibold text-workshop-text tracking-tight">LaluZ Garage</h1>
             <p className="text-workshop-muted text-xs font-bold uppercase tracking-[0.2em] opacity-60">Workshop Management Core</p>
           </div>
 
@@ -141,7 +141,7 @@ export function LoginPage() {
         </motion.div>
         
         <div className="mt-12 text-center text-workshop-muted text-[10px] flex flex-col gap-3">
-          <p className="font-bold opacity-30 uppercase tracking-[0.3em]">© 2026 LaluzGarage Precision Workshop</p>
+          <p className="font-bold opacity-30 uppercase tracking-[0.3em]">© 2026 LaluZ Garage Precision Workshop</p>
           <div className="flex items-center justify-center gap-4 opacity-20 font-mono">
             <span>SECURE-NODE-AUTH</span>
             <span className="w-1 h-1 bg-workshop-muted rounded-full" />

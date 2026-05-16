@@ -124,11 +124,6 @@ export function CustomerManagement() {
     }
   };
 
-  const getVehicleInfo = (vehicleId: string) => {
-    const v = vehicles.find(veh => veh.id === vehicleId);
-    return v ? `${v.make} ${v.model} (${v.plateNumber})` : 'Unknown Vehicle';
-  };
-
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone.includes(searchTerm)
@@ -178,7 +173,6 @@ export function CustomerManagement() {
         <AnimatePresence mode="popLayout">
           {filteredCustomers.map((customer) => (
             <motion.div
-              layout
               key={customer.id}
               variants={{
                 hidden: { opacity: 0, scale: 0.98, y: 10 },
@@ -192,12 +186,10 @@ export function CustomerManagement() {
                   }
                 }
               }}
-              initial="hidden"
-              animate="show"
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-workshop-card p-6 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative"
+              className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-2">
                 <div className="w-10 h-10 bg-workshop-surface rounded-lg border border-workshop-border flex items-center justify-center text-workshop-muted group-hover:bg-workshop-accent/10 group-hover:text-workshop-accent transition-colors font-black text-xs">
                   {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </div>
@@ -226,14 +218,19 @@ export function CustomerManagement() {
                   </button>
                 </div>
               </div>
-              <h3 className="font-bold text-workshop-text mb-4 uppercase tracking-tight">{customer.name}</h3>
+              <h3 className="font-bold text-workshop-text mb-2 uppercase tracking-tight">{customer.name}</h3>
               <div className="space-y-3 text-xs text-workshop-muted">
                 <div className="flex items-center gap-3">
-                  <Phone className="w-3.5 h-3.5 text-workshop-secondary" />
-                  <span className="font-medium text-workshop-text">{customer.phone}</span>
+                  <a 
+                    href={`tel:${customer.phone}`}
+                    className="flex items-center gap-1.5 group/phone hover:no-underline"
+                  >
+                    <Phone className="w-4 h-4 text-workshop-accent transition-all" />
+                    <span className="font-bold text-workshop-accent tracking-wider">{customer.phone}</span>
+                  </a>
                 </div>
               </div>
-                <div className="mt-6 pt-4 border-t border-workshop-border flex justify-end relative z-10">
+                <div className="mt-4 pt-2 border-t border-workshop-border flex justify-end relative z-10">
                   <button 
                     onClick={() => setSelectedCustomerForTransactions(customer)}
                     className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
@@ -262,7 +259,7 @@ export function CustomerManagement() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -332,7 +329,7 @@ export function CustomerManagement() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowEditModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -400,7 +397,7 @@ export function CustomerManagement() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -435,7 +432,7 @@ export function CustomerManagement() {
         )}
       </AnimatePresence>
 
-      {/* Edit Modal */}
+      {/* Billing History Modal */}
       <AnimatePresence>
         {selectedCustomerForTransactions && (
           <Portal>
@@ -445,91 +442,161 @@ export function CustomerManagement() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedCustomerForTransactions(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-workshop-border"
+                className="relative bg-workshop-card w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-workshop-border"
               >
-              <div className="bg-workshop-surface p-8 text-workshop-text relative border-b border-workshop-border">
+              <div className="bg-workshop-surface p-6 sm:p-8 text-workshop-text relative border-b border-workshop-border">
                 <button 
                   onClick={() => setSelectedCustomerForTransactions(null)}
-                  className="absolute top-6 right-6 p-2 hover:bg-workshop-accent/10 rounded-full transition-colors text-workshop-muted hover:text-workshop-accent"
+                  className="absolute top-4 right-4 p-2 hover:bg-workshop-accent/10 rounded-full transition-colors text-workshop-muted hover:text-workshop-accent"
                 >
                   <X className="w-5 h-5" />
                 </button>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-workshop-accent/10 rounded-xl flex items-center justify-center border border-workshop-accent/20">
-                    <History className="w-6 h-6 text-workshop-accent" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-workshop-accent/10 rounded-2xl flex items-center justify-center border border-workshop-accent/20">
+                      <History className="w-7 h-7 text-workshop-accent" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black tracking-tight uppercase leading-none mb-1">History</h2>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-workshop-accent" />
+                        <p className="text-workshop-muted text-[10px] font-black uppercase tracking-widest leading-none">
+                          {selectedCustomerForTransactions.name}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-black tracking-tight uppercase">Billing History</h2>
-                    <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest">
-                      Client: {selectedCustomerForTransactions.name}
-                    </p>
+
+                  {/* Summary Stats */}
+                  <div className="flex items-center gap-6 sm:border-l border-workshop-border sm:pl-8">
+                    <div>
+                      <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Lifetime Value</p>
+                      <p className="text-xl font-black text-workshop-accent tracking-tighter leading-none">
+                        {formatCurrency(
+                          serviceRecords
+                            .filter(r => r.customerId === selectedCustomerForTransactions.id)
+                            .reduce((sum, r) => sum + r.totalCost, 0)
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Services</p>
+                      <p className="text-xl font-black text-workshop-text tracking-tighter leading-none">
+                        {serviceRecords.filter(r => r.customerId === selectedCustomerForTransactions.id).length}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-workshop-bg/50">
                 {serviceRecords.filter(r => r.customerId === selectedCustomerForTransactions.id).length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {serviceRecords
                       .filter(r => r.customerId === selectedCustomerForTransactions.id)
                       .map((record) => (
-                        <div key={record.id} className="bg-workshop-surface rounded-xl border border-workshop-border p-6 shadow-sm hover:border-workshop-accent/20 transition-all">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-workshop-bg rounded-xl border border-workshop-border flex flex-col items-center justify-center">
-                                <span className="text-[8px] font-bold text-workshop-muted uppercase">{format(new Date(record.date), 'MMM')}</span>
-                                <span className="text-sm font-black text-workshop-text">{format(new Date(record.date), 'dd')}</span>
+                        <motion.div 
+                          key={record.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          className="bg-workshop-card rounded-2xl border border-workshop-border overflow-hidden shadow-sm hover:border-workshop-accent/30 transition-all group"
+                        >
+                          <div className="flex flex-col">
+                            {/* Main Content */}
+                            <div className="flex-1 p-6">
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-6">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black text-workshop-accent uppercase tracking-widest leading-none">{format(new Date(record.date), 'dd MMM yyyy')}</span>
+                                    <span className={cn(
+                                      "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                                      record.status === 'completed' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                                      record.status === 'in-progress' ? "bg-workshop-secondary/10 text-workshop-secondary border-workshop-secondary/20" :
+                                      "bg-workshop-warning/10 text-workshop-warning border-workshop-warning/20"
+                                    )}>
+                                      {record.status}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <h4 className="text-xs font-black text-white uppercase tracking-wider leading-none mb-1.5">
+                                      {vehicles.find(v => v.id === record.vehicleId)?.make} {vehicles.find(v => v.id === record.vehicleId)?.model}
+                                    </h4>
+                                    <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest leading-none">
+                                      {vehicles.find(v => v.id === record.vehicleId)?.plateNumber}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col items-end shrink-0 sm:mt-1">
+                                  <p className="text-[9px] font-black text-workshop-muted uppercase tracking-[0.2em] mb-1">Settled Amount</p>
+                                  <p className="text-2xl font-black text-workshop-accent tracking-tighter leading-none">{formatCurrency(record.totalCost)}</p>
+                                </div>
                               </div>
-                              <div>
-                                <span className={cn(
-                                  "px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest mb-1 inline-block border",
-                                  record.status === 'completed' ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20" :
-                                  record.status === 'in-progress' ? "bg-workshop-secondary/10 text-workshop-secondary border-workshop-secondary/20" :
-                                  "bg-workshop-warning/10 text-workshop-warning border-workshop-warning/20"
-                                )}>
-                                  {record.status}
-                                </span>
-                                <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-wider">{getVehicleInfo(record.vehicleId)}</p>
+
+                              <div className="space-y-4">
+                                <div className="p-4 bg-workshop-surface/50 rounded-xl border border-workshop-border/30 relative">
+                                  <div className="text-workshop-text/90 text-xs font-medium leading-relaxed space-y-1">
+                                    {record.description.split("\n").map((line, i) => {
+                                      const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
+                                      return cleanLine ? (
+                                        <div key={i} className="flex items-start gap-2">
+                                          <span className="text-workshop-accent mt-1">•</span>
+                                          <span>{cleanLine}</span>
+                                        </div>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                  <div className="bg-workshop-surface/30 p-2 rounded-lg border border-workshop-border flex flex-col">
+                                    <span className="text-[8px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Mileage</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <Wrench className="w-3 h-3 text-workshop-accent" />
+                                      <span className="text-xs font-black text-workshop-text leading-none">{record.mileage.toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                  <div className="bg-workshop-surface/30 p-2 rounded-lg border border-workshop-border flex flex-col">
+                                    <span className="text-[8px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Inventory</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <Package className="w-3 h-3 text-workshop-secondary" />
+                                      <span className="text-xs font-black text-workshop-text leading-none">{record.partsUsed.length} SKU</span>
+                                    </div>
+                                  </div>
+                                  <div className="bg-workshop-surface/30 p-2 rounded-lg border border-workshop-border flex flex-col">
+                                    <span className="text-[8px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Labor</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-black text-workshop-text leading-none">{formatCurrency(record.laborCost)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="bg-workshop-surface/30 p-2 rounded-lg border border-workshop-border flex flex-col">
+                                    <span className="text-[8px] font-bold text-workshop-muted uppercase tracking-widest mb-1">Parts</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-black text-workshop-text leading-none">{formatCurrency(record.partsCost)}</span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[8px] font-bold text-workshop-muted uppercase tracking-widest">Amount Paid</p>
-                              <p className="text-lg font-black text-workshop-text tracking-tighter">{formatCurrency(record.totalCost)}</p>
                             </div>
                           </div>
-                          
-                          <div className="space-y-4">
-                            <div className="p-3 bg-workshop-bg rounded-xl border border-workshop-border">
-                              <p className="text-xs text-workshop-muted font-medium">"{record.description}"</p>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="flex items-center gap-2 text-workshop-muted">
-                                <Wrench className="w-3.5 h-3.5 text-workshop-accent" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">{record.mileage.toLocaleString()} KM</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-workshop-muted justify-end">
-                                <Package className="w-3.5 h-3.5 text-workshop-secondary" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">{record.partsUsed.length} Items Used</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        </motion.div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-20 px-8">
-                    <div className="w-20 h-20 bg-workshop-surface rounded-xl flex items-center justify-center mx-auto mb-6 text-workshop-muted border border-workshop-border">
+                    <div className="w-20 h-20 bg-workshop-surface rounded-2xl flex items-center justify-center mx-auto mb-6 text-workshop-muted border border-workshop-border">
                       <ShieldCheck className="w-10 h-10 opacity-20" />
                     </div>
-                    <h3 className="text-workshop-text font-bold uppercase tracking-tight">No Transactions</h3>
-                    <p className="text-workshop-muted text-sm mt-2 max-w-xs mx-auto">This customer has no recorded service transactions in the system.</p>
+                    <h3 className="text-workshop-text font-black uppercase tracking-tight">No Financial Footprint</h3>
+                    <p className="text-workshop-muted text-sm mt-3 max-w-xs mx-auto leading-relaxed">This customer has no recorded service transactions or billing history in the directory.</p>
                   </div>
                 )}
               </div>
@@ -537,9 +604,9 @@ export function CustomerManagement() {
               <div className="p-6 bg-workshop-surface border-t border-workshop-border flex justify-end">
                  <button 
                   onClick={() => setSelectedCustomerForTransactions(null)}
-                  className="px-6 py-2 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all"
+                  className="px-8 py-3 bg-workshop-accent text-workshop-bg text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-workshop-accent/10 active:scale-95"
                  >
-                   Back
+                   Close Ledger
                  </button>
               </div>
             </motion.div>

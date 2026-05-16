@@ -48,6 +48,7 @@ export interface ServiceRecord {
   isDeadVehicle?: boolean;
   description: string;
   remarks?: string;
+  finalRemarks?: string;
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   laborCost: number;
   partsCost: number;

@@ -41,7 +41,7 @@
         "minStockLevel": { "type": "integer", "description": "Threshold for low stock warnings." },
         "location": { "type": "string", "description": "Storage location in the warehouse." }
       },
-      "required": ["name", "sku", "stockQuantity", "price"]
+      "required": ["name", "stockQuantity", "price"]
     },
     "ServiceRecord": {
       "title": "Service Record",
@@ -66,6 +66,7 @@
         "expectedDeliveryDate": { "type": "string", "format": "date-time", "description": "Expected completion date." },
         "technicianName": { "type": "string", "description": "Name of the service manager or technician handling the job." },
         "completionMileage": { "type": "integer", "description": "Mileage recorded at the time of job completion." },
+        "finalRemarks": { "type": "string", "description": "Final closing remarks for the service job." },
         "isDeadVehicle": { "type": "boolean", "description": "Flag indicating if the vehicle was dead upon arrival." },
         "partsUsed": {
           "type": "array",

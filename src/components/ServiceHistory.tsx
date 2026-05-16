@@ -111,6 +111,7 @@ export function ServiceHistory() {
     vehicleId: "",
     description: "",
     remarks: "",
+    finalRemarks: "",
     mileage: 0,
     status: "pending",
     laborCost: 0,
@@ -269,6 +270,7 @@ export function ServiceHistory() {
           vehicleId: newRecord.vehicleId,
           description: newRecord.description || "",
           remarks: newRecord.remarks ?? "",
+          finalRemarks: newRecord.finalRemarks ?? "",
           mileage: Number(newRecord.mileage) || 0,
           status: newRecord.status || "pending",
           laborCost: Number(newRecord.laborCost) || 0,
@@ -303,6 +305,7 @@ export function ServiceHistory() {
         vehicleId: "",
         description: "",
         remarks: "",
+        finalRemarks: "",
         mileage: 0,
         status: "pending",
         laborCost: 0,
@@ -444,6 +447,7 @@ export function ServiceHistory() {
           partsUsed: editingRecord.partsUsed || [],
           description: editingRecord.description || "",
           remarks: editingRecord.remarks ?? "",
+          finalRemarks: editingRecord.finalRemarks ?? "",
           mileage: Number(editingRecord.mileage) || 0,
           status: editingRecord.status,
           laborCost: Number(editingRecord.laborCost) || 0,
@@ -890,10 +894,26 @@ export function ServiceHistory() {
                     </div>
 
                     <div className="w-full bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
-                      <p className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
-                        "{record.description}"
-                      </p>
+                      <div className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic leading-relaxed">
+                        {record.description.split("\n").map((line, i) => {
+                          const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
+                          return cleanLine ? (
+                            <div key={i} className="flex items-start gap-1">
+                              <span className="opacity-40">•</span>
+                              <span>{cleanLine}</span>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
                     </div>
+
+                    {record.finalRemarks && (
+                      <div className="w-full bg-yellow-500/10 rounded-lg p-2.5 border border-yellow-500/20">
+                        <p className="text-yellow-500/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
+                          "{record.finalRemarks}"
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {record.expectedDeliveryDate &&
@@ -1020,7 +1040,7 @@ export function ServiceHistory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -1028,7 +1048,7 @@ export function ServiceHistory() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
               >
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
                   <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase">
                     {lookupStep === "search"
@@ -1548,7 +1568,7 @@ export function ServiceHistory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setEditingRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -1556,11 +1576,11 @@ export function ServiceHistory() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
               >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase">
+              <div className="flex flex-col gap-4 mb-8">
+                <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase px-1">
                   Update Service Entry
                 </h2>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-1">
                   <button
                     type="button"
                     onClick={() =>
@@ -1725,9 +1745,6 @@ export function ServiceHistory() {
                 </div>
 
                 <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-border/30 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-3 opacity-10">
-                    <ScanHeart className="w-12 h-12 text-workshop-accent" />
-                  </div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted block mb-4 px-1 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-workshop-accent animate-pulse" />
                     Maintenance Checklist
@@ -1777,6 +1794,23 @@ export function ServiceHistory() {
                     )}
                   </div>
                 </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
+                      Final Remarks
+                    </label>
+                    <textarea
+                      value={editingRecord.finalRemarks || ""}
+                      onChange={(e) =>
+                        setEditingRecord({
+                          ...editingRecord,
+                          finalRemarks: e.target.value,
+                        })
+                      }
+                      className="w-full bg-workshop-bg border border-workshop-border px-4 py-3 rounded-xl outline-none h-20 resize-none text-sm focus:ring-1 focus:ring-workshop-accent text-workshop-text transition-all"
+                      placeholder="Add final closing remarks or advice..."
+                    />
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
@@ -1958,7 +1992,7 @@ export function ServiceHistory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setDetailsRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -2055,7 +2089,7 @@ export function ServiceHistory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setRecordToDelete(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}

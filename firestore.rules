@@ -55,9 +55,9 @@ service cloud.firestore {
     }
 
     function isValidPart(data) {
-      return data.keys().hasAll(['name', 'sku', 'stockQuantity', 'price']) &&
+      return data.keys().hasAll(['name', 'stockQuantity', 'price']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.sku is string && data.sku.size() > 0 && data.sku.size() <= 50 &&
+             (!('sku' in data.keys()) || (data.sku is string && data.sku.size() <= 50)) &&
              data.stockQuantity is int && data.stockQuantity >= 0 &&
              data.price is number && data.price >= 0;
     }
@@ -69,7 +69,9 @@ service cloud.firestore {
              data.status in ['pending', 'in-progress', 'completed', 'cancelled'] &&
              data.laborCost is number && data.laborCost >= 0 &&
              data.partsCost is number && data.partsCost >= 0 &&
-             data.totalCost is number && data.totalCost >= 0;
+             data.totalCost is number && data.totalCost >= 0 &&
+             (!('remarks' in data.keys()) || (data.remarks is string && data.remarks.size() <= 2000)) &&
+             (!('finalRemarks' in data.keys()) || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
     }
 
     function isValidWorkshopUser(data) {

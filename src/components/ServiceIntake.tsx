@@ -214,7 +214,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+          className="absolute inset-0 bg-workshop-bg/60"
         />
         
         <motion.div

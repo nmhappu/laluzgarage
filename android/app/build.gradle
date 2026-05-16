@@ -1,6 +1,10 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+kotlin {
+    jvmToolchain(17)
+}
+
 android {
     namespace = "com.gearbox.workshop"
     compileSdk = rootProject.ext.compileSdkVersion

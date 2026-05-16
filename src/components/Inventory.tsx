@@ -176,7 +176,6 @@ export function Inventory() {
           <AnimatePresence mode="popLayout">
             {filteredParts.map((part) => (
               <motion.div 
-                layout
                 key={part.id} 
                 variants={{
                   hidden: { opacity: 0, y: 10 },
@@ -270,7 +269,7 @@ export function Inventory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowEditModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -297,7 +296,7 @@ export function Inventory() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
                     <input 
                       type="text" 
                       value={editingPart.sku}
@@ -401,7 +400,7 @@ export function Inventory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -446,7 +445,7 @@ export function Inventory() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -469,13 +468,13 @@ export function Inventory() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
                     <input 
                       type="text" 
                       value={newPart.sku}
                       onChange={e => setNewPart({...newPart, sku: e.target.value})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text font-mono"
-                      placeholder="SKU-9022-X"
+                      placeholder="e.g. SKU-9022-X"
                     />
                   </div>
                   <div className="space-y-1.5">

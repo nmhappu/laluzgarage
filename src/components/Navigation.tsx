@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, Users, LogOut, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { Portal } from './Portal';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/customers', icon: Users, label: 'Customer' },
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/services', icon: ClipboardList, label: 'Services' },
 ];
@@ -23,7 +24,7 @@ export function Navigation() {
       {/* Desktop Sidebar */}
       <aside className={cn(
         "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-500 ease-in-out",
-        isModalOpen && "blur-xl scale-[0.98] opacity-30 grayscale saturate-0 pointer-events-none"
+        isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
       )}>
         <div className="p-8">
           <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
@@ -102,7 +103,7 @@ export function Navigation() {
       {/* Mobile Top Bar */}
       <nav className={cn(
         "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-500 ease-in-out",
-        isModalOpen && "blur-xl -translate-y-full opacity-0 pointer-events-none"
+        isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
       )}>
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
@@ -125,7 +126,7 @@ export function Navigation() {
       {/* Mobile Bottom Navigation */}
       <nav className={cn(
         "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-500 ease-in-out",
-        isModalOpen && "blur-xl translate-y-full opacity-0 pointer-events-none"
+        isModalOpen && "backdrop-blur-md bg-workshop-card/90"
       )}>
         <div className="flex items-center justify-between gap-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">
           {navItems.map((item) => (
@@ -168,7 +169,7 @@ export function Navigation() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowLogoutConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-xl"
+                className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}

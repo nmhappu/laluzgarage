@@ -84,7 +84,6 @@ export function Dashboard() {
     { label: 'Total Customers', value: metrics.totalCustomers, icon: Users, color: 'text-blue-400' },
     { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-rose-500' },
     { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-emerald-400' },
-    { label: 'Shared Inventory', value: '1,240', icon: Package, color: 'text-workshop-secondary' },
   ];
 
   const containerVariants = {
@@ -168,7 +167,7 @@ export function Dashboard() {
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-workshop-muted/80 tracking-tight">
-                    {stat.value}{stat.label === 'Shared Inventory' && ' pts'}
+                    {stat.value}
                   </span>
                 </div>
               </div>

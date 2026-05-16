@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Package, ClipboardList, Users, LogOut, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import { Portal } from './Portal';
@@ -28,8 +29,8 @@ export function Navigation() {
       )}>
         <div className="p-8">
           <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
-            <h1 className="text-workshop-text text-xl font-logo tracking-tighter flex items-center gap-2 transition-colors group-hover:text-workshop-accent">
-              LaluZ Garage
+            <h1 className="text-workshop-text text-xl font-logo font-semibold tracking-tight flex items-center gap-2 transition-colors group-hover:text-workshop-accent">
+              Laluz Garage
             </h1>
           </NavLink>
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em]">Workshop Manager</p>
@@ -88,7 +89,7 @@ export function Navigation() {
             </div>
           </div>
           
-          <div className="flex items-center justify-start gap-2 pt-2 border-t border-workshop-border/30">
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
@@ -96,6 +97,8 @@ export function Navigation() {
               <LogOut className="w-3 h-3" />
               End session
             </button>
+
+            <ThemeToggle className="w-8 h-8 rounded-lg" />
           </div>
         </div>
       </aside>
@@ -108,10 +111,11 @@ export function Navigation() {
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
           <NavLink to="/" className="flex items-center gap-2">
-            <span className="text-workshop-text text-lg font-logo tracking-tighter">LaluZ Garage</span>
+            <span className="text-workshop-text text-lg font-logo font-semibold tracking-tight">Laluz Garage</span>
           </NavLink>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="w-9 h-9 rounded-lg" />
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"

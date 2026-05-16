@@ -720,7 +720,41 @@ export function ServiceHistory() {
       </div>
 
       <div className="space-y-4">
-        {(() => {
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading-skeletons"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={`skeleton-${i}`}
+                  className="bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden p-6 animate-pulse"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-6 bg-workshop-surface rounded opacity-40" />
+                    <div className="flex-1 h-px bg-workshop-border opacity-40" />
+                    <div className="w-20 h-6 bg-workshop-surface rounded opacity-40" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-5 bg-workshop-surface rounded w-1/3 opacity-40" />
+                    <div className="h-4 bg-workshop-surface rounded w-1/2 opacity-40" />
+                    <div className="h-20 bg-workshop-surface rounded w-full opacity-20" />
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-workshop-border flex justify-between">
+                    <div className="h-8 bg-workshop-surface rounded w-24 opacity-40" />
+                    <div className="flex gap-2">
+                      <div className="h-8 w-8 bg-workshop-surface rounded opacity-40" />
+                      <div className="h-8 w-8 bg-workshop-surface rounded opacity-40" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          ) : (() => {
           const filtered = records.filter((r) => {
             // Status Tab Filter
             const matchesTab =
@@ -752,7 +786,7 @@ export function ServiceHistory() {
             );
           });
 
-          if (filtered.length === 0 && !loading) {
+          if (filtered.length === 0) {
             return (
               <div className="text-center py-20 text-workshop-muted text-sm italic">
                 {searchLogs
@@ -764,17 +798,10 @@ export function ServiceHistory() {
 
           return (
             <motion.div 
-              initial="hidden"
-              animate="show"
-              variants={{
-                hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.04
-                  }
-                }
-              }}
+              key="records-list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="space-y-4"
             >
               {filtered.map((record) => {
@@ -783,252 +810,237 @@ export function ServiceHistory() {
                 return (
                   <motion.div
                     key={record.id}
-                    variants={{
-                      hidden: { opacity: 0, y: 10 },
-                      show: { 
-                        opacity: 1, 
-                        y: 0,
-                        transition: {
-                          duration: 0.3,
-                          ease: [0.23, 1, 0.32, 1]
-                        }
-                      }
-                    }}
                     onClick={() => setEditingRecord({ ...record })}
                     className="relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden hover:border-workshop-accent/30 transition-all group cursor-pointer"
                   >
-                {v?.make?.toUpperCase() === "OLA" && (
-                  <div className="absolute inset-y-0 left-0 w-1/2 pointer-events-none opacity-[0.03] overflow-hidden grayscale brightness-200">
-                    <img
-                      src="https://logos-world.net/wp-content/uploads/2023/11/Ola-Logo.png"
-                      alt="OLA Background"
-                      className="h-full w-full object-contain object-left scale-150 -translate-x-1/4"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                )}
-                <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
-                  <div className="flex items-center gap-4 mb-1">
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest">
-                        {format(new Date(record.date), "MMM")}
-                      </span>
-                      <span className="text-xl font-black text-workshop-text tracking-tighter">
-                        {format(new Date(record.date), "dd")}
-                      </span>
-                    </div>
-                    <div className="flex-1 h-px bg-workshop-border" />
-                    <span
-                      className={cn(
-                        "px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border",
-                        record.status === "completed"
-                          ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20"
-                          : record.status === "in-progress"
-                            ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                            : "bg-rose-500/10 text-rose-500 border-rose-500/20",
-                      )}
-                    >
-                      {record.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-col gap-1">
-                        <div className="text-workshop-text text-sm md:text-[15px] font-black uppercase tracking-tight">
-                          {getCustomerName(record.customerId)}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight opacity-70">
-                          <span className="text-workshop-text">
-                            {v?.make} {v?.model}
-                          </span>
-                          <span className="text-workshop-muted opacity-30">
-                            |
-                          </span>
-                          <span className="text-workshop-secondary">
-                            {v?.plateNumber}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span
-                              className={cn(
-                                "font-mono whitespace-nowrap pr-1 shrink-0",
-                                record.isDeadVehicle
-                                  ? "text-rose-500 italic opacity-80"
-                                  : "text-workshop-warning",
-                              )}
-                            >
-                              {record.isDeadVehicle
-                                ? "DEAD"
-                                : `${record.mileage.toLocaleString()} KM`}
-                            </span>
-                            {record.completionMileage && (
-                              <>
-                                <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
-                                <span className="text-[#4ade80] font-mono whitespace-nowrap shrink-0">
-                                  {record.completionMileage.toLocaleString()} KM
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          {v?.passwordOrPin && (
-                            <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-2 py-0.5 rounded border border-[#4ade80]/10 shrink-0">
-                              {v.passwordOrPin.toLowerCase() === "key" ? (
-                                <>
-                                  <Key className="w-3 h-3" />
-                                  <span className="text-[10px] font-black tracking-[0.15em]">
-                                    KEY
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="font-mono font-black text-xs tracking-wider">
-                                  # {v.passwordOrPin}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
-                      <div className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic leading-relaxed">
-                        {record.description.split("\n").map((line, i) => {
-                          const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
-                          return cleanLine ? (
-                            <div key={i} className="flex items-start gap-1">
-                              <span className="opacity-40">•</span>
-                              <span>{cleanLine}</span>
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-
-                    {record.finalRemarks && (
-                      <div className="w-full bg-yellow-500/10 rounded-lg p-2.5 border border-yellow-500/20">
-                        <p className="text-yellow-500/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
-                          "{record.finalRemarks}"
-                        </p>
+                    {v?.make?.toUpperCase() === "OLA" && (
+                      <div className="absolute inset-y-0 left-0 w-1/2 pointer-events-none opacity-[0.03] overflow-hidden grayscale brightness-200">
+                        <img
+                          src="https://logos-world.net/wp-content/uploads/2023/11/Ola-Logo.png"
+                          alt="OLA Background"
+                          className="h-full w-full object-contain object-left scale-150 -translate-x-1/4"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
                     )}
-                  </div>
-
-                  {record.expectedDeliveryDate &&
-                    record.status !== "completed" &&
-                    (() => {
-                      const dueDate = parseISO(record.expectedDeliveryDate);
-                      const today = startOfDay(new Date());
-                      const normalizedDueDate = startOfDay(dueDate);
-                      const isToday = isSameDay(normalizedDueDate, today);
-                      const isPast = isAfter(today, normalizedDueDate);
-                      const diff = Math.abs(
-                        differenceInDays(normalizedDueDate, today),
-                      );
-
-                      return (
-                        <div className="flex items-center gap-4 px-1 -mb-1">
-                          <div className="flex items-center gap-1.5 text-workshop-muted/90">
-                            <ScanHeart className="w-2.5 h-2.5 opacity-60 text-workshop-accent" />
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                              Due: {format(dueDate, "dd MMM")}
-                            </span>
-                          </div>
-                          <div
-                            className={cn(
-                              "text-[10px] font-black uppercase tracking-widest leading-none",
-                              isToday
-                                ? "text-workshop-warning"
-                                : isPast
-                                  ? "text-rose-500"
-                                  : "text-workshop-accent",
-                            )}
-                          >
-                            {isToday
-                              ? "Due Today"
-                              : isPast
-                                ? `${diff} Days Overdue`
-                                : `${diff} Days Left`}
-                          </div>
+                    <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
+                      <div className="flex items-center gap-4 mb-1">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest">
+                            {format(new Date(record.date), "MMM")}
+                          </span>
+                          <span className="text-xl font-black text-workshop-text tracking-tighter">
+                            {format(new Date(record.date), "dd")}
+                          </span>
                         </div>
-                      );
-                    })()}
-
-                  <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
-                    {record.technicianName && (
-                      <div className="flex items-center gap-2 text-workshop-muted/60">
-                        <User className="w-2.5 h-2.5 opacity-40" />
-                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                          Advisor: {record.technicianName}
+                        <div className="flex-1 h-px bg-workshop-border" />
+                        <span
+                          className={cn(
+                            "px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border",
+                            record.status === "completed"
+                              ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20"
+                              : record.status === "in-progress"
+                                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                : "bg-rose-500/10 text-rose-500 border-rose-500/20",
+                          )}
+                        >
+                          {record.status}
                         </span>
                       </div>
-                    )}
 
-                    {customer?.phone && (
-                      <a
-                        href={`tel:${customer.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 text-[#10B981] hover:brightness-110 active:scale-95 transition-all outline-none"
-                      >
-                        <Phone className="w-3.5 h-3.5 fill-[#10B981]/10" />
-                        <p className="text-sm font-black tracking-tight uppercase leading-none">
-                          {customer.phone}
-                        </p>
-                      </a>
-                    )}
-                  </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="text-workshop-text text-sm md:text-[15px] font-black uppercase tracking-tight">
+                              {getCustomerName(record.customerId)}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight opacity-70">
+                              <span className="text-workshop-text">
+                                {v?.make} {v?.model}
+                              </span>
+                              <span className="text-workshop-muted opacity-30">
+                                |
+                              </span>
+                              <span className="text-workshop-secondary">
+                                {v?.plateNumber}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={cn(
+                                    "font-mono whitespace-nowrap pr-1 shrink-0",
+                                    record.isDeadVehicle
+                                      ? "text-rose-500 italic opacity-80"
+                                      : "text-workshop-warning",
+                                  )}
+                                >
+                                  {record.isDeadVehicle
+                                    ? "DEAD"
+                                    : `${record.mileage.toLocaleString()} KM`}
+                                </span>
+                                {record.completionMileage && (
+                                  <>
+                                    <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
+                                    <span className="text-[#4ade80] font-mono whitespace-nowrap shrink-0">
+                                      {record.completionMileage.toLocaleString()} KM
+                                    </span>
+                                  </>
+                                )}
+                              </div>
 
-                  <div className="h-px bg-workshop-border/30 w-full" />
+                              {v?.passwordOrPin && (
+                                <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-2 py-0.5 rounded border border-[#4ade80]/10 shrink-0">
+                                  {v.passwordOrPin.toLowerCase() === "key" ? (
+                                    <>
+                                      <Key className="w-3 h-3" />
+                                      <span className="text-[10px] font-black tracking-[0.15em]">
+                                        KEY
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="font-mono font-black text-xs tracking-wider">
+                                      # {v.passwordOrPin}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="flex items-center justify-between gap-4 pt-1 px-1">
-                    <div className="flex flex-col translate-x-1">
-                      <p className="text-[9px] font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
-                        Job Total
-                      </p>
-                      <p className="text-xl font-black text-workshop-text tracking-tighter leading-none">
-                        {formatCurrency(record.totalCost)}
-                      </p>
+                        <div className="w-full bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
+                          <div className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic leading-relaxed">
+                            {record.description.split("\n").map((line, i) => {
+                              const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
+                              return cleanLine ? (
+                                <div key={i} className="flex items-start gap-1">
+                                  <span className="opacity-40">•</span>
+                                  <span>{cleanLine}</span>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+
+                        {record.finalRemarks && (
+                          <div className="w-full bg-yellow-500/10 rounded-lg p-2.5 border border-yellow-500/20">
+                            <p className="text-yellow-500/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
+                              "{record.finalRemarks}"
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {record.expectedDeliveryDate &&
+                        record.status !== "completed" &&
+                        (() => {
+                          const dueDate = parseISO(record.expectedDeliveryDate);
+                          const today = startOfDay(new Date());
+                          const normalizedDueDate = startOfDay(dueDate);
+                          const isToday = isSameDay(normalizedDueDate, today);
+                          const isPast = isAfter(today, normalizedDueDate);
+                          const diff = Math.abs(
+                            differenceInDays(normalizedDueDate, today),
+                          );
+
+                          return (
+                            <div className="flex items-center gap-4 px-1 -mb-1">
+                              <div className="flex items-center gap-1.5 text-workshop-muted/90">
+                                <ScanHeart className="w-2.5 h-2.5 opacity-60 text-workshop-accent" />
+                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                                  Due: {format(dueDate, "dd MMM")}
+                                </span>
+                              </div>
+                              <div
+                                className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest leading-none",
+                                  isToday
+                                    ? "text-workshop-warning"
+                                    : isPast
+                                      ? "text-rose-500"
+                                      : "text-workshop-accent",
+                                )}
+                              >
+                                {isToday
+                                  ? "Due Today"
+                                  : isPast
+                                    ? `${diff} Days Overdue`
+                                    : `${diff} Days Left`}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                      <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
+                        {record.technicianName && (
+                          <div className="flex items-center gap-2 text-workshop-muted/60">
+                            <User className="w-2.5 h-2.5 opacity-40" />
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                              Advisor: {record.technicianName}
+                            </span>
+                          </div>
+                        )}
+
+                        {customer?.phone && (
+                          <a
+                            href={`tel:${customer.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 text-[#10B981] hover:brightness-110 active:scale-95 transition-all outline-none"
+                          >
+                            <Phone className="w-3.5 h-3.5 fill-[#10B981]/10" />
+                            <p className="text-sm font-black tracking-tight uppercase leading-none">
+                              {customer.phone}
+                            </p>
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="h-px bg-workshop-border/30 w-full" />
+
+                      <div className="flex items-center justify-between gap-4 pt-1 px-1">
+                        <div className="flex flex-col translate-x-1">
+                          <p className="text-[9px] font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
+                            Job Total
+                          </p>
+                          <p className="text-xl font-black text-workshop-text tracking-tighter leading-none">
+                            {formatCurrency(record.totalCost)}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailsRecord({ ...record });
+                            }}
+                            className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-workshop-accent hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
+                            title="Edit Details"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRecord(record);
+                            }}
+                            className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-rose-500/60 hover:text-rose-500 hover:border-rose-500/20 transition-all active:scale-95 shadow-sm"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDetailsRecord({ ...record });
-                        }}
-                        className="p-2 bg-[#0d0f11] border border-workshop-border/30 rounded-lg text-workshop-accent hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
-                        title="Edit Details"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteRecord(record);
-                        }}
-                        className="p-2 bg-[#0d0f11] border border-workshop-border/30 rounded-lg text-rose-500/60 hover:text-rose-500 hover:border-rose-500/20 transition-all active:scale-95 shadow-sm"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      );
-    })()}
-</div>
-
-      {loading && (
-        <div className="text-center py-20 text-workshop-muted text-sm">
-          Fetching comprehensive history...
-        </div>
-      )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          );
+        })()}
+        </AnimatePresence>
+      </div>
 
       {/* Add Record Modal */}
       <AnimatePresence>

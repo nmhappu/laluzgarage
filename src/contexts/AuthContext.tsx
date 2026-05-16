@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             <div className="w-16 h-16 border-2 border-workshop-accent/10 border-t-workshop-accent rounded-full animate-spin relative" />
           </div>
           <div className="space-y-2">
-            <p className="text-workshop-text font-black text-xs uppercase tracking-[0.3em] animate-pulse">LaluZ Garage</p>
+            <p className="text-workshop-text font-logo font-semibold text-xs tracking-tight animate-pulse">Laluz Garage</p>
             <p className="text-workshop-muted font-bold text-[10px] uppercase tracking-[0.2em] opacity-40">Waking up workshop systems...</p>
           </div>
         </div>

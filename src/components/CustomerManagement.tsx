@@ -157,95 +157,124 @@ export function CustomerManagement() {
       </div>
 
       <motion.div 
-        initial="hidden"
-        animate="show"
-        variants={{
-          hidden: { opacity: 0 },
-          show: {
-            opacity: 1,
-            transition: {
-              staggerChildren: 0.05
-            }
-          }
-        }}
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
       >
-        <AnimatePresence mode="popLayout">
-          {filteredCustomers.map((customer) => (
+        <AnimatePresence mode="wait">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <motion.div
+                key={`skeleton-${i}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm animate-pulse h-[180px] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-10 h-10 bg-workshop-surface rounded-lg opacity-40" />
+                    <div className="flex gap-2">
+                      <div className="w-8 h-8 bg-workshop-surface rounded-lg opacity-40" />
+                      <div className="w-8 h-8 bg-workshop-surface rounded-lg opacity-40" />
+                    </div>
+                  </div>
+                  <div className="h-4 bg-workshop-surface rounded w-3/4 mb-4 opacity-40" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-workshop-accent/20 rounded-full" />
+                    <div className="h-3 bg-workshop-surface rounded w-1/2 opacity-40" />
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-workshop-border flex justify-end">
+                  <div className="h-3 bg-workshop-accent/20 rounded w-1/4" />
+                </div>
+              </motion.div>
+            ))
+          ) : filteredCustomers.map((customer) => (
             <motion.div
               key={customer.id}
-              variants={{
-                hidden: { opacity: 0, scale: 0.98, y: 10 },
-                show: { 
-                  opacity: 1, 
-                  scale: 1, 
-                  y: 0,
-                  transition: {
-                    duration: 0.3,
-                    ease: [0.23, 1, 0.32, 1]
-                  }
-                }
-              }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative h-[180px] flex flex-col justify-between"
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="w-10 h-10 bg-workshop-surface rounded-lg border border-workshop-border flex items-center justify-center text-workshop-muted group-hover:bg-workshop-accent/10 group-hover:text-workshop-accent transition-colors font-black text-xs">
-                  {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                </div>
-                <div className="flex gap-2 relative z-20">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingCustomer(customer);
-                      setShowEditModal(true);
-                    }}
-                    className="p-3 text-workshop-muted hover:text-workshop-accent hover:bg-workshop-surface rounded-lg transition-all"
-                    aria-label="Edit"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCustomerToDelete(customer);
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="p-3 text-workshop-muted hover:text-rose-500 hover:bg-workshop-surface rounded-lg transition-all"
-                    aria-label="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+              <div>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-start justify-between mb-2"
+                >
+                  <div className="w-10 h-10 bg-workshop-surface rounded-lg border border-workshop-border flex items-center justify-center text-workshop-muted group-hover:bg-workshop-accent/10 group-hover:text-workshop-accent transition-colors font-black text-xs">
+                    {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </div>
+                  <div className="flex gap-2 relative z-20">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingCustomer(customer);
+                        setShowEditModal(true);
+                      }}
+                      className="p-3 text-workshop-muted hover:text-workshop-accent hover:bg-workshop-surface rounded-lg transition-all"
+                      aria-label="Edit"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCustomerToDelete(customer);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="p-3 text-workshop-muted hover:text-rose-500 hover:bg-workshop-surface rounded-lg transition-all"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+                <motion.h3 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-bold text-workshop-text mb-2 uppercase tracking-tight"
+                >
+                  {customer.name}
+                </motion.h3>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-3 text-xs text-workshop-muted"
+                >
+                  <div className="flex items-center gap-3">
+                    <a 
+                      href={`tel:${customer.phone}`}
+                      className="flex items-center gap-1.5 group/phone hover:no-underline"
+                    >
+                      <Phone className="w-4 h-4 text-workshop-accent transition-all" />
+                      <span className="font-bold text-workshop-accent tracking-wider">{customer.phone}</span>
+                    </a>
+                  </div>
+                </motion.div>
               </div>
-              <h3 className="font-bold text-workshop-text mb-2 uppercase tracking-tight">{customer.name}</h3>
-              <div className="space-y-3 text-xs text-workshop-muted">
-                <div className="flex items-center gap-3">
-                  <a 
-                    href={`tel:${customer.phone}`}
-                    className="flex items-center gap-1.5 group/phone hover:no-underline"
-                  >
-                    <Phone className="w-4 h-4 text-workshop-accent transition-all" />
-                    <span className="font-bold text-workshop-accent tracking-wider">{customer.phone}</span>
-                  </a>
-                </div>
-              </div>
-                <div className="mt-4 pt-2 border-t border-workshop-border flex justify-end relative z-10">
-                  <button 
-                    onClick={() => setSelectedCustomerForTransactions(customer)}
-                    className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
-                  >
-                    View History
-                  </button>
-                </div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="pt-2 border-t border-workshop-border flex justify-end relative z-10"
+              >
+                <button 
+                  onClick={() => setSelectedCustomerForTransactions(customer)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
+                >
+                  View History
+                </button>
+              </motion.div>
             </motion.div>
           ))}
         </AnimatePresence>
       </motion.div>
 
-      {loading && filteredCustomers.length === 0 && (
-        <div className="text-center py-20 text-workshop-muted text-sm">
-          Fetching customer records...
+
+      {!loading && filteredCustomers.length === 0 && (
+        <div className="text-center py-20 text-workshop-muted text-sm italic">
+          No records found match your criteria.
         </div>
       )}
 

@@ -10,6 +10,7 @@ import { UIProvider } from './contexts/UIContext';
 import { LoginPage } from './components/LoginPage';
 import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -59,7 +60,7 @@ function AppContent() {
             <AnimatedRoutes />
           </div>
 
-          <footer className="hidden md:flex h-10 bg-[#08090C] border-t border-workshop-border px-8 items-center justify-between text-[10px] text-workshop-muted shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+          <footer className="hidden md:flex h-10 bg-workshop-surface border-t border-workshop-border px-8 items-center justify-between text-[10px] text-workshop-muted shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-colors">
             <div className="flex items-center gap-8 h-full">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-workshop-accent shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
@@ -81,10 +82,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <UIProvider>
-        <AppContent />
-      </UIProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <UIProvider>
+          <AppContent />
+        </UIProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

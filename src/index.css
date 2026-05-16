@@ -1,53 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Zen+Dots&family=Open+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-logo: "Zen Dots", cursive;
+  --font-logo: "Lexend", sans-serif;
 
-  /* Workshop Dark Mode Palette mapped to Standard Variables */
-  --color-background: #0B0D11;
-  --color-foreground: #F8FAFC;
+  /* Theme color mapping */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
 
-  --color-card: #181B24;
-  --color-card-foreground: #F8FAFC;
+  --color-card: var(--card-bg);
+  --color-card-foreground: var(--fg);
 
-  --color-popover: #12141C;
-  --color-popover-foreground: #F8FAFC;
+  --color-popover: var(--popover-bg);
+  --color-popover-foreground: var(--fg);
 
   --color-primary: #10B981;
-  --color-primary-foreground: #0B0D11;
+  --color-primary-foreground: var(--bg);
 
   --color-secondary: #3B82F6;
   --color-secondary-foreground: #F8FAFC;
 
-  --color-muted: #1E232E;
-  --color-muted-foreground: #94A3B8;
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted-fg);
 
   --color-accent: #10B981;
-  --color-accent-foreground: #0B0D11;
+  --color-accent-foreground: var(--bg);
 
   --color-destructive: #EF4444;
   --color-destructive-foreground: #F8FAFC;
 
-  --color-border: #1E232E;
-  --color-input: #1E232E;
+  --color-border: var(--border-color);
+  --color-input: var(--border-color);
   --color-ring: #10B981;
 
   --radius: 0.5rem;
 
   /* Keep legacy workshop names for backward compatibility */
-  --color-workshop-bg: var(--color-background);
-  --color-workshop-surface: #12141C;
-  --color-workshop-card: var(--color-card);
+  --color-workshop-bg: var(--bg);
+  --color-workshop-surface: var(--surface-bg);
+  --color-workshop-card: var(--card-bg);
   --color-workshop-accent: var(--color-primary);
   --color-workshop-secondary: var(--color-secondary);
   --color-workshop-warning: #FBBF24;
-  --color-workshop-border: var(--color-border);
-  --color-workshop-text: var(--color-foreground);
-  --color-workshop-muted: var(--color-muted-foreground);
+  --color-workshop-border: var(--border-color);
+  --color-workshop-text: var(--fg);
+  --color-workshop-muted: var(--muted-fg);
 }
+
+:root {
+  /* Default Dark Mode */
+  --bg: #0B0D11;
+  --fg: #F8FAFC;
+  --card-bg: #181B24;
+  --surface-bg: #12141C;
+  --popover-bg: #12141C;
+  --muted-bg: #1E232E;
+  --muted-fg: #94A3B8;
+  --border-color: #1E232E;
+}
+
+[data-theme="light"] {
+  --bg: #F8FAFC;
+  --fg: #0B0D11;
+  --card-bg: #FFFFFF;
+  --surface-bg: #F1F5F9;
+  --popover-bg: #FFFFFF;
+  --muted-bg: #F1F5F9;
+  --muted-fg: #64748B;
+  --border-color: #E2E8F0;
+}
+
+/* View Transition Styles for Telegram Polish */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Specify which elements should NOT be affected by the transition if needed, 
+   but for the full-screen expansion theme toggle, we want root. */
 
 @layer base {
   * {

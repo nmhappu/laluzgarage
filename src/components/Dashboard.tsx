@@ -154,7 +154,7 @@ export function Dashboard() {
             key={stat.label}
             variants={itemVariants}
             className={cn(
-              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
+              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30"
             )}
           >
             <div className="flex items-center gap-4">
@@ -199,7 +199,7 @@ export function Dashboard() {
                 <motion.div 
                   key={job.id}
                   variants={itemVariants}
-                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-white/[0.02] transition-colors group border-b border-workshop-border/30"
+                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors">

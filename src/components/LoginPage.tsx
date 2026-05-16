@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Wrench, ChevronRight, Mail, Lock, AlertCircle, User as UserIcon } from 'lucide-react';
 import { motion } from 'motion/react';
+import { ThemeToggle } from './ThemeToggle';
 
 export function LoginPage() {
   const { login, register } = useAuth();
@@ -49,7 +50,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4 relative">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
       <div className="max-w-md w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -60,7 +64,7 @@ export function LoginPage() {
             <div className="w-16 h-16 bg-workshop-accent rounded-xl flex items-center justify-center shadow-lg shadow-workshop-accent/10 mb-2">
               <Wrench className="w-8 h-8 text-workshop-bg" />
             </div>
-            <h1 className="text-3xl font-black text-workshop-text tracking-tighter uppercase">LaluZ Garage</h1>
+            <h1 className="text-3xl font-logo font-semibold text-workshop-text tracking-tight">Laluz Garage</h1>
             <p className="text-workshop-muted text-xs font-bold uppercase tracking-[0.2em] opacity-60">Workshop Management Core</p>
           </div>
 

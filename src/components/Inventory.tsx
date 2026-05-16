@@ -193,7 +193,7 @@ export function Inventory() {
                   scale: 0.98,
                   transition: { duration: 0.2 } 
                 }}
-                className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-white/[0.01] transition-colors cursor-pointer group"
+                className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group"
                 onClick={() => {
                   setEditingPart(part);
                   setShowEditModal(true);

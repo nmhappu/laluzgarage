@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Colours -->
+    <color name="primary">#10B981</color>
+    <color name="secondary">#3B82F6</color>
+    <color name="warning">#FBBF24</color>
+    <color name="destructive">#EF4444</color>
+
+    <!-- Dark Theme (Default) -->
+    <color name="bg_dark">#0B0D11</color>
+    <color name="fg_dark">#F8FAFC</color>
+    <color name="card_bg_dark">#181B24</color>
+    <color name="surface_bg_dark">#12141C</color>
+
+    <!-- Light Theme -->
+    <color name="bg_light">#FFFFFF</color>
+    <color name="fg_light">#0F172A</color>
+    <color name="card_bg_light">#FFFFFF</color>
+    <color name="surface_bg_light">#F8FAFC</color>
+
+    <!-- Status Colours -->
+    <color name="success">#10B981</color>
+    <color name="pending">#FBBF24</color>
+    <color name="urgent">#F43F5E</color>
+
+    <!-- Generic Theme-Aware Colours -->
+    <color name="app_background">@color/bg_light</color>
+    <color name="app_surface">@color/surface_bg_light</color>
+    <color name="app_card">@color/card_bg_light</color>
+
+    <!-- Standard Aliases for Previews -->
+    <color name="colorPrimary">@color/primary</color>
+    <color name="colorPrimaryDark">@color/surface_bg_dark</color>
+    <color name="colorAccent">@color/primary</color>
+</resources>

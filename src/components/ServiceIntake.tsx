@@ -56,6 +56,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
   const [jobForm, setJobForm] = useState({
     mileage: '',
     description: '',
+    personalItems: '',
     expectedDeliveryDate: '',
     serviceDate: new Date().toISOString().split('T')[0],
     isDeadVehicle: false
@@ -186,6 +187,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
         expectedDeliveryDate: jobForm.expectedDeliveryDate,
         mileage: Number(jobForm.mileage),
         isDeadVehicle: jobForm.isDeadVehicle,
+        personalItems: jobForm.personalItems,
         description: jobForm.description,
         status: 'pending',
         laborCost: 0,
@@ -377,7 +379,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                                         </p>
                                       </div>
                                       {res.vehicle.passwordOrPin && (
-                                        <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-1.5 rounded border border-[#4ade80]/10">
+                                        <div className="flex items-center gap-1.5 text-status-success bg-status-success/5 px-1.5 rounded border border-status-success/10">
                                           <Key className="w-2.5 h-2.5" />
                                           <span className="text-[10px] font-mono font-bold uppercase tracking-tighter">
                                             {res.vehicle.passwordOrPin}
@@ -464,7 +466,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       <button
                         onClick={() => setStep(2)}
                         disabled={!customerForm.name || !customerForm.phone}
-                        className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all disabled:opacity-30 disabled:grayscale"
+                        className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
                       >
                         PROCEED TO VEHICLE DETAILS
                       </button>
@@ -512,7 +514,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
                         Model
-                        <span className="text-rose-500">*</span>
+                        <span className="text-status-urgent">*</span>
                       </label>
                       <input
                         value={vehicleForm.model}
@@ -555,7 +557,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
                         Security: Password / PIN
-                        <span className="text-rose-500">*</span>
+                        <span className="text-status-urgent">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -624,7 +626,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       !vehicleForm.plateNumber ||
                       !vehicleForm.passwordOrPin
                     }
-                    className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all disabled:opacity-30 disabled:grayscale"
+                    className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
                   >
                     SET JOB REQUIREMENTS
                   </button>
@@ -693,8 +695,8 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                             className={cn(
                               "flex items-center gap-2 px-3 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
                               jobForm.isDeadVehicle
-                                ? "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20"
-                                : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-rose-500/50 hover:text-rose-400"
+                                ? "bg-status-urgent border-status-urgent/40 text-white shadow-lg shadow-status-urgent/20"
+                                : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-status-urgent/50 hover:text-status-urgent"
                             )}
                           >
                             Vehicle Dead
@@ -728,11 +730,25 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       />
                     </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Personal Items / Valuables in Vehicle
+                      </label>
+                      <textarea
+                        value={jobForm.personalItems}
+                        onChange={(e) =>
+                          setJobForm({ ...jobForm, personalItems: e.target.value })
+                        }
+                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text min-h-[80px] resize-none"
+                        placeholder="e.g. Laptop, Cash, Sunglasses, Spare Tyre..."
+                      />
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
                           Service Date
-                          <span className="text-rose-500">*</span>
+                          <span className="text-status-urgent">*</span>
                         </label>
                         <input
                           type="date"
@@ -754,7 +770,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
                           Expected Delivery Date
-                          <span className="text-rose-500">*</span>
+                          <span className="text-status-urgent">*</span>
                         </label>
                         <input
                           type="date"
@@ -797,7 +813,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       !jobForm.serviceDate ||
                       !jobForm.expectedDeliveryDate
                     }
-                    className="w-full py-5 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:bg-emerald-500 transition-all shadow-xl shadow-workshop-accent/10 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale"
+                    className="w-full py-5 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 transition-all shadow-xl shadow-workshop-accent/10 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale"
                   >
                     {loading ? (
                       "Processing..."

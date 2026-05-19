@@ -145,7 +145,7 @@ export function CustomerManagement() {
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-bold uppercase text-xs tracking-widest hover:bg-emerald-500 transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-bold uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Add Customer</span>
@@ -244,7 +244,7 @@ export function CustomerManagement() {
                             setCustomerToDelete(customer);
                             setShowDeleteConfirm(true);
                           }}
-                          className="p-3 text-workshop-muted hover:text-rose-500 hover:bg-workshop-surface rounded-lg transition-all"
+                          className="p-3 text-workshop-muted hover:text-status-urgent hover:bg-workshop-surface rounded-lg transition-all"
                           aria-label="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -281,7 +281,7 @@ export function CustomerManagement() {
                   >
                     <button 
                       onClick={() => setSelectedCustomerForTransactions(customer)}
-                      className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
+                      className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:brightness-110 active:scale-95 p-2"
                     >
                       View History
                     </button>
@@ -356,7 +356,7 @@ export function CustomerManagement() {
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 px-4 py-2.5 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black uppercase tracking-widest shadow-sm hover:bg-emerald-500 transition-all"
+                    className="flex-1 px-4 py-2.5 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black uppercase tracking-widest shadow-sm hover:brightness-110 transition-all"
                   >
                     Save
                   </button>
@@ -424,7 +424,7 @@ export function CustomerManagement() {
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 px-4 py-2.5 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black uppercase tracking-widest shadow-sm hover:bg-emerald-500 transition-all"
+                    className="flex-1 px-4 py-2.5 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black uppercase tracking-widest shadow-sm hover:brightness-110 transition-all"
                   >
                     Update
                   </button>
@@ -454,7 +454,7 @@ export function CustomerManagement() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
-              <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
+              <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                 <Trash2 className="w-8 h-8" />
               </div>
               <h2 className="text-xl font-bold text-workshop-text mb-2 tracking-tight">Delete Client?</h2>
@@ -470,7 +470,7 @@ export function CustomerManagement() {
                 </button>
                 <button 
                   onClick={handleDeleteCustomer}
-                  className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-rose-900/20 hover:bg-rose-700 transition-all"
+                  className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:brightness-110 transition-all"
                 >
                   Delete
                 </button>
@@ -566,9 +566,9 @@ export function CustomerManagement() {
                                     <span className="text-[10px] font-black text-workshop-accent uppercase tracking-widest leading-none">{format(new Date(record.date), 'dd MMM yyyy')}</span>
                                     <span className={cn(
                                       "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
-                                      record.status === 'completed' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                      record.status === 'in-progress' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
-                                      record.status === 'pending' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
+                                      record.status === 'completed' ? "bg-status-success/10 text-status-success border-status-success/20" :
+                                      record.status === 'in-progress' ? "bg-status-pending/10 text-status-pending border-status-pending/20" :
+                                      record.status === 'pending' ? "bg-status-urgent/10 text-status-urgent border-status-urgent/20" :
                                       "bg-workshop-muted/10 text-workshop-muted border-workshop-border"
                                     )}>
                                       {record.status}
@@ -605,6 +605,18 @@ export function CustomerManagement() {
                                     })}
                                   </div>
                                 </div>
+
+                                {record.personalItems && (
+                                  <div className="p-3 bg-status-success/5 rounded-xl border border-status-success/10 flex items-center gap-3 ring-1 ring-status-success/5">
+                                    <Package className="w-5 h-5 text-status-success shrink-0" />
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <span className="text-[10px] font-black text-status-success uppercase tracking-widest leading-none shrink-0">Personal Items:</span>
+                                      <p className="text-xs text-workshop-text/90 font-bold leading-relaxed whitespace-pre-line">
+                                        {record.personalItems}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
 
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                   <div className="bg-workshop-surface/30 p-2 rounded-lg border border-workshop-border flex flex-col">
@@ -654,7 +666,7 @@ export function CustomerManagement() {
               <div className="p-6 bg-workshop-surface border-t border-workshop-border flex justify-end">
                  <button 
                   onClick={() => setSelectedCustomerForTransactions(null)}
-                  className="px-8 py-3 bg-workshop-accent text-workshop-bg text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-workshop-accent/10 active:scale-95"
+                  className="px-8 py-3 bg-workshop-accent text-workshop-bg text-[10px] font-black uppercase tracking-widest rounded-xl hover:brightness-110 shadow-lg shadow-workshop-accent/10 active:scale-95 transition-all"
                  >
                    Close Ledger
                  </button>

@@ -4,6 +4,17 @@ import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Capacitor } from '@capacitor/core';
 import { useTheme } from '../contexts/ThemeContext';
 
+const BAR_THEMES = {
+  dark: {
+    status: '#12141C',
+    nav: '#181B24'
+  },
+  light: {
+    status: '#F1F5F9',
+    nav: '#FFFFFF'
+  }
+};
+
 export function SystemBars() {
   const { theme } = useTheme();
 
@@ -12,15 +23,16 @@ export function SystemBars() {
       const setupBars = async () => {
         try {
           const isDark = theme === 'dark';
+          const themeConfig = isDark ? BAR_THEMES.dark : BAR_THEMES.light;
           
           // Status Bar setup (Top Bar)
           await StatusBar.setOverlaysWebView({ overlay: false });
           await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
-          await StatusBar.setBackgroundColor({ color: isDark ? '#12141C' : '#F1F5F9' });
+          await StatusBar.setBackgroundColor({ color: themeConfig.status });
           
           // Navigation Bar setup (Bottom Bar)
           await NavigationBar.setColor({ 
-            color: isDark ? '#181B24' : '#FFFFFF', 
+            color: themeConfig.nav, 
             darkButtons: !isDark 
           });
         } catch (err) {

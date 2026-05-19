@@ -131,7 +131,7 @@ export function Inventory() {
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:bg-emerald-500 transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Add Part</span>
@@ -199,7 +199,7 @@ export function Inventory() {
                     <h3 className="text-sm md:text-[15px] font-bold text-workshop-text tracking-tight uppercase group-hover:text-workshop-accent transition-colors flex items-center gap-2">
                       {part.name}
                       {isLowStock && (
-                        <span className="flex items-center gap-1 text-[8px] bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded border border-rose-500/20 animate-pulse">
+                        <span className="flex items-center gap-1 text-[8px] bg-status-urgent/10 text-status-urgent px-1.5 py-0.5 rounded border border-status-urgent/20 animate-pulse">
                           <AlertCircle className="w-2 h-2" />
                           LOW STOCK
                         </span>
@@ -220,7 +220,7 @@ export function Inventory() {
                       {part.location && (
                         <>
                           <span className="w-1 h-1 bg-workshop-border rounded-full" />
-                          <span className="text-[10px] text-emerald-500/50 font-bold uppercase tracking-widest flex items-center gap-1">
+                          <span className="text-[10px] text-secondary font-bold uppercase tracking-widest flex items-center gap-1">
                             <MapPin className="w-2.5 h-2.5" />
                             {part.location}
                           </span>
@@ -237,7 +237,7 @@ export function Inventory() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                      <span className={cn(
                        "text-[10px] md:text-sm font-black tabular-nums",
-                       isLowStock ? "text-rose-500" : "text-workshop-accent"
+                       isLowStock ? "text-status-urgent" : "text-status-success"
                      )}>
                        Stock: {part.stockQuantity}
                      </span>
@@ -377,7 +377,7 @@ export function Inventory() {
                       setShowDeleteConfirm(true);
                       setShowEditModal(false);
                     }}
-                    className="p-3 border border-rose-500/20 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    className="p-3 border border-status-urgent/20 rounded-xl text-status-urgent hover:bg-status-urgent/10 transition-colors"
                     title="Delete Asset"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -392,7 +392,7 @@ export function Inventory() {
                     </button>
                     <button 
                       type="submit" 
-                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/10 hover:bg-emerald-500 transition-all"
+                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/10 hover:brightness-110 transition-all"
                     >
                       Update Asset
                     </button>
@@ -423,7 +423,7 @@ export function Inventory() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
-              <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
+              <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                 <Trash2 className="w-8 h-8" />
               </div>
               <h2 className="text-xl font-bold text-workshop-text mb-2 tracking-tight uppercase">Liquidate Asset?</h2>
@@ -439,7 +439,7 @@ export function Inventory() {
                 </button>
                 <button 
                   onClick={handleDeletePart}
-                  className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-900/20 hover:bg-rose-700 transition-all"
+                  className="flex-1 px-4 py-3 bg-status-urgent text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:brightness-110 transition-all"
                 >
                   Confirm Delete
                 </button>
@@ -543,7 +543,7 @@ export function Inventory() {
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:bg-emerald-500 transition-all"
+                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:brightness-110 transition-all"
                   >
                     Catalogue Asset
                   </button>

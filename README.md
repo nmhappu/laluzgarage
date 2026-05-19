@@ -1,5 +1,4 @@
-# LaluZ Garage Manager
-
+# LaluZ Garage
 A high-performance, precision-crafted workshop management application built for modern technicians. **LaluZ Garage** streamlines customer relationship management, vehicle service tracking, and inventory control with a focus on speed, reliability, and mobile accessibility.
 
 ## Features
@@ -47,14 +46,7 @@ This project is fully compatible with native Android development via **Capacitor
 
 ## Environment Setup
 
-Required environment variables in AI Studio Secrets:
-
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
+Check ".env.example"
 
 ## License
-MIT License. Copyright (c) 2026 Prince Santhosh. See `LICENSE` for details.
+MIT License. Copyright (©) 2026 Prince Santhosh. See `LICENSE` for details.

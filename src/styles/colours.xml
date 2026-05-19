@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme (Default) -->
+    <color name="bg_dark">#0B0D11</color>
+    <color name="fg_dark">#F8FAFC</color>
+    <color name="card_bg_dark">#181B24</color>
+    <color name="surface_bg_dark">#12141C</color>
+    <color name="popover_bg_dark">#12141C</color>
+    <color name="muted_bg_dark">#1E232E</color>
+    <color name="muted_fg_dark">#94A3B8</color>
+    <color name="border_color_dark">#1E232E</color>
+
+    <!-- Light Theme -->
+    <color name="bg_light">#FFFFFF</color>
+    <color name="fg_light">#0F172A</color>
+    <color name="card_bg_light">#FFFFFF</color>
+    <color name="surface_bg_light">#F8FAFC</color>
+    <color name="popover_bg_light">#FFFFFF</color>
+    <color name="muted_bg_light">#F1F5F9</color>
+    <color name="muted_fg_light">#64748B</color>
+    <color name="border_color_light">#E2E8F0</color>
+
+    <!-- Brand Colours -->
+    <color name="primary">#10B981</color>
+    <color name="secondary">#3B82F6</color>
+    <color name="warning">#FBBF24</color>
+    <color name="destructive">#EF4444</color>
+
+    <!-- Status Colours (Accessible Context) -->
+    <color name="success_dark">#10B981</color>
+    <color name="success_light">#10B981</color>
+    <color name="pending_dark">#FBBF24</color>
+    <color name="pending_light">#FBBF24</color>
+    <color name="urgent_dark">#F43F5E</color>
+    <color name="urgent_light">#F43F5E</color>
+</resources>

@@ -23,6 +23,7 @@ import {
   Key,
   X,
   AlertTriangle,
+  Package,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
@@ -87,17 +88,17 @@ export function ServiceHistory() {
       id: "pending",
       label: "Pending",
       count: records.filter((r) => r.status === "pending").length,
-      color: "text-rose-500",
-      bg: "bg-rose-500/10",
-      border: "border-rose-500/20",
+      color: "text-status-urgent",
+      bg: "bg-status-urgent/10",
+      border: "border-status-urgent/20",
     },
     {
       id: "in-progress",
       label: "In-Progress",
       count: records.filter((r) => r.status === "in-progress").length,
-      color: "text-yellow-500",
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/20",
+      color: "text-status-pending",
+      bg: "bg-status-pending/10",
+      border: "border-status-pending/20",
     },
     {
       id: "completed",
@@ -122,6 +123,7 @@ export function ServiceHistory() {
   const [newRecord, setNewRecord] = useState<Partial<ServiceRecord>>({
     vehicleId: "",
     description: "",
+    personalItems: "",
     remarks: "",
     finalRemarks: "",
     mileage: 0,
@@ -460,6 +462,7 @@ export function ServiceHistory() {
         const dataToUpdate = {
           partsUsed: editingRecord.partsUsed || [],
           description: editingRecord.description || "",
+          personalItems: editingRecord.personalItems ?? "",
           remarks: editingRecord.remarks ?? "",
           finalRemarks: editingRecord.finalRemarks ?? "",
           mileage: Number(editingRecord.mileage) || 0,
@@ -500,6 +503,7 @@ export function ServiceHistory() {
         const recordRef = doc(db, "serviceRecords", detailsRecord.id!);
         transaction.update(recordRef, {
           description: detailsRecord.description || "",
+          personalItems: detailsRecord.personalItems ?? "",
           expectedDeliveryDate: detailsRecord.expectedDeliveryDate ?? "",
           updatedAt: serverTimestamp(),
         });
@@ -759,7 +763,7 @@ export function ServiceHistory() {
           {searchLogs && (
             <button
               onClick={() => setSearchLogs("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-workshop-muted hover:text-rose-500 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-workshop-muted hover:text-status-urgent transition-colors"
             >
               <X className="w-3 h-3" />
             </button>
@@ -837,8 +841,8 @@ export function ServiceHistory() {
                       record.status === "completed"
                         ? "hover:border-workshop-accent/50"
                         : record.status === "in-progress"
-                          ? "hover:border-yellow-500/50"
-                          : "hover:border-rose-500/50",
+                          ? "hover:border-status-pending/50"
+                          : "hover:border-status-urgent/50",
                     )}
                   >
                     {/* Status Accent (Top Mid Fading) */}
@@ -846,12 +850,12 @@ export function ServiceHistory() {
                       className={cn(
                         "absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[2px] pointer-events-none z-20 transition-all duration-300 opacity-40 group-hover:opacity-100",
                         record.status === "completed"
-                          ? "bg-gradient-to-r from-transparent via-workshop-accent to-transparent"
+                          ? "bg-gradient-to-r from-transparent via-status-success to-transparent"
                           : record.status === "in-progress"
-                            ? "bg-gradient-to-r from-transparent via-yellow-500 to-transparent"
+                            ? "bg-gradient-to-r from-transparent via-status-pending to-transparent"
                             : record.status === "cancelled"
                               ? "bg-gradient-to-r from-transparent via-workshop-muted to-transparent"
-                              : "bg-gradient-to-r from-transparent via-rose-500 to-transparent",
+                              : "bg-gradient-to-r from-transparent via-status-urgent to-transparent",
                       )}
                     />
 
@@ -880,12 +884,12 @@ export function ServiceHistory() {
                           className={cn(
                             "px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border",
                             record.status === "completed"
-                              ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20"
+                              ? "bg-status-success/10 text-status-success border-status-success/20"
                               : record.status === "in-progress"
-                                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                ? "bg-status-pending/10 text-status-pending border-status-pending/20"
                                 : record.status === "cancelled"
                                   ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border"
-                                  : "bg-rose-500/10 text-rose-500 border-rose-500/20",
+                                  : "bg-status-urgent/10 text-status-urgent border-status-urgent/20",
                           )}
                         >
                           {record.status}
@@ -915,8 +919,8 @@ export function ServiceHistory() {
                                   className={cn(
                                     "font-mono whitespace-nowrap pr-1 shrink-0",
                                     record.isDeadVehicle
-                                      ? "text-rose-500 italic opacity-80"
-                                      : "text-workshop-warning",
+                                      ? "text-status-urgent italic opacity-80"
+                                      : "text-status-pending",
                                   )}
                                 >
                                   {record.isDeadVehicle
@@ -926,7 +930,7 @@ export function ServiceHistory() {
                                 {record.completionMileage && (
                                   <>
                                     <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
-                                    <span className="text-[#4ade80] font-mono whitespace-nowrap shrink-0">
+                                    <span className="text-status-success font-mono whitespace-nowrap shrink-0">
                                       {record.completionMileage.toLocaleString()} KM
                                     </span>
                                   </>
@@ -934,7 +938,7 @@ export function ServiceHistory() {
                               </div>
 
                               {v?.passwordOrPin && (
-                                <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-2 py-0.5 rounded border border-[#4ade80]/10 shrink-0">
+                                <div className="flex items-center gap-1.5 text-status-success bg-status-success/5 px-2 py-0.5 rounded border border-status-success/10 shrink-0">
                                   {v.passwordOrPin.toLowerCase() === "key" ? (
                                     <>
                                       <Key className="w-3 h-3" />
@@ -967,9 +971,19 @@ export function ServiceHistory() {
                           </div>
                         </div>
 
+                        {record.personalItems && (
+                          <div className="w-full bg-status-success/5 rounded-lg p-2 border border-status-success/10 flex items-center gap-2">
+                             <Package className="w-3 h-3 text-status-success shrink-0" />
+                             <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                               <span className="text-[8px] font-black uppercase text-status-success/70 tracking-widest shrink-0">Personal Items:</span>
+                               <p className="text-[10px] text-workshop-text/80 font-bold leading-tight whitespace-pre-line">{record.personalItems}</p>
+                             </div>
+                          </div>
+                        )}
+
                         {record.finalRemarks && (
-                          <div className="w-full bg-yellow-500/10 rounded-lg p-2.5 border border-yellow-500/20">
-                            <p className="text-yellow-500/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
+                          <div className="w-full bg-status-pending/10 rounded-lg p-2.5 border border-status-pending/20">
+                            <p className="text-status-pending/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
                               "{record.finalRemarks}"
                             </p>
                           </div>
@@ -1002,7 +1016,7 @@ export function ServiceHistory() {
                                   isToday
                                     ? "text-workshop-warning"
                                     : isPast
-                                      ? "text-rose-500"
+                                  ? "text-status-urgent"
                                       : "text-workshop-accent",
                                 )}
                               >
@@ -1030,9 +1044,9 @@ export function ServiceHistory() {
                           <a
                             href={`tel:${customer.phone}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-2 text-[#10B981] hover:brightness-110 active:scale-95 transition-all outline-none"
+                            className="flex items-center gap-2 text-status-success hover:brightness-110 active:scale-95 transition-all outline-none"
                           >
-                            <Phone className="w-3.5 h-3.5 fill-[#10B981]/10" />
+                            <Phone className="w-3.5 h-3.5 fill-status-success/10" />
                             <p className="text-sm font-black tracking-tight uppercase leading-none">
                               {customer.phone}
                             </p>
@@ -1068,7 +1082,7 @@ export function ServiceHistory() {
                               e.stopPropagation();
                               handleDeleteRecord(record);
                             }}
-                            className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-rose-500/60 hover:text-rose-500 hover:border-rose-500/20 transition-all active:scale-95 shadow-sm"
+                            className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-status-urgent/60 hover:text-status-urgent hover:border-status-urgent/20 transition-all active:scale-95 shadow-sm"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1352,7 +1366,7 @@ export function ServiceHistory() {
                           className={cn(
                             "absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-[8px] font-black uppercase transition-all",
                             newRecord.isDeadVehicle
-                              ? "bg-rose-500 text-white"
+                              ? "bg-status-urgent text-white"
                               : "bg-workshop-bg text-workshop-muted border border-workshop-border",
                           )}
                         >
@@ -1363,7 +1377,7 @@ export function ServiceHistory() {
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted flex items-center gap-1.5">
                         Expected Delivery Date
-                        <span className="text-rose-500">*</span>
+                        <span className="text-status-urgent">*</span>
                       </label>
                       <input
                         type="date"
@@ -1382,7 +1396,7 @@ export function ServiceHistory() {
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted flex items-center gap-1.5">
                         Service Date
-                        <span className="text-rose-500">*</span>
+                        <span className="text-status-urgent">*</span>
                       </label>
                       <input
                         type="date"
@@ -1395,6 +1409,20 @@ export function ServiceHistory() {
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">
+                      Personal Items / Valuables
+                    </label>
+                    <textarea
+                      value={newRecord.personalItems || ""}
+                      onChange={(e) =>
+                        setNewRecord({ ...newRecord, personalItems: e.target.value })
+                      }
+                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all text-sm min-h-[60px] resize-none"
+                      placeholder="Laptop, cash, tools, etc..."
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -1492,7 +1520,7 @@ export function ServiceHistory() {
                                     });
                                   }
                                 }}
-                                className="w-7 h-7 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all text-sm"
+                                className="w-7 h-7 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-status-urgent hover:bg-status-urgent/10 transition-all text-sm"
                               >
                                 -
                               </button>
@@ -1596,7 +1624,7 @@ export function ServiceHistory() {
                     <button
                       type="submit"
                       disabled={loading || !newRecord.vehicleId || !newRecord.date || !newRecord.expectedDeliveryDate || !newRecord.description}
-                      className="flex-1 px-4 py-4 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
+                      className="flex-1 px-4 py-4 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
                     >
                       {loading ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1645,8 +1673,8 @@ export function ServiceHistory() {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
                       editingRecord.status === "pending"
-                        ? "bg-rose-500 text-workshop-bg border-rose-500 shadow-md shadow-rose-500/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-rose-500/30",
+                        ? "bg-status-urgent text-workshop-bg border-status-urgent shadow-md shadow-status-urgent/20"
+                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-urgent/30",
                     )}
                   >
                     Pending
@@ -1662,8 +1690,8 @@ export function ServiceHistory() {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
                       editingRecord.status === "in-progress"
-                        ? "bg-yellow-500 text-workshop-bg border-yellow-500 shadow-md shadow-yellow-500/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-yellow-500/30",
+                        ? "bg-status-pending text-workshop-bg border-status-pending shadow-md shadow-status-pending/20"
+                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-pending/30",
                     )}
                   >
                     In-Progress
@@ -1679,8 +1707,8 @@ export function ServiceHistory() {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
                       editingRecord.status === "completed"
-                        ? "bg-workshop-accent text-workshop-bg border-workshop-accent shadow-md shadow-workshop-accent/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-workshop-accent/30",
+                        ? "bg-status-success text-workshop-bg border-status-success shadow-md shadow-status-success/20"
+                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-success/30",
                     )}
                   >
                     Completed
@@ -1726,7 +1754,7 @@ export function ServiceHistory() {
                           className={cn(
                             "font-mono text-sm font-black uppercase tracking-tight",
                             editingRecord.isDeadVehicle
-                              ? "text-rose-500 italic"
+                              ? "text-status-urgent italic"
                               : "text-workshop-warning",
                           )}
                         >
@@ -1743,7 +1771,7 @@ export function ServiceHistory() {
                         const vRec = getVehicleInfo(editingRecord.vehicleId);
                         if (!vRec?.passwordOrPin) return null;
                         return (
-                          <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/10 px-2 py-1 rounded border border-[#4ade80]/20">
+                          <div className="flex items-center gap-1.5 text-status-success bg-status-success/10 px-2 py-1 rounded border border-status-success/20">
                             <Key className="w-3 h-3" />
                             {vRec.passwordOrPin.toLowerCase() === "key" ? (
                               <span className="text-[10px] font-black tracking-[0.15em]">
@@ -1779,8 +1807,8 @@ export function ServiceHistory() {
                   {(editingRecord.status === "completed" ||
                     (editingRecord.completionMileage &&
                       editingRecord.completionMileage > 0)) && (
-                    <div className="p-4 bg-workshop-surface rounded-xl border border-[#4ade80]/30 shadow-sm shadow-[#4ade80]/5 animate-in fade-in slide-in-from-top-1 duration-300">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#4ade80] block mb-1 font-black">
+                    <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-accent/30 shadow-sm shadow-workshop-accent/5 animate-in fade-in slide-in-from-top-1 duration-300">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent block mb-1 font-black">
                         Completion Odometer
                       </label>
                       <input
@@ -1793,7 +1821,7 @@ export function ServiceHistory() {
                             completionMileage: Number(e.target.value),
                           })
                         }
-                        className="w-full bg-workshop-bg border border-[#4ade80]/20 px-3 py-1.5 rounded-lg outline-none text-sm font-black focus:ring-1 focus:ring-[#4ade80] text-workshop-text"
+                        className="w-full bg-workshop-bg border border-workshop-accent/20 px-3 py-1.5 rounded-lg outline-none text-sm font-black focus:ring-1 focus:ring-workshop-accent text-workshop-text"
                         placeholder="Reading at finish..."
                       />
                     </div>
@@ -1926,7 +1954,7 @@ export function ServiceHistory() {
                                   });
                                 }
                               }}
-                              className="w-6 h-6 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all text-xs"
+                              className="w-6 h-6 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-status-urgent hover:bg-status-urgent/10 transition-all text-xs"
                             >
                               -
                             </button>
@@ -2022,7 +2050,7 @@ export function ServiceHistory() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black shadow-md hover:bg-emerald-500 transition-all uppercase tracking-widest"
+                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black shadow-md hover:brightness-110 transition-all uppercase tracking-widest"
                   >
                     {isUpdating ? (
                       <RefreshCw className="w-5 h-5 animate-spin" />
@@ -2071,6 +2099,20 @@ export function ServiceHistory() {
 
                 <form onSubmit={handleUpdateDetails} className="space-y-6">
                   <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
+                      Personal Items / Valuables
+                    </label>
+                    <textarea
+                      value={detailsRecord.personalItems || ""}
+                      onChange={(e) =>
+                        setDetailsRecord({ ...detailsRecord, personalItems: e.target.value })
+                      }
+                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all text-sm min-h-[60px] resize-none"
+                      placeholder="Captured items during intake..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1 flex items-center justify-between">
                       Maintenance Request
                       <span className="text-[9px] lowercase font-normal opacity-60">Each line becomes a checklist item</span>
@@ -2092,7 +2134,7 @@ export function ServiceHistory() {
                   <div className="space-y-1.5 px-1">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted flex items-center gap-1.5">
                       Expected Delivery Date
-                      <span className="text-rose-500">*</span>
+                      <span className="text-status-urgent">*</span>
                     </label>
                     <input
                       type="date"
@@ -2120,7 +2162,7 @@ export function ServiceHistory() {
                     <button
                       type="submit"
                       disabled={isUpdating || !detailsRecord.description || !detailsRecord.expectedDeliveryDate}
-                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:bg-emerald-500 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
+                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
                     >
                       {isUpdating ? (
                         <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
@@ -2155,7 +2197,7 @@ export function ServiceHistory() {
                 transition={{ duration: 0.15 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center transition-all"
               >
-                <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
+                <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                   <AlertTriangle className="w-8 h-8" />
                 </div>
                 
@@ -2173,7 +2215,7 @@ export function ServiceHistory() {
                   </button>
                   <button 
                     onClick={confirmDelete}
-                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-rose-900/20 hover:bg-rose-700 transition-all"
+                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:brightness-110 transition-all"
                   >
                     Purge
                   </button>

@@ -113,7 +113,7 @@ export function LoginPage() {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-2 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                className="flex items-center gap-2 p-4 bg-status-urgent/10 border border-status-urgent/20 text-status-urgent rounded-xl text-[10px] font-black uppercase tracking-widest"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
@@ -123,7 +123,7 @@ export function LoginPage() {
             <button
               disabled={loading}
               type="submit"
-              className="w-full flex items-center justify-between bg-workshop-accent text-workshop-bg px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg shadow-workshop-accent/10 group"
+              className="w-full flex items-center justify-between bg-workshop-accent text-workshop-bg px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg shadow-workshop-accent/10 group"
             >
               <span>{loading ? 'Processing...' : isRegistering ? 'Initialize Account' : 'Authenticate Console'}</span>
               {!loading && <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}

@@ -46,6 +46,7 @@ export interface ServiceRecord {
   mileage: number;
   completionMileage?: number;
   isDeadVehicle?: boolean;
+  personalItems?: string;
   description: string;
   remarks?: string;
   finalRemarks?: string;

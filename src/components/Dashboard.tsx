@@ -5,17 +5,59 @@ import { ClipboardList, PlusCircle, Car, Clock, Package, Users, Wrench } from 'l
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ServiceIntake } from './ServiceIntake';
 import type { ServiceRecord, Customer, Vehicle } from '../types';
+
+interface HistoryItem {
+  date: string;
+  value: number;
+}
 
 export function Dashboard() {
   const [showIntake, setShowIntake] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<ServiceRecord[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
   const [metrics, setMetrics] = useState({
     totalCustomers: 0,
     pendingWorks: 0,
-    issuesAttended: 0
+    issuesAttended: 0,
+    completedWorks: 0,
+    history: {
+      customers: [] as HistoryItem[],
+      pending: [] as HistoryItem[],
+      issues: [] as HistoryItem[],
+      completed: [] as HistoryItem[],
+    }
   });
+
+  const getHistoryData = <T,>(records: T[], dateField: keyof T, filter?: (r: T) => boolean): HistoryItem[] => {
+    const days = 14;
+    const history = [];
+    const now = new Date();
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      
+      const count = records.filter(r => {
+        const rDateRaw = r[dateField] as unknown as { toDate?: () => Date } | string | null;
+        let rDateStr = '';
+        if (rDateRaw && typeof rDateRaw !== 'string' && rDateRaw.toDate) { // Firestore Timestamp
+          rDateStr = format(rDateRaw.toDate(), 'yyyy-MM-dd');
+        } else if (typeof rDateRaw === 'string') {
+          rDateStr = rDateRaw.split('T')[0];
+        }
+        
+        const matchesDate = rDateStr === dateStr;
+        return matchesDate && (filter ? filter(r) : true);
+      }).length;
+      
+      history.push({ date: dateStr, value: count });
+    }
+    return history;
+  };
 
   /**
    * Fetches all necessary data to populate the dashboard metrics and activity feed.
@@ -56,6 +98,25 @@ export function Dashboard() {
         return acc + (curr.partsUsed?.length || 0);
       }, 0);
 
+      const completedWorks = enrichedRecords.filter(s => s.status === 'completed').length;
+
+      // Calculate 7-day histories
+      const customerHistory = getHistoryData(customers, 'createdAt');
+      const pendingHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'pending' || r.status === 'in-progress');
+      const completedHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'completed');
+      
+      // For issues, we need to count parts per day
+      const issuesHistory = [];
+      const now = new Date();
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = format(d, 'yyyy-MM-dd');
+        const count = enrichedRecords.filter(r => r.date?.split('T')[0] === dateStr)
+          .reduce((acc, curr) => acc + (curr.partsUsed?.length || 0), 0);
+        issuesHistory.push({ date: dateStr, value: count });
+      }
+
       // Sort activities: most recent first
       const allActivities = enrichedRecords
         .sort((a, b) => {
@@ -67,7 +128,14 @@ export function Dashboard() {
       setMetrics({
         totalCustomers,
         pendingWorks: pendingJobs.length,
-        issuesAttended
+        issuesAttended,
+        completedWorks,
+        history: {
+          customers: customerHistory,
+          pending: pendingHistory,
+          issues: issuesHistory,
+          completed: completedHistory
+        }
       });
       setPendingQueue(allActivities as ServiceRecord[]);
 
@@ -78,13 +146,16 @@ export function Dashboard() {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 200);
     fetchDashboardData();
+    return () => clearTimeout(timer);
   }, []);
 
   const stats = [
-    { label: 'Total Customers', value: metrics.totalCustomers, icon: Users, color: 'text-blue-400' },
-    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-rose-500' },
-    { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-emerald-400' },
+    { label: 'Total Customers', value: metrics.totalCustomers, icon: Users, color: 'text-secondary', trend: metrics.history.customers },
+    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending },
+    { label: 'Completed Jobs', value: metrics.completedWorks, icon: Package, color: 'text-workshop-accent', trend: metrics.history.completed },
+    { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-status-success', trend: metrics.history.issues },
   ];
 
   const containerVariants = {
@@ -126,7 +197,7 @@ export function Dashboard() {
           <div className="absolute inset-0 bg-workshop-accent/20 blur-xl rounded group-hover:bg-workshop-accent/40 transition-all duration-500" />
           <button 
             onClick={() => setShowIntake(true)}
-            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:bg-emerald-500 transition-all active:scale-95"
+            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:brightness-110 transition-all active:scale-95"
           >
             <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             New Customer
@@ -158,7 +229,7 @@ export function Dashboard() {
               "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30"
             )}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex-1 flex items-center gap-4">
               <div className={cn("w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>
                 <stat.icon className="w-6 h-6" />
               </div>
@@ -167,11 +238,31 @@ export function Dashboard() {
                   {stat.label}
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-workshop-muted/80 tracking-tight">
+                  <span className="text-xl font-black text-workshop-text tracking-tighter">
                     {stat.value}
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div 
+              className="relative h-10 w-24 md:w-32 lg:w-40 opacity-50 group-hover:opacity-100 transition-opacity shrink-0 flex items-center justify-center overflow-hidden"
+              style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}
+            >
+              {isMounted && stat.trend.length > 0 && (
+                <ResponsiveContainer width="100%" height={40}>
+                  <AreaChart data={stat.trend}>
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      fill="transparent"
+                      className={stat.color}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </motion.div>
         ))}
@@ -217,9 +308,9 @@ export function Dashboard() {
                     <div className="text-right">
                       <div className={cn(
                         "flex items-center justify-end gap-2 mb-1",
-                        job.status === 'completed' ? "text-emerald-500" :
-                        job.status === 'in-progress' ? "text-yellow-500" :
-                        job.status === 'pending' ? "text-rose-500" :
+                        job.status === 'completed' ? "text-status-success" :
+                        job.status === 'in-progress' ? "text-status-pending" :
+                        job.status === 'pending' ? "text-status-urgent" :
                         "text-workshop-muted"
                       )}>
                         <Clock className="w-3 h-3" />

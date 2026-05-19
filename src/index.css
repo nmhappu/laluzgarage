@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-logo: "Lexend", sans-serif;
+  --font-logo: "Google Sans", sans-serif;
 
   /* Theme color mapping */
   --color-background: var(--bg);
@@ -35,6 +35,11 @@
   --color-input: var(--border-color);
   --color-ring: #10B981;
 
+  /* Status Colors */
+  --color-status-success: var(--status-success);
+  --color-status-pending: var(--status-pending);
+  --color-status-urgent: var(--status-urgent);
+
   --radius: 0.5rem;
 
   /* Keep legacy workshop names for backward compatibility */
@@ -59,17 +64,23 @@
   --muted-bg: #1E232E;
   --muted-fg: #94A3B8;
   --border-color: #1E232E;
+  --status-success: #10B981;
+  --status-pending: #FBBF24;
+  --status-urgent: #F43F5E;
 }
 
 [data-theme="light"] {
-  --bg: #F8FAFC;
-  --fg: #0B0D11;
+  --bg: #FFFFFF;
+  --fg: #0F172A;
   --card-bg: #FFFFFF;
-  --surface-bg: #F1F5F9;
+  --surface-bg: #F8FAFC;
   --popover-bg: #FFFFFF;
   --muted-bg: #F1F5F9;
   --muted-fg: #64748B;
   --border-color: #E2E8F0;
+  --status-success: #10B981;
+  --status-pending: #FBBF24;
+  --status-urgent: #F43F5E;
 }
 
 /* View Transition Styles for Telegram Polish */

@@ -110,7 +110,7 @@ export function Navigation() {
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
             <button 
               onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-rose-500 transition-colors uppercase tracking-widest"
+              className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-status-urgent transition-colors uppercase tracking-widest"
             >
               <LogOut className="w-3 h-3" />
               End session
@@ -147,7 +147,7 @@ export function Navigation() {
             <ThemeToggle className="w-9 h-9 rounded-lg" />
             <button 
               onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center justify-center p-2 text-workshop-muted hover:text-rose-500 transition-colors"
+              className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
               title="Logout"
             >
               <LogOut className="w-5 h-5 pointer-events-none" />
@@ -180,7 +180,7 @@ export function Navigation() {
                     <item.icon className={cn("w-6 h-6 transition-all duration-300", isActive ? "scale-110" : "scale-100")} />
                   </div>
                   <span className={cn(
-                    "text-[10px] uppercase tracking-widest font-black transition-all",
+                    "text-[10px] uppercase tracking-widest font-bold transition-all",
                     isActive ? "opacity-100" : "opacity-40"
                   )}>
                     {item.label}
@@ -210,7 +210,7 @@ export function Navigation() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
-                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 border border-amber-500/20">
+                <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                   <AlertTriangle className="w-8 h-8" />
                 </div>
                 
@@ -231,7 +231,7 @@ export function Navigation() {
                       logout();
                       setShowLogoutConfirm(false);
                     }}
-                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-rose-900/20 hover:bg-rose-700 transition-all"
+                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:opacity-90 transition-all"
                   >
                     Log Out
                   </button>

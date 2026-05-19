@@ -245,9 +245,12 @@ export function Dashboard() {
               </div>
             </div>
 
-            <div 
-              className="relative h-10 w-24 md:w-32 lg:w-40 opacity-50 group-hover:opacity-100 transition-opacity shrink-0 flex items-center justify-center overflow-hidden"
-              style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}
+            <div
+              className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0"
+              style={{
+                maskImage:
+                  'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+              }}
             >
               {isMounted && stat.trend.length > 0 && (
                 <ResponsiveContainer width="100%" height={40}>

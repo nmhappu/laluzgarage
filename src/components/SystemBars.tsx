@@ -10,7 +10,7 @@ const BAR_THEMES = {
     nav: '#181B24'
   },
   light: {
-    status: '#F1F5F9',
+    status: '#F8FAFC',
     nav: '#FFFFFF'
   }
 };

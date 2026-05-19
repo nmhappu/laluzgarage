@@ -63,16 +63,10 @@ function AppContent() {
           <footer className="hidden md:flex h-10 bg-workshop-surface border-t border-workshop-border px-8 items-center justify-between text-[10px] text-workshop-muted shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-colors">
             <div className="flex items-center gap-8 h-full">
               <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-workshop-accent shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
-                <span className="opacity-40 uppercase tracking-[0.2em] font-bold">System Status:</span>
-                <span className="text-workshop-accent font-black uppercase tracking-[0.2em]">Active</span>
-              </div>
-              <div className="flex items-center gap-3 border-l border-workshop-border pl-8 h-4">
                 <span className="opacity-40 uppercase tracking-[0.2em] font-bold">Advisor:</span>
                 <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">{user.displayName || user.email}</span>
               </div>
             </div>
-            <div className="hidden sm:block uppercase tracking-[0.3em] font-black text-rose-400 drop-shadow-[0_0_12px_rgba(251,113,133,0.15)]">Production Sync Ready</div>
           </footer>
         </main>
       </div>

@@ -9,24 +9,28 @@ import { format } from 'date-fns';
 import { Portal } from './Portal';
 
 export function CustomerManagement() {
+  // --- State: Data ---
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // --- State: UI Control ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedCustomerForTransactions, setSelectedCustomerForTransactions] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // --- State: Active Models ---
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
     name: '',
     phone: ''
   });
-
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
+  // --- Effects: Handlers ---
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -52,6 +56,9 @@ export function CustomerManagement() {
     return () => window.removeEventListener("appBackButton", handleBackButton);
   }, [showEditModal, showAddModal, showDeleteConfirm, selectedCustomerForTransactions]);
 
+  /**
+   * Fetches all customers, their vehicles, and service history logs.
+   */
   const fetchCustomers = async () => {
     setLoading(true);
     try {
@@ -156,12 +163,16 @@ export function CustomerManagement() {
         />
       </div>
 
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-      >
-        <AnimatePresence mode="wait">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
+      <AnimatePresence mode="wait">
+        {loading ? (
+            <motion.div
+              key="skeletons"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
               <motion.div
                 key={`skeleton-${i}`}
                 initial={{ opacity: 0 }}
@@ -187,90 +198,99 @@ export function CustomerManagement() {
                   <div className="h-3 bg-workshop-accent/20 rounded w-1/4" />
                 </div>
               </motion.div>
-            ))
-          ) : filteredCustomers.map((customer) => (
+              ))}
+            </motion.div>
+          ) : (
             <motion.div
-              key={customer.id}
+              key="customer-list"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative h-[180px] flex flex-col justify-between"
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
             >
-              <div>
-                <motion.div 
+              {filteredCustomers.map((customer) => (
+                <motion.div
+                  key={customer.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-start justify-between mb-2"
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative h-[180px] flex flex-col justify-between overflow-hidden bg-clip-padding"
                 >
-                  <div className="w-10 h-10 bg-workshop-surface rounded-lg border border-workshop-border flex items-center justify-center text-workshop-muted group-hover:bg-workshop-accent/10 group-hover:text-workshop-accent transition-colors font-black text-xs">
-                    {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  <div>
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-start justify-between mb-2"
+                    >
+                      <div className="w-10 h-10 bg-workshop-surface rounded-lg border border-workshop-border flex items-center justify-center text-workshop-muted group-hover:bg-workshop-accent/10 group-hover:text-workshop-accent transition-colors font-black text-xs">
+                        {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </div>
+                      <div className="flex gap-2 relative z-20">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCustomer(customer);
+                            setShowEditModal(true);
+                          }}
+                          className="p-3 text-workshop-muted hover:text-workshop-accent hover:bg-workshop-surface rounded-lg transition-all"
+                          aria-label="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomerToDelete(customer);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="p-3 text-workshop-muted hover:text-rose-500 hover:bg-workshop-surface rounded-lg transition-all"
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                    <motion.h3 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="font-bold text-workshop-text mb-2 uppercase tracking-tight"
+                    >
+                      {customer.name}
+                    </motion.h3>
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-3 text-xs text-workshop-muted"
+                    >
+                      <div className="flex items-center gap-3">
+                        <a 
+                          href={`tel:${customer.phone}`}
+                          className="flex items-center gap-1.5 group/phone hover:no-underline"
+                        >
+                          <Phone className="w-4 h-4 text-workshop-accent transition-all" />
+                          <span className="font-bold text-workshop-accent tracking-wider">{customer.phone}</span>
+                        </a>
+                      </div>
+                    </motion.div>
                   </div>
-                  <div className="flex gap-2 relative z-20">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="pt-2 border-t border-workshop-border flex justify-end relative z-10"
+                  >
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingCustomer(customer);
-                        setShowEditModal(true);
-                      }}
-                      className="p-3 text-workshop-muted hover:text-workshop-accent hover:bg-workshop-surface rounded-lg transition-all"
-                      aria-label="Edit"
+                      onClick={() => setSelectedCustomerForTransactions(customer)}
+                      className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      View History
                     </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCustomerToDelete(customer);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="p-3 text-workshop-muted hover:text-rose-500 hover:bg-workshop-surface rounded-lg transition-all"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  </motion.div>
                 </motion.div>
-                <motion.h3 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="font-bold text-workshop-text mb-2 uppercase tracking-tight"
-                >
-                  {customer.name}
-                </motion.h3>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-3 text-xs text-workshop-muted"
-                >
-                  <div className="flex items-center gap-3">
-                    <a 
-                      href={`tel:${customer.phone}`}
-                      className="flex items-center gap-1.5 group/phone hover:no-underline"
-                    >
-                      <Phone className="w-4 h-4 text-workshop-accent transition-all" />
-                      <span className="font-bold text-workshop-accent tracking-wider">{customer.phone}</span>
-                    </a>
-                  </div>
-                </motion.div>
-              </div>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="pt-2 border-t border-workshop-border flex justify-end relative z-10"
-              >
-                <button 
-                  onClick={() => setSelectedCustomerForTransactions(customer)}
-                  className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent hover:text-emerald-400 p-2"
-                >
-                  View History
-                </button>
-              </motion.div>
+              ))}
             </motion.div>
-          ))}
+          )}
         </AnimatePresence>
-      </motion.div>
-
 
       {!loading && filteredCustomers.length === 0 && (
         <div className="text-center py-20 text-workshop-muted text-sm italic">
@@ -547,8 +567,9 @@ export function CustomerManagement() {
                                     <span className={cn(
                                       "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
                                       record.status === 'completed' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                      record.status === 'in-progress' ? "bg-workshop-secondary/10 text-workshop-secondary border-workshop-secondary/20" :
-                                      "bg-workshop-warning/10 text-workshop-warning border-workshop-warning/20"
+                                      record.status === 'in-progress' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                                      record.status === 'pending' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
+                                      "bg-workshop-muted/10 text-workshop-muted border-workshop-border"
                                     )}>
                                       {record.status}
                                     </span>

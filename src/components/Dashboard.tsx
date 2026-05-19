@@ -17,6 +17,10 @@ export function Dashboard() {
     issuesAttended: 0
   });
 
+  /**
+   * Fetches all necessary data to populate the dashboard metrics and activity feed.
+   * Joins Customers, Vehicles, and Service Records in-memory.
+   */
   const fetchDashboardData = async () => {
     try {
       const customersSnap = await getDocs(collection(db, 'customers'));
@@ -27,6 +31,7 @@ export function Dashboard() {
       const vehicles = vehiclesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle));
       const serviceRecords = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() } as ServiceRecord));
       
+      // Merge data for display
       const enrichedRecords = serviceRecords.map(record => {
         const vehicle = vehicles.find(v => v.id === record.vehicleId);
         const customer = customers.find(c => c.id === record.customerId);
@@ -41,24 +46,22 @@ export function Dashboard() {
         };
       });
       
-      // Total Customers
+      // Calculate Metrics
       const totalCustomers = customersSnap.size;
 
-      // Pending Works (Status 'pending' or 'in-progress')
       const pendingJobs = enrichedRecords.filter((s) => s.status === 'pending' || s.status === 'in-progress');
       
-      // Issues Attended (1 part = 1 issue)
+      // Count parts used as surrogate for "issues addressed"
       const issuesAttended = enrichedRecords.reduce((acc, curr) => {
         return acc + (curr.partsUsed?.length || 0);
       }, 0);
 
-      // Pending Services Logs (Oldest First)
-      const queue = enrichedRecords
-        .filter((s) => s.status === 'pending' || s.status === 'in-progress')
+      // Sort activities: most recent first
+      const allActivities = enrichedRecords
         .sort((a, b) => {
           const dateA = new Date(a.date).getTime();
           const dateB = new Date(b.date).getTime();
-          return dateA - dateB;
+          return dateB - dateA;
         });
 
       setMetrics({
@@ -66,13 +69,11 @@ export function Dashboard() {
         pendingWorks: pendingJobs.length,
         issuesAttended
       });
-      setPendingQueue(queue as ServiceRecord[]);
+      setPendingQueue(allActivities as ServiceRecord[]);
 
     } catch (e: unknown) {
-      console.error(e);
-      if (e && typeof e === 'object' && 'code' in e && e.code === 'permission-denied') {
-         handleFirestoreError(e, 'list', 'dashboard_data');
-      }
+      console.error('Dashboard data fetch error:', e);
+      handleFirestoreError(e, 'list', 'dashboard_data');
     }
   };
 
@@ -91,7 +92,7 @@ export function Dashboard() {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05
+        staggerChildren: 0.03
       }
     }
   };
@@ -102,7 +103,7 @@ export function Dashboard() {
       opacity: 1, 
       y: 0,
       transition: {
-        duration: 0.3,
+        duration: 0.2,
         ease: [0.23, 1, 0.32, 1]
       }
     }
@@ -216,11 +217,14 @@ export function Dashboard() {
                     <div className="text-right">
                       <div className={cn(
                         "flex items-center justify-end gap-2 mb-1",
-                        job.status === 'in-progress' ? "text-yellow-500" : "text-rose-500"
+                        job.status === 'completed' ? "text-emerald-500" :
+                        job.status === 'in-progress' ? "text-yellow-500" :
+                        job.status === 'pending' ? "text-rose-500" :
+                        "text-workshop-muted"
                       )}>
                         <Clock className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">
-                          {job.status === 'in-progress' ? 'In-Progress' : 'Pending'}
+                        <span className="text-[9px] font-black uppercase tracking-widest text-right">
+                          {job.status}
                         </span>
                       </div>
                       <p className="text-[9px] text-workshop-muted font-bold opacity-40 uppercase">

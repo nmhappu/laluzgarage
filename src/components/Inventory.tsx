@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError } from '../lib/firebase';
-import { Plus, Search, Tag, Trash2, X, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Search, Tag, Trash2, X, MapPin, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, cn } from '../lib/utils';
 import { Portal } from './Portal';
+import { inventoryService } from '../services/inventoryService';
+import { handleFirestoreError } from '../lib/firebase';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export function Inventory() {
+  // --- State Management ---
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -20,19 +20,27 @@ export function Inventory() {
     name: '',
     sku: '',
     category: '',
-    stockQuantity: undefined as any,
-    price: undefined as any,
+    stockQuantity: 0,
+    price: 0,
     minStockLevel: 5,
     location: ''
   });
 
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
+  const [stockAdjustment, setStockAdjustment] = useState<number>(0);
 
+  // --- Data Subscription ---
   useEffect(() => {
-    fetchParts();
+    setLoading(true);
+    const unsubscribe = inventoryService.subscribeToParts((updatedParts) => {
+      setParts(updatedParts);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
+  // --- Handlers ---
   useEffect(() => {
     const handleBackButton = (e: Event) => {
       if (showEditModal) {
@@ -51,36 +59,22 @@ export function Inventory() {
     return () => window.removeEventListener("appBackButton", handleBackButton);
   }, [showEditModal, showAddModal, showDeleteConfirm]);
 
-  const fetchParts = async () => {
-    setLoading(true);
-    try {
-      const q = query(collection(db, 'parts'), orderBy('name', 'asc'));
-      const snap = await getDocs(q);
-      setParts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Part)));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAddPart = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPart.name) return;
 
     try {
-      await addDoc(collection(db, 'parts'), {
-        ...newPart,
-        sku: newPart.sku || '',
-        stockQuantity: Number(newPart.stockQuantity || 0),
-        price: Number(newPart.price || 0),
-        minStockLevel: Number(newPart.minStockLevel || 5),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      await inventoryService.addPart(newPart);
       setShowAddModal(false);
-      setNewPart({ name: '', sku: '', category: '', stockQuantity: undefined, price: undefined, minStockLevel: 5, location: '' });
-      fetchParts();
+      setNewPart({ 
+        name: '', 
+        sku: '', 
+        category: '', 
+        stockQuantity: 0, 
+        price: 0, 
+        minStockLevel: 5, 
+        location: '' 
+      });
     } catch (e: unknown) {
       console.error(e);
       handleFirestoreError(e, 'create', 'parts');
@@ -92,21 +86,14 @@ export function Inventory() {
     if (!editingPart || !editingPart.name) return;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, createdAt, updatedAt: _oldUpdatedAt, ...data } = editingPart;
-      await updateDoc(doc(db, 'parts', id), {
-        ...data,
-        sku: data.sku || '',
-        stockQuantity: Number(data.stockQuantity),
-        price: Number(data.price),
-        minStockLevel: Number(data.minStockLevel),
-        updatedAt: serverTimestamp()
-      });
+      await inventoryService.updatePart(editingPart.id, editingPart, stockAdjustment);
       setShowEditModal(false);
       setEditingPart(null);
-      fetchParts();
+      setStockAdjustment(0);
     } catch (e: unknown) {
       console.error(e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      alert(errorMessage);
       handleFirestoreError(e, 'update', `parts/${editingPart.id}`);
     }
   };
@@ -115,20 +102,25 @@ export function Inventory() {
     if (!partToDelete) return;
 
     try {
-      await deleteDoc(doc(db, 'parts', partToDelete.id));
+      await inventoryService.deletePart(partToDelete.id);
       setShowDeleteConfirm(false);
       setPartToDelete(null);
-      fetchParts();
     } catch (e: unknown) {
       console.error(e);
       handleFirestoreError(e, 'delete', `parts/${partToDelete.id}`);
     }
   };
 
-  const filteredParts = parts.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- Filter Logic ---
+  const filteredParts = useMemo(() => {
+    const query = searchTerm.toLowerCase().trim();
+    if (!query) return parts;
+    return parts.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      (p.sku && p.sku.toLowerCase().includes(query)) ||
+      (p.category && p.category.toLowerCase().includes(query))
+    );
+  }, [parts, searchTerm]);
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
@@ -150,7 +142,7 @@ export function Inventory() {
         <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
         <input 
           type="text" 
-          placeholder="Search by name or SKU..."
+          placeholder="Search by name, SKU or category..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-workshop-accent focus:border-workshop-accent text-sm text-workshop-text"
@@ -166,88 +158,93 @@ export function Inventory() {
             show: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.02,
-                delayChildren: 0.1
+                staggerChildren: 0.01,
+                delayChildren: 0.05
               }
             }
           }}
           className="divide-y divide-workshop-border/30"
         >
           <AnimatePresence mode="popLayout">
-            {filteredParts.map((part) => (
-              <motion.div 
-                key={part.id} 
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { 
-                    opacity: 1, 
-                    y: 0,
-                    transition: {
-                      duration: 0.3,
-                      ease: [0.23, 1, 0.32, 1] // Quintic ease-out for smoothness
+            {filteredParts.map((part) => {
+              const isLowStock = part.stockQuantity <= part.minStockLevel;
+              return (
+                <motion.div 
+                  key={part.id} 
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { 
+                      opacity: 1, 
+                      y: 0,
+                      transition: {
+                        duration: 0.2,
+                        ease: [0.23, 1, 0.32, 1]
+                      }
                     }
-                  }
-                }}
-                exit={{ 
-                  opacity: 0, 
-                  scale: 0.98,
-                  transition: { duration: 0.2 } 
-                }}
-                className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group"
-                onClick={() => {
-                  setEditingPart(part);
-                  setShowEditModal(true);
-                }}
-              >
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm md:text-[15px] font-bold text-workshop-text tracking-tight uppercase group-hover:text-workshop-accent transition-colors">
-                    {part.name}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
-                      {part.category || 'General'}
-                    </span>
-                    {part.sku && (
-                      <>
-                        <span className="w-1 h-1 bg-workshop-border rounded-full" />
-                        <span className="text-[10px] text-workshop-secondary font-mono tracking-tighter uppercase opacity-70">
-                          {part.sku}
+                  }}
+                  exit={{ 
+                    opacity: 0, 
+                    scale: 0.98,
+                    transition: { duration: 0.15 } 
+                  }}
+                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group"
+                  onClick={() => {
+                    setEditingPart(part);
+                    setStockAdjustment(0);
+                    setShowEditModal(true);
+                  }}
+                >
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm md:text-[15px] font-bold text-workshop-text tracking-tight uppercase group-hover:text-workshop-accent transition-colors flex items-center gap-2">
+                      {part.name}
+                      {isLowStock && (
+                        <span className="flex items-center gap-1 text-[8px] bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded border border-rose-500/20 animate-pulse">
+                          <AlertCircle className="w-2 h-2" />
+                          LOW STOCK
                         </span>
-                      </>
-                    )}
-                    {part.location && (
-                      <>
-                        <span className="w-1 h-1 bg-workshop-border rounded-full" />
-                        <span className="text-[10px] text-emerald-500/50 font-bold uppercase tracking-widest flex items-center gap-1">
-                          <MapPin className="w-2.5 h-2.5" />
-                          {part.location}
-                        </span>
-                      </>
-                    )}
+                      )}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
+                        {part.category || 'General'}
+                      </span>
+                      {part.sku && (
+                        <>
+                          <span className="w-1 h-1 bg-workshop-border rounded-full" />
+                          <span className="text-[10px] text-workshop-secondary font-mono tracking-tighter uppercase opacity-70">
+                            {part.sku}
+                          </span>
+                        </>
+                      )}
+                      {part.location && (
+                        <>
+                          <span className="w-1 h-1 bg-workshop-border rounded-full" />
+                          <span className="text-[10px] text-emerald-500/50 font-bold uppercase tracking-widest flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5" />
+                            {part.location}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Decorative Sparkline Element */}
-              <div className="hidden md:flex items-center justify-center flex-1">
-                 <svg width="60" height="20" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-30">
-                    <path d="M0 15C5 12 10 18 15 15C20 12 25 5 30 8C35 11 40 15 45 12C50 9 55 12 60 10" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
-                 </svg>
-              </div>
-
-              <div className="flex flex-col items-end text-right">
-                <p className="text-[15px] md:text-lg font-black text-workshop-text tracking-tight tabular-nums">
-                  {formatCurrency(part.price)}
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                   <span className="text-[10px] md:text-sm font-black text-workshop-accent tabular-nums">
-                     Stock: {part.stockQuantity}
-                   </span>
+                <div className="flex flex-col items-end text-right">
+                  <p className="text-[15px] md:text-lg font-black text-workshop-text tracking-tight tabular-nums">
+                    {formatCurrency(part.price)}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                     <span className={cn(
+                       "text-[10px] md:text-sm font-black tabular-nums",
+                       isLowStock ? "text-rose-500" : "text-workshop-accent"
+                     )}>
+                       Stock: {part.stockQuantity}
+                     </span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            )})}
           </AnimatePresence>
         </motion.div>
 
@@ -275,17 +272,20 @@ export function Inventory() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh] bg-clip-padding"
               >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-workshop-text uppercase tracking-tight">Edit Inventory Asset</h2>
+                <div>
+                  <h2 className="text-xl font-bold text-workshop-text uppercase tracking-tight">Edit Inventory Asset</h2>
+                  <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1">ID: {editingPart.id}</p>
+                </div>
                 <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-workshop-surface rounded-full transition-colors">
                   <X className="w-5 h-5 text-workshop-muted" />
                 </button>
               </div>
               <form onSubmit={handleEditPart} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Part Name</label>
                     <input 
                       required
@@ -295,8 +295,40 @@ export function Inventory() {
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text"
                     />
                   </div>
+
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Current Stock</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-workshop-muted opacity-50 font-mono">
+                        {editingPart.stockQuantity}
+                      </div>
+                      <div className="flex items-center gap-2 bg-workshop-surface border border-workshop-border rounded-xl px-2">
+                        <span className="text-[10px] font-bold text-workshop-muted uppercase ml-2">Adjust:</span>
+                        <input 
+                          type="number" 
+                          placeholder="+/-"
+                          value={stockAdjustment === 0 ? '' : stockAdjustment}
+                          onChange={e => setStockAdjustment(e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="w-20 bg-transparent py-2.5 outline-none text-workshop-text font-mono text-center"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[9px] text-workshop-muted italic mt-1">Resulting Stock: {editingPart.stockQuantity + stockAdjustment}</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Asset Value (Price)</label>
+                    <input 
+                      required
+                      type="number" 
+                      value={editingPart.price}
+                      onChange={e => setEditingPart({...editingPart, price: Number(e.target.value)})}
+                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / ID</label>
                     <input 
                       type="text" 
                       value={editingPart.sku}
@@ -304,26 +336,7 @@ export function Inventory() {
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text font-mono"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Current Stock</label>
-                    <input 
-                      required
-                      type="number" 
-                      value={editingPart.stockQuantity ?? ''}
-                      onChange={e => setEditingPart({...editingPart, stockQuantity: e.target.value === '' ? undefined : Number(e.target.value) as any})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Asset Value (Price)</label>
-                    <input 
-                      required
-                      type="number" 
-                      value={editingPart.price ?? ''}
-                      onChange={e => setEditingPart({...editingPart, price: e.target.value === '' ? undefined : Number(e.target.value) as any})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
-                    />
-                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Category Tag</label>
                     <input 
@@ -334,17 +347,19 @@ export function Inventory() {
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
                     />
                   </div>
+
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Minimum Alert Threshold</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Alert Threshold</label>
                     <input 
                       type="number" 
-                      value={editingPart.minStockLevel ?? ''}
-                      onChange={e => setEditingPart({...editingPart, minStockLevel: e.target.value === '' ? undefined : Number(e.target.value) as any})}
+                      value={editingPart.minStockLevel}
+                      onChange={e => setEditingPart({...editingPart, minStockLevel: Number(e.target.value)})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
                     />
                   </div>
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Warehouse / Bin Location</label>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Location</label>
                     <input 
                       type="text" 
                       value={editingPart.location || ''}
@@ -373,13 +388,13 @@ export function Inventory() {
                       onClick={() => setShowEditModal(false)}
                       className="flex-1 px-4 py-3 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-colors"
                     >
-                      Discard Changes
+                      Discard
                     </button>
                     <button 
                       type="submit" 
                       className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/10 hover:bg-emerald-500 transition-all"
                     >
-                      Commit Update
+                      Update Asset
                     </button>
                   </div>
                 </div>
@@ -451,12 +466,12 @@ export function Inventory() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh]"
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh] bg-clip-padding"
               >
               <h2 className="text-xl font-bold mb-6 text-workshop-text uppercase tracking-tight">Catalogue New Inventory Asset</h2>
               <form onSubmit={handleAddPart} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Part Name</label>
                     <input 
                       required
@@ -468,22 +483,12 @@ export function Inventory() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
-                    <input 
-                      type="text" 
-                      value={newPart.sku}
-                      onChange={e => setNewPart({...newPart, sku: e.target.value})}
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text font-mono"
-                      placeholder="e.g. SKU-9022-X"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Initial Stock</label>
                     <input 
                       required
                       type="number" 
-                      value={newPart.stockQuantity ?? ''}
-                      onChange={e => setNewPart({...newPart, stockQuantity: e.target.value === '' ? undefined : Number(e.target.value) as any})}
+                      value={newPart.stockQuantity ?? 0}
+                      onChange={e => setNewPart({...newPart, stockQuantity: Number(e.target.value)})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text font-sans tabular-nums"
                     />
                   </div>
@@ -492,9 +497,19 @@ export function Inventory() {
                     <input 
                       required
                       type="number" 
-                      value={newPart.price ?? ''}
-                      onChange={e => setNewPart({...newPart, price: e.target.value === '' ? undefined : Number(e.target.value) as any})}
+                      value={newPart.price ?? 0}
+                      onChange={e => setNewPart({...newPart, price: Number(e.target.value)})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text font-sans tabular-nums"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={newPart.sku}
+                      onChange={e => setNewPart({...newPart, sku: e.target.value})}
+                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text font-mono"
+                      placeholder="e.g. SKU-9022-X"
                     />
                   </div>
                   <div className="space-y-1.5">

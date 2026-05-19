@@ -50,7 +50,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           ],
         },
         {
-          duration: 500,
+          duration: 350,
           easing: 'ease-in-out',
           pseudoElement: theme === 'dark' ? '::view-transition-new(root)' : '::view-transition-new(root)',
         }

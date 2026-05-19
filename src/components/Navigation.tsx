@@ -33,7 +33,7 @@ export function Navigation() {
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-500 ease-in-out",
+        "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-300 ease-in-out",
         isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
       )}>
         <div className="p-8 h-32">
@@ -44,7 +44,7 @@ export function Navigation() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="text-workshop-text text-xl font-logo font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
               >
                 {pageTitle}
@@ -123,7 +123,7 @@ export function Navigation() {
 
       {/* Mobile Top Bar */}
       <nav className={cn(
-        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-500 ease-in-out",
+        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-300 ease-in-out",
         isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
       )}>
         <div className="safe-top" />
@@ -135,7 +135,7 @@ export function Navigation() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="text-workshop-text text-lg font-logo font-semibold tracking-tight"
               >
                 {pageTitle}
@@ -158,7 +158,7 @@ export function Navigation() {
 
       {/* Mobile Bottom Navigation */}
       <nav className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-500 ease-in-out",
+        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-300 ease-in-out",
         isModalOpen && "backdrop-blur-md bg-workshop-card/90"
       )}>
         <div className="flex items-center justify-between gap-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">

@@ -218,10 +218,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
         />
         
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          initial={{ opacity: 0, scale: 0.98, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative bg-workshop-card w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-workshop-border"
+          exit={{ opacity: 0, scale: 0.98, y: 10 }}
+          transition={{ duration: 0.2 }}
+          className="relative bg-workshop-card w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-workshop-border bg-clip-padding"
         >
           {/* Header */}
           <div className="bg-workshop-bg p-6 md:p-8 text-workshop-text relative border-b border-workshop-border shrink-0">
@@ -259,108 +260,145 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
   
           <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-workshop-bg/30">
             <AnimatePresence mode="wait">
-              {/* STEP 1: DISCOVERY / SEARCH */}
-              {Math.floor(step) === 1 && (
+              {Math.floor(step) === 1 ? (
                 <motion.div
                   key="step1"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
                   {step === 1 ? (
                     <div className="space-y-6">
                       <div className="space-y-2">
-                         <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">Identify Vehicle or Owner</h3>
-                         <p className="text-workshop-muted text-sm">Locate existing records to streamline the intake process.</p>
+                        <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+                          Identify Vehicle or Owner
+                        </h3>
+                        <p className="text-workshop-muted text-sm">
+                          Locate existing records to streamline the intake
+                          process.
+                        </p>
                       </div>
-  
+
                       <div className="flex bg-workshop-surface p-1 rounded-xl border border-workshop-border">
-                        <button 
-                          onClick={() => { setSearchType('plate'); setSearchQuery(''); setSearchResults([]); }}
+                        <button
+                          onClick={() => {
+                            setSearchType("plate");
+                            setSearchQuery("");
+                            setSearchResults([]);
+                          }}
                           className={cn(
                             "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
-                            searchType === 'plate' ? "bg-workshop-card text-workshop-accent shadow-sm" : "text-workshop-muted"
+                            searchType === "plate"
+                              ? "bg-workshop-card text-workshop-accent shadow-sm"
+                              : "text-workshop-muted"
                           )}
                         >
                           Plate Number
                         </button>
-                        <button 
-                          onClick={() => { setSearchType('phone'); setSearchQuery(''); setSearchResults([]); }}
+                        <button
+                          onClick={() => {
+                            setSearchType("phone");
+                            setSearchQuery("");
+                            setSearchResults([]);
+                          }}
                           className={cn(
                             "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
-                            searchType === 'phone' ? "bg-workshop-card text-workshop-accent shadow-sm" : "text-workshop-muted"
+                            searchType === "phone"
+                              ? "bg-workshop-card text-workshop-accent shadow-sm"
+                              : "text-workshop-muted"
                           )}
                         >
                           Owner Details
                         </button>
                       </div>
-                      
+
                       <div className="relative flex items-center">
                         <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
-                        <input 
+                        <input
                           type="text"
-                          placeholder={searchType === 'plate' ? "Start typing plate number..." : "Search by phone or owner name..."}
+                          placeholder={
+                            searchType === "plate"
+                              ? "Start typing plate number..."
+                              : "Search by phone or owner name..."
+                          }
                           value={searchQuery}
-                          onChange={e => setSearchQuery(e.target.value)}
+                          onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text uppercase placeholder:normal-case shadow-sm"
                         />
                       </div>
-  
+
                       <div className="space-y-3">
                         {searchQuery.length > 0 && searchResults.length === 0 && (
                           <div className="p-8 text-center bg-workshop-surface/30 rounded-xl border border-workshop-border border-dashed">
-                            <p className="text-workshop-muted text-sm font-medium opacity-50">Record does not exist</p>
+                            <p className="text-workshop-muted text-sm font-medium opacity-50">
+                              Record does not exist
+                            </p>
                           </div>
                         )}
-  
+
                         {searchResults.map((res, i) => (
                           <button
                             key={`${res.customer.id}-${res.vehicle?.id || i}`}
-                            onClick={() => handleSelectResult(res.customer, res.vehicle)}
+                            onClick={() =>
+                              handleSelectResult(res.customer, res.vehicle)
+                            }
                             className="w-full flex items-center justify-between p-4 bg-workshop-card hover:border-workshop-accent/30 border border-workshop-border rounded-xl transition-all group text-left shadow-sm"
                           >
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-workshop-bg rounded-xl flex items-center justify-center font-black text-workshop-text uppercase text-xs border border-workshop-border shadow-inner">
-                                {res.vehicle ? res.vehicle.plateNumber.slice(-4) : res.customer.name[0]}
+                                {res.vehicle
+                                  ? res.vehicle.plateNumber.slice(-4)
+                                  : res.customer.name[0]}
                               </div>
                               <div>
-                                 <p className="text-[10px] font-black text-workshop-accent uppercase tracking-widest mb-0.5">
-                                   {res.vehicle ? `${res.vehicle.make} ${res.vehicle.model}` : 'New Vehicle Entry Needed'}
-                                 </p>
-                                 <p className="font-bold text-workshop-text leading-tight uppercase">
-                                   {res.customer.name}
-                                 </p>
-                                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                                   <div className="flex items-center gap-1.5 text-workshop-muted">
-                                     <Search className="w-2.5 h-2.5 opacity-40" />
-                                     <p className="text-[10px] font-bold uppercase tracking-tighter">{res.customer.phone}</p>
-                                   </div>
-                                   {res.vehicle && (
-                                     <>
-                                       <div className="flex items-center gap-1.5 text-workshop-secondary">
-                                         <span className="w-1 h-1 bg-workshop-border rounded-full shrink-0" />
-                                         <p className="text-[10px] font-bold uppercase tracking-tighter">{res.vehicle.plateNumber}</p>
-                                       </div>
-                                       {res.vehicle.passwordOrPin && (
-                                         <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-1.5 rounded border border-[#4ade80]/10">
-                                           <Key className="w-2.5 h-2.5" />
-                                           <span className="text-[10px] font-mono font-bold uppercase tracking-tighter">{res.vehicle.passwordOrPin}</span>
-                                         </div>
-                                       )}
-                                     </>
-                                   )}
-                                 </div>
+                                <p className="text-[10px] font-black text-workshop-accent uppercase tracking-widest mb-0.5">
+                                  {res.vehicle
+                                    ? `${res.vehicle.make} ${res.vehicle.model}`
+                                    : "New Vehicle Entry Needed"}
+                                </p>
+                                <p className="font-bold text-workshop-text leading-tight uppercase">
+                                  {res.customer.name}
+                                </p>
+                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                                  <div className="flex items-center gap-1.5 text-workshop-muted">
+                                    <Search className="w-2.5 h-2.5 opacity-40" />
+                                    <p className="text-[10px] font-bold uppercase tracking-tighter">
+                                      {res.customer.phone}
+                                    </p>
+                                  </div>
+                                  {res.vehicle && (
+                                    <>
+                                      <div className="flex items-center gap-1.5 text-workshop-secondary">
+                                        <span className="w-1 h-1 bg-workshop-border rounded-full shrink-0" />
+                                        <p className="text-[10px] font-bold uppercase tracking-tighter">
+                                          {res.vehicle.plateNumber}
+                                        </p>
+                                      </div>
+                                      {res.vehicle.passwordOrPin && (
+                                        <div className="flex items-center gap-1.5 text-[#4ade80] bg-[#4ade80]/5 px-1.5 rounded border border-[#4ade80]/10">
+                                          <Key className="w-2.5 h-2.5" />
+                                          <span className="text-[10px] font-mono font-bold uppercase tracking-tighter">
+                                            {res.vehicle.passwordOrPin}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                               <span className="text-[8px] font-black text-workshop-muted uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">Select</span>
-                               <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-accent translate-x-0 group-hover:translate-x-1 transition-all" />
+                              <span className="text-[8px] font-black text-workshop-muted uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">
+                                Select
+                              </span>
+                              <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-accent translate-x-0 group-hover:translate-x-1 transition-all" />
                             </div>
                           </button>
                         ))}
-                        
-                        <button 
+
+                        <button
                           onClick={handleCreateNewCustomer}
                           className="w-full flex items-center gap-4 p-5 border-2 border-dashed border-workshop-border rounded-xl text-workshop-muted hover:border-workshop-accent/50 hover:text-workshop-accent transition-all font-black text-xs uppercase tracking-widest bg-workshop-surface/30"
                         >
@@ -371,38 +409,59 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <button onClick={() => setStep(1)} className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest">
-                         <ArrowLeft className="w-4 h-4" /> Back to Search
+                      <button
+                        onClick={() => setStep(1)}
+                        className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest"
+                      >
+                        <ArrowLeft className="w-4 h-4" /> Back to Search
                       </button>
                       <div className="space-y-1">
-                        <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">New Client Entry</h3>
-                        <p className="text-workshop-muted text-sm">Register a new client into the workshop system.</p>
+                        <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+                          New Client Entry
+                        </h3>
+                        <p className="text-workshop-muted text-sm">
+                          Register a new client into the workshop system.
+                        </p>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Full Name</label>
-                          <input 
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                            Full Name
+                          </label>
+                          <input
                             value={customerForm.name}
-                            onChange={e => setCustomerForm({...customerForm, name: e.target.value})}
+                            onChange={(e) =>
+                              setCustomerForm({
+                                ...customerForm,
+                                name: e.target.value,
+                              })
+                            }
                             className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                             placeholder="e.g. John Doe"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Contact Number</label>
-                          <input 
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                            Contact Number
+                          </label>
+                          <input
                             type="tel"
                             inputMode="tel"
                             value={customerForm.phone}
-                            onChange={e => setCustomerForm({...customerForm, phone: e.target.value})}
+                            onChange={(e) =>
+                              setCustomerForm({
+                                ...customerForm,
+                                phone: e.target.value,
+                              })
+                            }
                             className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                             placeholder="+1 234 567 890"
                           />
                         </div>
                       </div>
-                      
-                      <button 
+
+                      <button
                         onClick={() => setStep(2)}
                         disabled={!customerForm.name || !customerForm.phone}
                         className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all disabled:opacity-30 disabled:grayscale"
@@ -412,31 +471,40 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     </div>
                   )}
                 </motion.div>
-              )}
-  
-              {/* STEP 2: VEHICLE DETAILS */}
-              {step === 2 && (
+              ) : step === 2 ? (
                 <motion.div
                   key="step2"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  <button onClick={handleBackStep} className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest">
-                     <ArrowLeft className="w-4 h-4" /> Client Info
+                  <button
+                    onClick={handleBackStep}
+                    className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Client Info
                   </button>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">Vehicle Identification</h3>
-                    <p className="text-workshop-muted text-sm">Record technical specifications for the service entry.</p>
+                    <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+                      Vehicle Identification
+                    </h3>
+                    <p className="text-workshop-muted text-sm">
+                      Record technical specifications for the service entry.
+                    </p>
                   </div>
-  
+
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Manufacturer</label>
-                      <input 
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Manufacturer
+                      </label>
+                      <input
                         value={vehicleForm.make}
-                        onChange={e => setVehicleForm({...vehicleForm, make: e.target.value})}
+                        onChange={(e) =>
+                          setVehicleForm({ ...vehicleForm, make: e.target.value })
+                        }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                         placeholder="e.g. Toyota"
                       />
@@ -446,27 +514,40 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         Model
                         <span className="text-rose-500">*</span>
                       </label>
-                      <input 
+                      <input
                         value={vehicleForm.model}
-                        onChange={e => setVehicleForm({...vehicleForm, model: e.target.value})}
+                        onChange={(e) =>
+                          setVehicleForm({ ...vehicleForm, model: e.target.value })
+                        }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                         placeholder="e.g. Camry"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Registration Plate</label>
-                      <input 
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Registration Plate
+                      </label>
+                      <input
                         value={vehicleForm.plateNumber}
-                        onChange={e => setVehicleForm({...vehicleForm, plateNumber: e.target.value.toUpperCase()})}
+                        onChange={(e) =>
+                          setVehicleForm({
+                            ...vehicleForm,
+                            plateNumber: e.target.value.toUpperCase(),
+                          })
+                        }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold text-workshop-accent uppercase"
                         placeholder="MH 12 AB 1234"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Vehicle Colour</label>
-                      <input 
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Vehicle Colour
+                      </label>
+                      <input
                         value={vehicleForm.color}
-                        onChange={e => setVehicleForm({...vehicleForm, color: e.target.value})}
+                        onChange={(e) =>
+                          setVehicleForm({ ...vehicleForm, color: e.target.value })
+                        }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
                         placeholder="e.g. Red, Black"
                       />
@@ -477,16 +558,23 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
-                        <input 
+                        <input
                           disabled={useKey}
                           type="text"
                           inputMode="numeric"
-                          value={useKey ? 'Key' : vehicleForm.passwordOrPin}
-                          onChange={e => {
+                          maxLength={6}
+                          value={useKey ? "Key" : vehicleForm.passwordOrPin}
+                          onChange={(e) => {
                             const val = e.target.value;
                             if (useKey) return;
-                            if (val === '' || /^\d+$/.test(val)) {
-                              setVehicleForm({...vehicleForm, passwordOrPin: val});
+                            if (
+                              val === "" ||
+                              (/^\d+$/.test(val) && val.length <= 6)
+                            ) {
+                              setVehicleForm({
+                                ...vehicleForm,
+                                passwordOrPin: val,
+                              });
                             }
                           }}
                           className={cn(
@@ -501,118 +589,165 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                             const newMode = !useKey;
                             setUseKey(newMode);
                             if (newMode) {
-                              setVehicleForm({...vehicleForm, passwordOrPin: 'Key'});
+                              setVehicleForm({
+                                ...vehicleForm,
+                                passwordOrPin: "Key",
+                              });
                             } else {
-                              setVehicleForm({...vehicleForm, passwordOrPin: ''});
+                              setVehicleForm({
+                                ...vehicleForm,
+                                passwordOrPin: "",
+                              });
                             }
                           }}
                           className={cn(
                             "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all",
-                            useKey ? "bg-workshop-accent text-workshop-bg shadow-lg" : "bg-workshop-surface text-workshop-muted hover:text-workshop-text"
+                            useKey
+                              ? "bg-workshop-accent text-workshop-bg shadow-lg"
+                              : "bg-workshop-surface text-workshop-muted hover:text-workshop-text"
                           )}
                           title="Toggle between Pin and physical Key"
                         >
-                          <Key className={cn("w-4 h-4", useKey && "animate-pulse")} />
+                          <Key
+                            className={cn("w-4 h-4", useKey && "animate-pulse")}
+                          />
                         </button>
                       </div>
                     </div>
                   </div>
-  
-                  <button 
+
+                  <button
                     onClick={() => setStep(3)}
-                    disabled={!vehicleForm.make || !vehicleForm.model || !vehicleForm.plateNumber || !vehicleForm.passwordOrPin}
+                    disabled={
+                      !vehicleForm.make ||
+                      !vehicleForm.model ||
+                      !vehicleForm.plateNumber ||
+                      !vehicleForm.passwordOrPin
+                    }
                     className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all disabled:opacity-30 disabled:grayscale"
                   >
                     SET JOB REQUIREMENTS
                   </button>
                 </motion.div>
-              )}
-  
-              {/* STEP 3: JOB DETAILS */}
-              {step === 3 && (
+              ) : (
                 <motion.div
                   key="step3"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  <button onClick={handleBackStep} className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest">
-                     <ArrowLeft className="w-4 h-4" /> Vehicle Info
+                  <button
+                    onClick={handleBackStep}
+                    className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Vehicle Info
                   </button>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">Job Specification</h3>
-                    <p className="text-workshop-muted text-sm">Define the reason for intake and current vehicle status.</p>
+                    <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+                      Job Specification
+                    </h3>
+                    <p className="text-workshop-muted text-sm">
+                      Define the reason for intake and current vehicle status.
+                    </p>
                   </div>
-  
+
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Vehicle Mileage (Odometer)</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Vehicle Mileage (Odometer)
+                      </label>
                       <div className="relative">
-                        <input 
+                        <input
                           type="text"
                           inputMode="numeric"
                           disabled={jobForm.isDeadVehicle}
-                          value={jobForm.isDeadVehicle ? '' : jobForm.mileage}
-                          onChange={e => {
+                          value={jobForm.isDeadVehicle ? "" : jobForm.mileage}
+                          onChange={(e) => {
                             const val = e.target.value;
-                            if (val === '' || /^\d+$/.test(val)) {
-                              setJobForm({...jobForm, mileage: val});
+                            if (val === "" || /^\d+$/.test(val)) {
+                              setJobForm({ ...jobForm, mileage: val });
                             }
                           }}
                           className={cn(
                             "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono text-lg font-black text-workshop-text transition-all",
                             jobForm.isDeadVehicle && "opacity-40 grayscale"
                           )}
-                          placeholder={jobForm.isDeadVehicle ? "N/A - DEAD VEHICLE" : "000000"}
+                          placeholder={
+                            jobForm.isDeadVehicle ? "N/A - DEAD VEHICLE" : "000000"
+                          }
                         />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
                           <button
                             type="button"
-                            onClick={() => setJobForm({...jobForm, isDeadVehicle: !jobForm.isDeadVehicle, mileage: !jobForm.isDeadVehicle ? '0' : jobForm.mileage})}
+                            onClick={() =>
+                              setJobForm({
+                                ...jobForm,
+                                isDeadVehicle: !jobForm.isDeadVehicle,
+                                mileage: !jobForm.isDeadVehicle
+                                  ? "0"
+                                  : jobForm.mileage,
+                              })
+                            }
                             className={cn(
                               "flex items-center gap-2 px-3 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
-                              jobForm.isDeadVehicle 
-                                ? "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20" 
+                              jobForm.isDeadVehicle
+                                ? "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20"
                                 : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-rose-500/50 hover:text-rose-400"
                             )}
                           >
                             Vehicle Dead
-                            <div className={cn(
-                              "w-2 h-2 rounded-full",
-                              jobForm.isDeadVehicle ? "bg-white animate-pulse" : "bg-workshop-muted opacity-30"
-                            )} />
+                            <div
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                jobForm.isDeadVehicle
+                                  ? "bg-white animate-pulse"
+                                  : "bg-workshop-muted opacity-30"
+                              )}
+                            />
                           </button>
-                          <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest opacity-50">KM / Miles</span>
+                          <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest opacity-50">
+                            KM / Miles
+                          </span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">Complaint / Work description</label>
-                      <textarea 
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                        Complaint / Work description
+                      </label>
+                      <textarea
                         value={jobForm.description}
-                        onChange={e => setJobForm({...jobForm, description: e.target.value})}
+                        onChange={(e) =>
+                          setJobForm({ ...jobForm, description: e.target.value })
+                        }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 h-40 resize-none font-bold text-workshop-text"
                         placeholder="e.g. Engine noise during cold start, brake pads check, full service..."
                       />
                     </div>
-  
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
                           Service Date
                           <span className="text-rose-500">*</span>
                         </label>
-                        <input 
+                        <input
                           type="date"
                           required
-                          max={new Date().toISOString().split('T')[0]}
+                          max={new Date().toISOString().split("T")[0]}
                           value={jobForm.serviceDate}
-                          onChange={e => setJobForm({...jobForm, serviceDate: e.target.value})}
+                          onChange={(e) =>
+                            setJobForm({ ...jobForm, serviceDate: e.target.value })
+                          }
                           className={cn(
                             "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold",
-                            jobForm.serviceDate === new Date().toISOString().split('T')[0] ? "text-workshop-accent" : "text-workshop-text"
+                            jobForm.serviceDate ===
+                              new Date().toISOString().split("T")[0]
+                              ? "text-workshop-accent"
+                              : "text-workshop-text"
                           )}
                         />
                       </div>
@@ -621,36 +756,52 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           Expected Delivery Date
                           <span className="text-rose-500">*</span>
                         </label>
-                        <input 
+                        <input
                           type="date"
                           required
-                          min={new Date().toISOString().split('T')[0]}
+                          min={new Date().toISOString().split("T")[0]}
                           value={jobForm.expectedDeliveryDate}
-                          onChange={e => setJobForm({...jobForm, expectedDeliveryDate: e.target.value})}
+                          onChange={(e) =>
+                            setJobForm({
+                              ...jobForm,
+                              expectedDeliveryDate: e.target.value,
+                            })
+                          }
                           className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text"
                         />
                       </div>
                     </div>
                   </div>
-  
+
                   <div className="p-4 bg-workshop-accent/10 rounded-xl border border-workshop-accent/20 flex items-start gap-4">
                     <div className="p-2 bg-workshop-bg rounded-lg text-workshop-accent shadow-sm border border-workshop-border">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-workshop-accent uppercase tracking-[0.2em]">Review Entry</p>
+                      <p className="text-[10px] font-black text-workshop-accent uppercase tracking-[0.2em]">
+                        Review Entry
+                      </p>
                       <p className="text-[10px] text-workshop-muted leading-relaxed font-bold opacity-80">
-                        Confirming this intake will create a permanent Service Record for {selectedCustomer?.name || customerForm.name}. A digital job card will be assigned.
+                        Confirming this intake will create a permanent Service
+                        Record for {selectedCustomer?.name || customerForm.name}.
+                        A digital job card will be assigned.
                       </p>
                     </div>
                   </div>
-  
-                  <button 
+
+                  <button
                     onClick={handleSubmitIntake}
-                    disabled={loading || !jobForm.description || !jobForm.serviceDate || !jobForm.expectedDeliveryDate}
+                    disabled={
+                      loading ||
+                      !jobForm.description ||
+                      !jobForm.serviceDate ||
+                      !jobForm.expectedDeliveryDate
+                    }
                     className="w-full py-5 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:bg-emerald-500 transition-all shadow-xl shadow-workshop-accent/10 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale"
                   >
-                    {loading ? 'Processing...' : (
+                    {loading ? (
+                      "Processing..."
+                    ) : (
                       <>
                         <ClipboardCheck className="w-5 h-5" />
                         Issue Digital Job Card

@@ -26,7 +26,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
           initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
           animate={{ opacity: 1, rotate: 0, scale: 1 }}
           exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.15 }}
           className="text-workshop-accent"
         >
           {theme === 'dark' ? <Moon className="w-5 h-5 fill-workshop-accent/10" /> : <Sun className="w-5 h-5" />}

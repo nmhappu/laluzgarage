@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   collection,
   getDocs,
@@ -45,14 +45,17 @@ import {
 } from "./ui/CustomSelect";
 
 export function ServiceHistory() {
+  // --- State: Core Data ---
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // --- State: UI Control ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "all" | "pending" | "in-progress" | "completed"
+    "all" | "pending" | "in-progress" | "completed" | "cancelled"
   >("all");
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(
     null,
@@ -60,7 +63,9 @@ export function ServiceHistory() {
   const [detailsRecord, setDetailsRecord] = useState<ServiceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<ServiceRecord | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
+  // --- State: Search & Lookup Flow ---
   const [lookupStep, setLookupStep] = useState<"search" | "form">("search");
   const [searchType, setSearchType] = useState<"plate" | "phone">("plate");
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,7 +73,6 @@ export function ServiceHistory() {
     { customer: Customer; vehicle?: Vehicle }[]
   >([]);
   const [searchLogs, setSearchLogs] = useState("");
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   const tabs = [
     {
@@ -103,6 +107,14 @@ export function ServiceHistory() {
       bg: "bg-workshop-accent/20",
       border: "border-workshop-accent/20",
     },
+    {
+      id: "cancelled",
+      label: "Cancelled",
+      count: records.filter((r) => r.status === "cancelled").length,
+      color: "text-workshop-muted",
+      bg: "bg-workshop-muted/10",
+      border: "border-workshop-border/30",
+    },
   ];
 
   const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
@@ -121,6 +133,7 @@ export function ServiceHistory() {
     partsUsed: [],
   });
 
+  // --- Effects: Handlers & External Events ---
   useEffect(() => {
     fetchData();
   }, []);
@@ -146,8 +159,9 @@ export function ServiceHistory() {
 
     window.addEventListener("appBackButton", handleBackButton);
     return () => window.removeEventListener("appBackButton", handleBackButton);
-  }, [editingRecord, showAddModal, lookupStep]);
+  }, [editingRecord, showAddModal, lookupStep, detailsRecord]);
 
+  // --- Data Fetching ---
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -558,6 +572,40 @@ export function ServiceHistory() {
   };
 
   const getVehicleInfo = (id: string) => vehicles.find((v) => v.id === id);
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((r) => {
+      // Status Tab Filter
+      const matchesTab =
+        activeTab === "all" ||
+        searchLogs.trim() !== "" ||
+        (activeTab === "pending" && r.status === "pending") ||
+        (activeTab === "in-progress" && r.status === "in-progress") ||
+        (activeTab === "completed" && r.status === "completed") ||
+        (activeTab === "cancelled" && r.status === "cancelled");
+
+      if (!matchesTab) return false;
+
+      // Search Filter
+      if (!searchLogs.trim()) return true;
+
+      const query = searchLogs.toLowerCase();
+      const vehicle = getVehicleInfo(r.vehicleId);
+      const customer = customers.find((c) => c.id === r.customerId);
+
+      const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
+      const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
+      const customerName = customer?.name?.toLowerCase() || "";
+      const vehicleColor = vehicle?.color?.toLowerCase() || "";
+
+      return (
+        vehicleName.includes(query) ||
+        plateNumber.includes(query) ||
+        customerName.includes(query) ||
+        vehicleColor.includes(query)
+      );
+    });
+  }, [records, activeTab, searchLogs, vehicles, customers]);
   const getCustomerName = (id: string) =>
     customers.find((c) => c.id === id)?.name || "Unknown";
 
@@ -754,65 +802,59 @@ export function ServiceHistory() {
                 </div>
               ))}
             </motion.div>
-          ) : (() => {
-          const filtered = records.filter((r) => {
-            // Status Tab Filter
-            const matchesTab =
-              activeTab === "all" ||
-              (activeTab === "pending" && r.status === "pending") ||
-              (activeTab === "in-progress" && r.status === "in-progress") ||
-              (activeTab === "completed" && r.status === "completed");
-
-            if (!matchesTab) return false;
-
-            // Search Filter
-            if (!searchLogs.trim()) return true;
-
-            const query = searchLogs.toLowerCase();
-            const vehicle = getVehicleInfo(r.vehicleId);
-            const customer = customers.find((c) => c.id === r.customerId);
-
-            const vehicleName =
-              `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
-            const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
-            const customerName = customer?.name?.toLowerCase() || "";
-            const vehicleColor = vehicle?.color?.toLowerCase() || "";
-
-            return (
-              vehicleName.includes(query) ||
-              plateNumber.includes(query) ||
-              customerName.includes(query) ||
-              vehicleColor.includes(query)
-            );
-          });
-
-          if (filtered.length === 0) {
-            return (
-              <div className="text-center py-20 text-workshop-muted text-sm italic">
-                {searchLogs
-                  ? "No records match your search criteria."
-                  : `No ${activeTab === "all" ? "" : activeTab} records found in the logbook.`}
-              </div>
-            );
-          }
-
-          return (
-            <motion.div 
+          ) : filteredRecords.length === 0 ? (
+            <motion.div
+              key="empty-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-20 text-workshop-muted text-sm italic"
+            >
+              {searchLogs
+                ? "No records match your search criteria."
+                : `No ${activeTab === "all" ? "" : activeTab} records found in the logbook.`}
+            </motion.div>
+          ) : (
+            <motion.div
               key="records-list"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               className="space-y-4"
             >
-              {filtered.map((record) => {
+              {filteredRecords.map((record) => {
                 const v = getVehicleInfo(record.vehicleId);
-                const customer = customers.find((c) => c.id === record.customerId);
+                const customer = customers.find(
+                  (c) => c.id === record.customerId,
+                );
                 return (
                   <motion.div
                     key={record.id}
                     onClick={() => setEditingRecord({ ...record })}
-                    className="relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden hover:border-workshop-accent/30 transition-all group cursor-pointer"
+                    className={cn(
+                      "relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding",
+                      record.status === "completed"
+                        ? "hover:border-workshop-accent/50"
+                        : record.status === "in-progress"
+                          ? "hover:border-yellow-500/50"
+                          : "hover:border-rose-500/50",
+                    )}
                   >
+                    {/* Status Accent (Top Mid Fading) */}
+                    <div
+                      className={cn(
+                        "absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[2px] pointer-events-none z-20 transition-all duration-300 opacity-40 group-hover:opacity-100",
+                        record.status === "completed"
+                          ? "bg-gradient-to-r from-transparent via-workshop-accent to-transparent"
+                          : record.status === "in-progress"
+                            ? "bg-gradient-to-r from-transparent via-yellow-500 to-transparent"
+                            : record.status === "cancelled"
+                              ? "bg-gradient-to-r from-transparent via-workshop-muted to-transparent"
+                              : "bg-gradient-to-r from-transparent via-rose-500 to-transparent",
+                      )}
+                    />
+
                     {v?.make?.toUpperCase() === "OLA" && (
                       <div className="absolute inset-y-0 left-0 w-1/2 pointer-events-none opacity-[0.03] overflow-hidden grayscale brightness-200">
                         <img
@@ -841,7 +883,9 @@ export function ServiceHistory() {
                               ? "bg-workshop-accent/10 text-workshop-accent border-workshop-accent/20"
                               : record.status === "in-progress"
                                 ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                                : "bg-rose-500/10 text-rose-500 border-rose-500/20",
+                                : record.status === "cancelled"
+                                  ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border"
+                                  : "bg-rose-500/10 text-rose-500 border-rose-500/20",
                           )}
                         >
                           {record.status}
@@ -1032,13 +1076,11 @@ export function ServiceHistory() {
                         </div>
                       </div>
                     </div>
-
                   </motion.div>
                 );
               })}
             </motion.div>
-          );
-        })()}
+          )}
         </AnimatePresence>
       </div>
 
@@ -1055,10 +1097,11 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding"
               >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
@@ -1583,10 +1626,11 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding"
               >
               <div className="flex flex-col gap-4 mb-8">
                 <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase px-1">
@@ -2007,9 +2051,10 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
                 className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
               >
                 <div className="flex items-center justify-between mb-8">
@@ -2104,9 +2149,10 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/60"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center transition-all"
               >
                 <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">

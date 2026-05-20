@@ -322,6 +322,8 @@ export function ServiceHistory() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
+  const [addPartSelectValue, setAddPartSelectValue] = useState("");
+  const [editPartSelectValue, setEditPartSelectValue] = useState("");
   const [loading, setLoading] = useState(true);
   
   // --- State: UI Control ---
@@ -1505,7 +1507,13 @@ export function ServiceHistory() {
                         </h3>
                       </div>
                       <div className="relative">
-                        <Select onValueChange={(val) => addPartToRecord(val)}>
+                        <Select
+                          value={addPartSelectValue}
+                          onValueChange={(val) => {
+                            addPartToRecord(val);
+                            setTimeout(() => setAddPartSelectValue(""), 0);
+                          }}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="+ Allocate part..." />
                           </SelectTrigger>
@@ -1885,26 +1893,51 @@ export function ServiceHistory() {
                             : "bg-workshop-bg/40 border-workshop-border hover:border-workshop-accent/40 hover:bg-workshop-bg/60"
                         )}
                       >
-                        <div className={cn(
-                          "w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all text-xs font-black",
-                          task.completed 
-                            ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/30" 
-                            : "border-workshop-border bg-workshop-bg group-hover/btn:border-workshop-accent/50"
-                        )}>
-                          {task.completed && (
-                            <motion.div
-                              initial={{ scale: 0, rotate: -45 }}
-                              animate={{ scale: 1, rotate: 0 }}
-                            >
-                              ✓
-                            </motion.div>
+                        <motion.div 
+                          className={cn(
+                            "w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all text-xs font-black",
+                            task.completed 
+                              ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/30" 
+                              : "border-workshop-border bg-workshop-bg group-hover/btn:border-workshop-accent/50"
                           )}
-                        </div>
-                        <span className={cn(
-                          "text-sm font-bold tracking-tight transition-all",
-                          task.completed ? "text-workshop-muted line-through opacity-60" : "text-workshop-text"
-                        )}>
-                          {task.text}
+                          animate={{ scale: task.completed ? [1, 1.25, 0.95, 1] : 1 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          {task.completed && (
+                            <motion.svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 10 10"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="text-workshop-bg"
+                            >
+                              <motion.path
+                                d="M2 5 L4.5 7 L8.5 2.5"
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 20 }}
+                              />
+                            </motion.svg>
+                          )}
+                        </motion.div>
+                        <span className="relative text-sm font-bold tracking-tight text-left flex-1 min-w-0">
+                          <span className={cn(
+                            "transition-colors duration-300 block",
+                            task.completed ? "text-workshop-muted opacity-60" : "text-workshop-text"
+                          )}>
+                            {task.text}
+                          </span>
+                          <motion.span
+                            className="absolute left-0 top-[52%] h-[1.5px] bg-workshop-muted opacity-60 origin-left"
+                            initial={{ width: "0%" }}
+                            animate={{ width: task.completed ? "100%" : "0%" }}
+                            transition={{ type: "spring", stiffness: 180, damping: 20 }}
+                          />
                         </span>
                       </button>
                     ))}
@@ -1942,7 +1975,11 @@ export function ServiceHistory() {
                     </h3>
                     <div className="relative">
                       <Select
-                        onValueChange={(val) => addPartToEditingRecord(val)}
+                        value={editPartSelectValue}
+                        onValueChange={(val) => {
+                          addPartToEditingRecord(val);
+                          setTimeout(() => setEditPartSelectValue(""), 0);
+                        }}
                       >
                         <SelectTrigger className="w-full shadow-sm">
                           <SelectValue placeholder="+ Add or Replace part..." />

@@ -28,7 +28,6 @@ export function Inventory() {
 
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
-  const [stockAdjustment, setStockAdjustment] = useState<number>(0);
 
   // --- Data Subscription ---
   useEffect(() => {
@@ -86,10 +85,9 @@ export function Inventory() {
     if (!editingPart || !editingPart.name) return;
 
     try {
-      await inventoryService.updatePart(editingPart.id, editingPart, stockAdjustment);
+      await inventoryService.updatePart(editingPart.id, editingPart);
       setShowEditModal(false);
       setEditingPart(null);
-      setStockAdjustment(0);
     } catch (e: unknown) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : String(e);
@@ -134,7 +132,7 @@ export function Inventory() {
           className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Part</span>
+          <span>ADD PART</span>
         </button>
       </header>
 
@@ -190,7 +188,6 @@ export function Inventory() {
                   className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group"
                   onClick={() => {
                     setEditingPart(part);
-                    setStockAdjustment(0);
                     setShowEditModal(true);
                   }}
                 >
@@ -298,26 +295,17 @@ export function Inventory() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Current Stock</label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-workshop-muted opacity-50 font-mono">
-                        {editingPart.stockQuantity}
-                      </div>
-                      <div className="flex items-center gap-2 bg-workshop-surface border border-workshop-border rounded-xl px-2">
-                        <span className="text-[10px] font-bold text-workshop-muted uppercase ml-2">Adjust:</span>
-                        <input 
-                          type="number" 
-                          placeholder="+/-"
-                          value={stockAdjustment === 0 ? '' : stockAdjustment}
-                          onChange={e => setStockAdjustment(e.target.value === '' ? 0 : Number(e.target.value))}
-                          className="w-20 bg-transparent py-2.5 outline-none text-workshop-text font-mono text-center"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-[9px] text-workshop-muted italic mt-1">Resulting Stock: {editingPart.stockQuantity + stockAdjustment}</p>
+                    <input 
+                      required
+                      type="number" 
+                      value={editingPart.stockQuantity === 0 ? '' : (editingPart.stockQuantity ?? '')}
+                      onChange={e => setEditingPart({...editingPart, stockQuantity: e.target.value === '' ? 0 : Number(e.target.value)})}
+                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text font-sans tabular-nums"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Asset Value (Price)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Price</label>
                     <input 
                       required
                       type="number" 
@@ -328,7 +316,7 @@ export function Inventory() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / ID</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU</label>
                     <input 
                       type="text" 
                       value={editingPart.sku}
@@ -343,7 +331,7 @@ export function Inventory() {
                       type="text" 
                       value={editingPart.category || ''}
                       onChange={e => setEditingPart({...editingPart, category: e.target.value})}
-                      placeholder="e.g. Engine, Brakes"
+                      placeholder="Engine, Brakes"
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
                     />
                   </div>
@@ -365,7 +353,7 @@ export function Inventory() {
                       value={editingPart.location || ''}
                       onChange={e => setEditingPart({...editingPart, location: e.target.value})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
-                      placeholder="e.g. Rack B, Shelf 3"
+                      placeholder="Rack B, Shelf 3"
                     />
                   </div>
                 </div>
@@ -468,7 +456,7 @@ export function Inventory() {
                 exit={{ opacity: 0, y: 20 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh] bg-clip-padding"
               >
-              <h2 className="text-xl font-bold mb-6 text-workshop-text uppercase tracking-tight">Catalogue New Inventory Asset</h2>
+              <h2 className="text-xl font-bold mb-6 text-workshop-text uppercase tracking-tight">NEW ASSET</h2>
               <form onSubmit={handleAddPart} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                   <div className="space-y-1.5 md:col-span-2">
@@ -479,7 +467,7 @@ export function Inventory() {
                       value={newPart.name}
                       onChange={e => setNewPart({...newPart, name: e.target.value})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text"
-                      placeholder="e.g. Brake Rotor"
+                      placeholder="Brake Rotor"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -487,29 +475,31 @@ export function Inventory() {
                     <input 
                       required
                       type="number" 
-                      value={newPart.stockQuantity ?? 0}
-                      onChange={e => setNewPart({...newPart, stockQuantity: Number(e.target.value)})}
+                      placeholder="0"
+                      value={newPart.stockQuantity === 0 ? '' : (newPart.stockQuantity ?? '')}
+                      onChange={e => setNewPart({...newPart, stockQuantity: e.target.value === '' ? 0 : Number(e.target.value)})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text font-sans tabular-nums"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Unit Price (Asset Value)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Unit Price</label>
                     <input 
                       required
                       type="number" 
-                      value={newPart.price ?? 0}
-                      onChange={e => setNewPart({...newPart, price: Number(e.target.value)})}
+                      placeholder="0.00"
+                      value={newPart.price === 0 ? '' : (newPart.price ?? '')}
+                      onChange={e => setNewPart({...newPart, price: e.target.value === '' ? 0 : Number(e.target.value)})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text font-sans tabular-nums"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU / Unique ID (Optional)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">SKU</label>
                     <input 
                       type="text" 
                       value={newPart.sku}
                       onChange={e => setNewPart({...newPart, sku: e.target.value})}
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent text-workshop-text font-mono"
-                      placeholder="e.g. SKU-9022-X"
+                      placeholder="SKU-9022-X"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -518,17 +508,17 @@ export function Inventory() {
                       type="text" 
                       value={newPart.category || ''}
                       onChange={e => setNewPart({...newPart, category: e.target.value})}
-                      placeholder="e.g. Suspension"
+                      placeholder="Suspension"
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Warehouse / Bin Location</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Location</label>
                     <input 
                       type="text" 
                       value={newPart.location || ''}
                       onChange={e => setNewPart({...newPart, location: e.target.value})}
-                      placeholder="e.g. Rack A, Shelf 2"
+                      placeholder="Rack A, Shelf 2"
                       className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text"
                     />
                   </div>
@@ -545,7 +535,7 @@ export function Inventory() {
                     type="submit" 
                     className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:brightness-110 transition-all"
                   >
-                    Catalogue Asset
+                    ADD PART
                   </button>
                 </div>
               </form>

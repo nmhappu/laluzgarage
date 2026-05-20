@@ -275,8 +275,7 @@ export function Dashboard() {
       <div className="space-y-6 pt-8">
         <motion.h2 
           initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
+          animate={{ opacity: 1 }}
           className="text-xl font-black text-workshop-text uppercase tracking-tighter"
         >
           Recent Activities
@@ -284,8 +283,7 @@ export function Dashboard() {
         <motion.div 
           variants={containerVariants}
           initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
+          animate="show"
           className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10"
         >
           {pendingQueue.length > 0 ? (

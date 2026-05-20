@@ -553,8 +553,7 @@ export function CustomerManagement() {
                         <motion.div 
                           key={record.id}
                           initial={{ opacity: 0, x: -10 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
+                          animate={{ opacity: 1, x: 0 }}
                           className="bg-workshop-card rounded-2xl border border-workshop-border overflow-hidden shadow-sm hover:border-workshop-accent/30 transition-all group"
                         >
                           <div className="flex flex-col">

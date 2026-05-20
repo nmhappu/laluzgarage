@@ -1,11 +1,13 @@
 # LaluZ Garage
 A workshop management application built for service technicians. This app streamlines vehicle service tracking, and inventory control.
 
+[Made purely with Google AI Studio (Gemini Flash 3.1), except design and logic.]
+
 - **Frontend**: React 18
 - **Runtime/Build**: Vite & TypeScript
 - **Styling**: Tailwind CSS 4.0
 - **DB**: Firebase
-- **Typography**: Google San, Lexend
+- **Typography**: Google Sans, Lexend
 - **Icons**: Lucide React
 - **Mobile**: Capacitor
   
@@ -13,13 +15,13 @@ A workshop management application built for service technicians. This app stream
 
 ```text
 src/
-├── components/       # UI Components (Inventory, ServiceHistory, Navigation, etc.)
-│   └── ui/           # Shared high-precision primitive components
-├── contexts/         # React Contexts for Theme, Auth, and UI state
-├── lib/              # Core utilities (Firebase initialization, Tailwind merging)
-├── services/         # Business logic layer (Inventory service, Service handlers)
-├── types.ts          # Centralized TypeScript interfaces and enums
-└── main.tsx          # Application entry point
+├── components/
+│   └── ui/
+├── contexts/
+├── lib/
+├── services/
+├── types.ts
+└── main.tsx
 ```
 
 ## Android Development
@@ -32,7 +34,7 @@ This project is fully compatible with native Android Studio via **Capacitor**.
 
 ## Environment Variables
 
-Check ".env.example"
+Check ".env.example", Firebase DB Variables.
 
 ## License
-MIT License. Copyright (©) 2026 Prince Santhosh. See `LICENSE` for details.
+MIT License. Copyright (c) 2026 Prince Santhosh. See `LICENSE` for details.

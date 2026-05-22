@@ -96,10 +96,23 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent !important;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased select-none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Elegantly custom style selection color across the entire app */
+  ::selection {
+    background-color: rgba(16, 185, 129, 0.25);
+    color: inherit;
+  }
+
+  /* Prevent outline/border highlight artifact on Android selection & focuses */
+  button:focus, a:focus, [role="button"]:focus, div:focus {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* Optimize scrolling for iOS */

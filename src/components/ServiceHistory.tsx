@@ -381,6 +381,7 @@ export function ServiceHistory() {
   const [recordToDelete, setRecordToDelete] = useState<ServiceRecord | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
 
   // --- State: Search & Lookup Flow ---
   const [lookupStep, setLookupStep] = useState<"search" | "form">("search");
@@ -491,6 +492,31 @@ export function ServiceHistory() {
   useEffect(() => {
     setContactMenuOpen(false);
   }, [editingRecord]);
+
+  // Dynamic theme-color effect for mobile status/navigation bars when update or detail modals are active
+  useEffect(() => {
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement("meta");
+      metaThemeColor.setAttribute("name", "theme-color");
+      document.head.appendChild(metaThemeColor);
+    }
+
+    const originalColor = metaThemeColor.getAttribute("content") || "#0B0D11";
+
+    if (editingRecord || detailsRecord) {
+      // Set to match the immersive full-screen background of the update/details sheet
+      metaThemeColor.setAttribute("content", "#0B0D11");
+    } else {
+      metaThemeColor.setAttribute("content", originalColor);
+    }
+
+    return () => {
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute("content", originalColor);
+      }
+    };
+  }, [editingRecord, detailsRecord]);
 
   // --- Data Fetching ---
   const fetchData = async () => {
@@ -991,50 +1017,83 @@ export function ServiceHistory() {
         </div>
       </header>      {/* Status Tabs & Search */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-        <div className="w-full xl:w-auto flex justify-start min-w-0">
-          <div className="w-full xl:w-auto overflow-x-auto no-scrollbar flex items-center bg-workshop-surface/40 p-1.5 rounded-2xl border border-workshop-border/60">
-            <div className="flex items-center gap-1 min-w-max">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(
-                        tab.id as
-                          | "all"
-                          | "pending"
-                          | "in-progress"
-                          | "completed"
-                          | "cancelled",
-                      );
-                    }}
-                    className={cn(
-                      "relative px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 select-none overflow-hidden",
-                      isActive ? "text-workshop-text font-bold scale-[1.02]" : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/30",
-                    )}
-                  >
-                    {/* Sliding active pill background */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="serviceActiveTabPill"
-                        className={cn("absolute inset-0 rounded-xl z-0", tab.bg)}
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    {/* Text & Indicator Dot */}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shadow-sm", tab.color.replace("text-", "bg-"))} />
-                      <span>{tab.label}</span>
-                      <span className="text-[10px] bg-workshop-border/30 px-1.5 py-0.5 rounded font-sans opacity-60 font-black tabular-nums">
-                        {tab.count}
-                      </span>
+        <div className="w-full xl:w-72 relative min-w-0 z-30">
+          {(() => {
+            const activeTabObj = tabs.find((t) => t.id === activeTab) || tabs[0];
+            return (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                  className="w-full flex items-center justify-between gap-3 bg-workshop-surface/80 border border-workshop-border/80 hover:border-workshop-accent/50 text-workshop-text px-4 py-3 rounded-xl outline-none select-none transition-all shadow-sm cursor-pointer font-sans text-xs font-black uppercase tracking-wider h-[46px]"
+                  id="status-filter-dropdown"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className={cn("w-2 h-2 rounded-full shadow-sm shrink-0", activeTabObj.color?.replace("text-", "bg-") || "bg-workshop-secondary")} />
+                    <span className="truncate">{activeTabObj.label}</span>
+                    <span className="text-[10px] bg-workshop-border/40 text-workshop-muted px-1.5 py-0.5 rounded font-sans font-black tabular-nums">
+                      {activeTabObj.count}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                  </span>
+                  <ChevronDown className={cn("w-4 h-4 text-workshop-muted transition-transform duration-200 shrink-0", filterDropdownOpen && "rotate-180")} />
+                </button>
+
+                <AnimatePresence>
+                  {filterDropdownOpen && (
+                    <>
+                      {/* Transparent cover-all backdrop that prevents default highlights */}
+                      <div
+                        className="fixed inset-0 z-40 bg-transparent [-webkit-tap-highlight-color:transparent] outline-none border-none"
+                        onClick={() => setFilterDropdownOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 right-0 mt-2 bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[200px]"
+                      >
+                        {tabs.map((tab) => {
+                          const isActive = activeTab === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab(
+                                  tab.id as
+                                    | "all"
+                                    | "pending"
+                                    | "in-progress"
+                                    | "completed"
+                                    | "cancelled",
+                                );
+                                setFilterDropdownOpen(false);
+                              }}
+                              className={cn(
+                                "w-full flex items-center justify-between gap-3 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all select-none text-left cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]",
+                                isActive
+                                  ? "text-workshop-accent bg-workshop-surface/80"
+                                  : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/45",
+                              )}
+                            >
+                              <span className="flex items-center gap-2.5">
+                                <span className={cn("w-1.5 h-1.5 rounded-full shadow-sm shrink-0", tab.color?.replace("text-", "bg-") || "bg-workshop-muted")} />
+                                <span className="font-sans truncate">{tab.label}</span>
+                              </span>
+                              <span className="text-[10px] bg-workshop-border/30 px-1.5 py-0.5 rounded font-sans opacity-80 font-black tabular-nums">
+                                {tab.count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="relative w-full xl:w-80 group">
@@ -1701,7 +1760,7 @@ export function ServiceHistory() {
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Redesigned Premium Clean Top Bar Header */}
-              <div className="flex justify-between items-center px-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+              <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
                 <button
                   type="button"
                   onClick={() => setEditingRecord(null)}
@@ -1710,7 +1769,7 @@ export function ServiceHistory() {
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
                 </button>
 
-                <div className="flex-1 pl-4">
+                <div className="flex-1 pl-1">
                   <h2 className="text-base font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
                     Service Record
                   </h2>
@@ -1870,22 +1929,50 @@ export function ServiceHistory() {
                                       transition={{ duration: 0.15 }}
                                       className="absolute left-0 mt-1.5 w-60 rounded-xl bg-workshop-card border border-workshop-border shadow-xl z-[120] overflow-hidden py-1"
                                     >
-                                      {(() => {
-                                        const vcardText = `BEGIN:VCARD\nVERSION:3.0\nFN:${customer.name}\nTEL;TYPE=CELL:${customer.phone}\nEND:VCARD`;
-                                        const vcardUrl = `data:text/vcard;charset=utf-8,${encodeURIComponent(vcardText)}`;
-                                        return (
-                                          <a
-                                            href={vcardUrl}
-                                            download={`${customer.name.replace(/\s+/g, "_")}.vcf`}
-                                            onClick={() => setContactMenuOpen(false)}
-                                            className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer"
-                                            id="add-to-contacts-option"
-                                          >
-                                            <User className="w-4 h-4 text-workshop-secondary shrink-0" />
-                                            <span>Add {customer.name.split(" ")[0]} to Contacts</span>
-                                          </a>
-                                        );
-                                      })()}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          if (!customer) return;
+                                          try {
+                                            const parts = customer.name.split(" ");
+                                            const firstName = parts[0] || "";
+                                            const lastName = parts.slice(1).join(" ") || "";
+                                            
+                                            // Format with CRLF as required by RFC 2426 vCard format spec
+                                            const vcardLines = [
+                                              "BEGIN:VCARD",
+                                              "VERSION:3.0",
+                                              `N:${lastName};${firstName};;;`,
+                                              `FN:${customer.name}`,
+                                              `TEL;TYPE=CELL,VOICE:${customer.phone}`,
+                                              "END:VCARD"
+                                            ];
+                                            const vcardContent = vcardLines.join("\r\n");
+
+                                            const blob = new Blob([vcardContent], { type: "text/vcard;charset=utf-8" });
+                                            const vcardUrl = window.URL.createObjectURL(blob);
+                                            
+                                            const link = document.createElement("a");
+                                            link.href = vcardUrl;
+                                            link.download = `${customer.name.replace(/\s+/g, "_")}.vcf`;
+                                            
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            window.URL.revokeObjectURL(vcardUrl);
+                                          } catch (error) {
+                                            console.error("Failed to generate and download vCard:", error);
+                                          }
+                                          setContactMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans"
+                                        id="add-to-contacts-option"
+                                      >
+                                        <User className="w-4 h-4 text-workshop-secondary shrink-0" />
+                                        <span>Add {customer.name.split(" ")[0]} to Contacts</span>
+                                      </button>
                                     </motion.div>
                                   </>
                                 )}
@@ -2215,7 +2302,7 @@ export function ServiceHistory() {
                             <span className="text-workshop-accent text-[10px] uppercase tracking-wider">
                               ESTIMATED TOTAL
                             </span>
-                            <span className="font-mono text-xl tracking-tight text-workshop-accent">
+                            <span className="font-sans font-black text-xl tracking-tight text-workshop-accent">
                               {formatCurrency(
                                 (editingRecord.laborCost || 0) +
                                   (editingRecord.partsUsed || []).reduce(

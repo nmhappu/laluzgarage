@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import '@material/web/progress/circular-progress.js';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword,
@@ -19,6 +20,9 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MdCircularProgress = 'md-circular-progress' as any;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -62,9 +66,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-workshop-bg">
         <div className="text-center space-y-6">
-          <div className="relative w-16 h-16 mx-auto">
-            <div className="absolute inset-0 bg-workshop-accent/10 blur-xl rounded-full animate-pulse" />
-            <div className="w-16 h-16 border-2 border-workshop-accent/10 border-t-workshop-accent rounded-full animate-spin relative" />
+          <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 bg-workshop-accent/15 blur-2xl rounded-full scale-110" />
+            <MdCircularProgress
+              indeterminate
+              style={{
+                '--md-circular-progress-size': '48px',
+                '--md-circular-progress-active-indicator-color': 'var(--color-workshop-accent)'
+              }}
+            />
           </div>
           <div className="space-y-2">
             <p className="text-workshop-text font-logo font-semibold text-xs tracking-tight animate-pulse">Laluz Garage</p>

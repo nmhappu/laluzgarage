@@ -41,10 +41,10 @@ export function Navigation() {
             <AnimatePresence mode="wait">
               <motion.h1 
                 key={pageTitle}
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                exit={{ opacity: 0, x: -15 }}
+                transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                 className="text-workshop-text text-xl font-logo font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
               >
                 {pageTitle}
@@ -79,14 +79,25 @@ export function Navigation() {
               <NavLink
                 to={item.to}
                 className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all group",
+                  "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all group overflow-hidden z-10",
                   isActive 
-                    ? "bg-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/20" 
-                    : "text-workshop-muted hover:bg-workshop-card hover:text-workshop-text"
+                    ? "text-workshop-bg" 
+                    : "text-workshop-muted hover:bg-workshop-card/50 hover:text-workshop-text"
                 )}
               >
-                <item.icon className="w-4 h-4 transition-transform group-active:scale-90" />
-                <span>{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktopActiveTabBackdrop"
+                        className="absolute inset-0 bg-workshop-accent shadow-lg shadow-workshop-accent/20 z-[-1]"
+                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                      />
+                    )}
+                    <item.icon className="w-4 h-4 transition-transform group-active:scale-90 relative z-10" />
+                    <span className="relative z-10">{item.label}</span>
+                  </>
+                )}
               </NavLink>
             </motion.div>
           ))}
@@ -116,7 +127,7 @@ export function Navigation() {
               End session
             </button>
 
-            <ThemeToggle className="w-8 h-8 rounded-lg" />
+            {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
           </div>
         </div>
       </aside>
@@ -132,10 +143,10 @@ export function Navigation() {
             <AnimatePresence mode="wait">
               <motion.span 
                 key={pageTitle}
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                exit={{ opacity: 0, x: -15 }}
+                transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                 className="text-workshop-text text-lg font-logo font-semibold tracking-tight"
               >
                 {pageTitle}
@@ -144,7 +155,7 @@ export function Navigation() {
           </NavLink>
           
           <div className="flex items-center gap-2">
-            <ThemeToggle className="w-9 h-9 rounded-lg" />
+            {location.pathname === '/' && <ThemeToggle className="w-9 h-9 rounded-lg" />}
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
@@ -173,14 +184,18 @@ export function Navigation() {
             >
               {({ isActive }) => (
                 <>
-                  <div className={cn(
-                    "h-10 w-16 flex items-center justify-center rounded-full transition-all duration-300",
-                    isActive ? "bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)]" : "bg-transparent"
-                  )}>
-                    <item.icon className={cn("w-6 h-6 transition-all duration-300", isActive ? "scale-110" : "scale-100")} />
+                  <div className="relative h-10 w-16 flex items-center justify-center rounded-full">
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobileActivePill"
+                        className="absolute inset-0 bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)] rounded-full z-0"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    <item.icon className={cn("w-6 h-6 relative z-10 transition-all duration-300", isActive ? "scale-110" : "scale-100")} />
                   </div>
                   <span className={cn(
-                    "text-[10px] uppercase tracking-widest font-bold transition-all",
+                    "text-[10px] uppercase tracking-widest font-bold transition-all mt-1",
                     isActive ? "opacity-100" : "opacity-40"
                   )}>
                     {item.label}
@@ -201,13 +216,15 @@ export function Navigation() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowLogoutConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">

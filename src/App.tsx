@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
@@ -12,18 +13,53 @@ import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
 import { ThemeProvider } from './contexts/ThemeContext';
 
+const pathOrder = ['/', '/customers', '/inventory', '/services'];
+
+const m3Variants = {
+  enter: (direction: 'forward' | 'backward') => ({
+    opacity: 0,
+    x: direction === 'forward' ? 30 : -30,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+  },
+  exit: (direction: 'forward' | 'backward') => ({
+    opacity: 0,
+    x: direction === 'forward' ? -30 : 30,
+  }),
+};
+
 function AnimatedRoutes() {
   const location = useLocation();
   
+  const [state, setState] = useState({
+    currentPath: location.pathname,
+    direction: 'forward' as 'forward' | 'backward',
+  });
+
+  if (location.pathname !== state.currentPath) {
+    const prevIndex = pathOrder.indexOf(state.currentPath);
+    const currentIndex = pathOrder.indexOf(location.pathname);
+    const newDirection = currentIndex > prevIndex ? 'forward' : 'backward';
+    
+    setState({
+      currentPath: location.pathname,
+      direction: newDirection,
+    });
+  }
+  
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" custom={state.direction}>
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="max-w-7xl mx-auto"
+        custom={state.direction}
+        variants={m3Variants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+        className="w-full max-w-7xl mx-auto"
       >
         <Routes location={location}>
           <Route path="/" element={<Dashboard />} />

@@ -14,21 +14,30 @@ import {
   User,
   ScanHeart,
   ChevronRight,
-  ChevronDown,
   Trash2,
   Edit2,
   ArrowRight,
+  ArrowLeft,
+  ArrowDown,
   RefreshCw,
   Phone,
   Key,
   X,
   AlertTriangle,
   Package,
+  Clock,
+  CheckCircle,
+  Activity,
+  Receipt,
+  FileText,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
 import { formatCurrency, cn } from "../lib/utils";
 import { Portal } from "./Portal";
+import { MaterialCalendar } from "./ui/MaterialCalendar";
 import {
   format,
   differenceInDays,
@@ -316,6 +325,21 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
   );
 });
 
+const contentVariants = {
+  enter: (direction: 'forward' | 'backward') => ({
+    opacity: 0,
+    x: direction === 'forward' ? 30 : -30,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+  },
+  exit: (direction: 'forward' | 'backward') => ({
+    opacity: 0,
+    x: direction === 'forward' ? -30 : 30,
+  }),
+};
+
 export function ServiceHistory() {
   // --- State: Core Data ---
   const [records, setRecords] = useState<ServiceRecord[]>([]);
@@ -331,13 +355,29 @@ export function ServiceHistory() {
   const [activeTab, setActiveTab] = useState<
     "all" | "pending" | "in-progress" | "completed" | "cancelled"
   >("all");
+  
+  const tabOrder = ["all", "pending", "in-progress", "completed", "cancelled"];
+  const [tabState, setTabState] = useState({
+    currentTab: activeTab,
+    direction: "forward" as "forward" | "backward",
+  });
+
+  if (activeTab !== tabState.currentTab) {
+    const prevIndex = tabOrder.indexOf(tabState.currentTab);
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const newDirection = currentIndex > prevIndex ? "forward" : "backward";
+    setTabState({
+      currentTab: activeTab,
+      direction: newDirection,
+    });
+  }
+
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(
     null,
   );
   const [detailsRecord, setDetailsRecord] = useState<ServiceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<ServiceRecord | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   // --- State: Search & Lookup Flow ---
   const [lookupStep, setLookupStep] = useState<"search" | "form">("search");
@@ -401,8 +441,6 @@ export function ServiceHistory() {
       border: "border-workshop-border/30",
     },
   ], [tabCounts]);
-
-  const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
 
   const [newRecord, setNewRecord] = useState<Partial<ServiceRecord>>({
     vehicleId: "",
@@ -944,101 +982,55 @@ export function ServiceHistory() {
             Track and manage vehicle maintenance history.
           </p>
         </div>
-      </header>
-
-      {/* Status Tabs & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="w-full md:w-auto flex justify-center md:justify-start">
-          <div className="relative w-full md:w-64">
-            <button
-              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className={cn(
-                "w-full flex items-center justify-between px-5 py-4 bg-workshop-surface border border-workshop-border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm hover:border-workshop-accent/30 group",
-                isFilterDropdownOpen &&
-                  "ring-2 ring-workshop-accent/10 border-workshop-accent/30",
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    currentTab.color.replace("text-", "bg-"),
-                  )}
-                />
-                <span className="text-workshop-text">{currentTab.label}</span>
-                {currentTab.count > 0 && (
-                  <span className="text-workshop-muted opacity-50 ml-1 font-sans text-sm">
-                    {currentTab.count}
-                  </span>
-                )}
-              </div>
-              <ChevronDown
-                className={cn(
-                  "w-4 h-4 text-workshop-muted transition-transform duration-300",
-                  isFilterDropdownOpen ? "rotate-180" : "rotate-0",
-                )}
-              />
-            </button>
-
-            <AnimatePresence>
-              {isFilterDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsFilterDropdownOpen(false)}
-                  />
-
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 4, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="absolute z-50 top-full left-0 right-0 bg-workshop-card border border-workshop-border rounded-xl shadow-2xl overflow-hidden py-2"
+      </header>      {/* Status Tabs & Search */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="w-full lg:w-auto flex justify-start">
+          <div className="w-full lg:w-auto overflow-x-auto no-scrollbar flex items-center bg-workshop-surface/40 p-1.5 rounded-2xl border border-workshop-border/60">
+            <div className="flex items-center gap-1 min-w-max">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(
+                        tab.id as
+                          | "all"
+                          | "pending"
+                          | "in-progress"
+                          | "completed"
+                          | "cancelled",
+                      );
+                    }}
+                    className={cn(
+                      "relative px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 select-none overflow-hidden",
+                      isActive ? "text-workshop-text font-bold scale-[1.02]" : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/30",
+                    )}
                   >
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => {
-                          setActiveTab(
-                            tab.id as
-                              | "all"
-                              | "pending"
-                              | "in-progress"
-                              | "completed",
-                          );
-                          setIsFilterDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-workshop-surface text-left",
-                          activeTab === tab.id
-                            ? tab.color
-                            : "text-workshop-muted",
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "w-1.5 h-1.5 rounded-full ring-4 ring-offset-0",
-                              tab.color.replace("text-", "bg-"),
-                              activeTab === tab.id
-                                ? "ring-workshop-accent/10"
-                                : "ring-transparent",
-                            )}
-                          />
-                          <span>{tab.label}</span>
-                        </div>
-                        <span className="text-sm font-black font-sans opacity-40 tabular-nums">
-                          {tab.count}
-                        </span>
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                    {/* Sliding active pill background */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="serviceActiveTabPill"
+                        className={cn("absolute inset-0 rounded-xl z-0", tab.bg)}
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    {/* Text & Indicator Dot */}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className={cn("w-1.5 h-1.5 rounded-full shadow-sm", tab.color.replace("text-", "bg-"))} />
+                      <span>{tab.label}</span>
+                      <span className="text-[10px] bg-workshop-border/30 px-1.5 py-0.5 rounded font-sans opacity-60 font-black tabular-nums">
+                        {tab.count}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="relative w-full md:w-80 group">
+        <div className="relative w-full lg:w-80 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="w-4 h-4 text-workshop-muted transition-colors group-focus-within:text-workshop-accent" />
           </div>
@@ -1064,7 +1056,7 @@ export function ServiceHistory() {
       </div>
 
       <div className="space-y-4">
-        <AnimatePresence>
+        <AnimatePresence mode="wait" custom={tabState.direction}>
           {loading ? (
             <motion.div
               key="loading-skeletons"
@@ -1100,10 +1092,13 @@ export function ServiceHistory() {
             </motion.div>
           ) : filteredRecords.length === 0 ? (
             <motion.div
-              key="empty-state"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              key={`empty-state-${activeTab}`}
+              custom={tabState.direction}
+              variants={contentVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
               className="text-center py-20 text-workshop-muted text-sm italic"
             >
               {searchLogs
@@ -1112,11 +1107,13 @@ export function ServiceHistory() {
             </motion.div>
           ) : (
             <motion.div
-              key="records-list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              key={`records-list-${activeTab}`}
+              custom={tabState.direction}
+              variants={contentVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
               className="space-y-4"
             >
               {filteredRecords.map((record) => {
@@ -1148,14 +1145,15 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding will-change-transform"
               >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -1420,18 +1418,16 @@ export function ServiceHistory() {
                         Expected Delivery Date
                         <span className="text-status-urgent">*</span>
                       </label>
-                      <input
-                        type="date"
-                        required
-                        min={new Date().toISOString().split('T')[0]}
+                      <MaterialCalendar
                         value={newRecord.expectedDeliveryDate || ""}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setNewRecord({
                             ...newRecord,
-                            expectedDeliveryDate: e.target.value,
+                            expectedDeliveryDate: val,
                           })
                         }
-                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all"
+                        min={new Date().toISOString().split('T')[0]}
+                        className="py-2.5 text-workshop-text focus:ring-1 focus:ring-workshop-accent"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1439,15 +1435,13 @@ export function ServiceHistory() {
                         Service Date
                         <span className="text-status-urgent">*</span>
                       </label>
-                      <input
-                        type="date"
-                        required
-                        max={new Date().toISOString().split('T')[0]}
+                      <MaterialCalendar
                         value={newRecord.date || ""}
-                        onChange={(e) =>
-                          setNewRecord({ ...newRecord, date: e.target.value })
+                        onChange={(val) =>
+                          setNewRecord({ ...newRecord, date: val })
                         }
-                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all"
+                        max={new Date().toISOString().split('T')[0]}
+                        className="py-2.5 text-workshop-text focus:ring-1 focus:ring-workshop-accent"
                       />
                     </div>
                   </div>
@@ -1606,7 +1600,7 @@ export function ServiceHistory() {
                         </label>
                         <input
                           type="number"
-                          value={newRecord.laborCost}
+                          value={newRecord.laborCost === 0 ? "" : (newRecord.laborCost || "")}
                           onChange={(e) =>
                             setNewRecord({
                               ...newRecord,
@@ -1688,456 +1682,493 @@ export function ServiceHistory() {
         )}
       </AnimatePresence>
 
-      {/* Edit Record Modal */}
+      {/* Edit Record Fullscreen Sheet */}
       <AnimatePresence>
         {editingRecord && (
           <Portal>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setEditingRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/60"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.2 }}
-                className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding will-change-transform"
-              >
-              <div className="flex flex-col gap-4 mb-8">
-                <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase px-1">
-                  Update Service Entry
-                </h2>
-                <div className="flex items-center gap-2 px-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditingRecord({ ...editingRecord, status: "pending" })
-                    }
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
-                      editingRecord.status === "pending"
-                        ? "bg-status-urgent text-workshop-bg border-status-urgent shadow-md shadow-status-urgent/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-urgent/30",
-                    )}
-                  >
-                    Pending
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditingRecord({
-                        ...editingRecord,
-                        status: "in-progress",
-                      })
-                    }
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
-                      editingRecord.status === "in-progress"
-                        ? "bg-status-pending text-workshop-bg border-status-pending shadow-md shadow-status-pending/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-pending/30",
-                    )}
-                  >
-                    In-Progress
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditingRecord({
-                        ...editingRecord,
-                        status: "completed",
-                      })
-                    }
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
-                      editingRecord.status === "completed"
-                        ? "bg-status-success text-workshop-bg border-status-success shadow-md shadow-status-success/20"
-                        : "bg-workshop-surface text-workshop-muted border-workshop-border hover:border-status-success/30",
-                    )}
-                  >
-                    Completed
-                  </button>
+            <motion.div
+              initial={{ x: "100%", opacity: 0.95 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.95 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
+            >
+              {/* Redesigned Premium Clean Top Bar Header */}
+              <div className="flex justify-between items-center px-6 py-4 bg-workshop-bg shrink-0 select-none">
+                <button
+                  type="button"
+                  onClick={() => setEditingRecord(null)}
+                  className="flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
+                >
+                  <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
+                </button>
+
+                <div className="flex-1 pl-4">
+                  <h2 className="text-base font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
+                    Service Record
+                  </h2>
+                </div>
+
+                <div className="text-xs font-bold text-status-success font-sans flex items-center gap-1 select-none">
+                  <ArrowDown className="w-4 h-4 text-status-success shrink-0 text-status-success" />
+                  <span className="font-sans font-black tracking-normal uppercase">
+                    {(() => {
+                      const dateVal = editingRecord.date || editingRecord.createdAt;
+                      if (!dateVal) return "";
+                      try {
+                        const d = new Date(dateVal);
+                        const day = d.getDate();
+                        const month = d.toLocaleDateString("en-US", { month: "short" });
+                        const year = d.getFullYear();
+                        return `${day} ${month} ${year}`;
+                      } catch {
+                        return "";
+                      }
+                    })()}
+                  </span>
                 </div>
               </div>
 
-              <form onSubmit={handleUpdateRecord} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                  <div className="p-4 bg-workshop-secondary/10 rounded-xl border border-workshop-secondary/20 space-y-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-workshop-secondary uppercase tracking-widest mb-1">
-                        Vehicle Reference
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="font-bold text-workshop-text text-sm flex items-center gap-2">
-                          {vehicleMap.get(editingRecord.vehicleId)?.make}{" "}
-                          {vehicleMap.get(editingRecord.vehicleId)?.model}
-                          <span className="text-workshop-muted font-normal opacity-40">
-                            |
-                          </span>
-                          <span className="font-mono text-sm text-workshop-secondary uppercase">
-                            {
-                              vehicleMap.get(editingRecord.vehicleId)
-                                ?.plateNumber
-                            }
-                          </span>
-                          {vehicleMap.get(editingRecord.vehicleId)?.color && (
-                            <>
-                              <span className="text-workshop-muted font-normal opacity-40">
-                                |
-                              </span>
-                              <span className="text-white text-sm font-bold uppercase tracking-tight">
-                                {vehicleMap.get(editingRecord.vehicleId)?.color}
-                              </span>
-                            </>
-                          )}
-                        </p>
-                        <span className="text-workshop-muted font-normal opacity-40">
-                          |
-                        </span>
-                        <span
-                          className={cn(
-                            "font-mono text-sm font-black uppercase tracking-tight",
-                            editingRecord.isDeadVehicle
-                              ? "text-status-urgent italic"
-                              : "text-workshop-warning",
-                          )}
-                        >
-                          {editingRecord.isDeadVehicle
-                            ? "DEAD"
-                            : `${editingRecord.mileage.toLocaleString()} KM`}
-                        </span>
-                      </div>
-                    </div>
+              <form onSubmit={handleUpdateRecord} className="flex-1 flex flex-col h-full overflow-hidden">
+                {/* Scrollable Layout Container */}
+                <div className="flex-grow overflow-y-auto px-6 py-6 space-y-6 bg-workshop-surface/10 scrollbar-thin">
+                  <div className="max-w-4xl mx-auto w-full space-y-5">
+                    
+                    {/* REDESIGNED COMPACT VEHICLE DETAILS (Left Aligned, status-colored badges) */}
+                    {(() => {
+                      const vehicle = vehicleMap.get(editingRecord.vehicleId);
+                      const customer = customers.find(c => c.id === editingRecord.customerId);
+                      const colorFormatted = vehicle?.color 
+                        ? vehicle.color.charAt(0).toUpperCase() + vehicle.color.slice(1) 
+                        : "No color specified";
+                      return (
+                        <div className="text-left space-y-1.5 font-sans">
+                          <h1 className="text-4xl sm:text-6xl font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
+                            {vehicle?.make} {vehicle?.model}
+                          </h1>
+                          
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight text-workshop-text font-sans">
+                            <span className="text-workshop-text font-black">{customer?.name}</span>
+                            <span className="opacity-40 text-workshop-muted font-normal">|</span>
+                            <span className="text-workshop-secondary font-sans font-bold">
+                              {vehicle?.plateNumber}
+                            </span>
+                            <span className="opacity-40 text-workshop-muted font-normal">|</span>
+                            <span className="text-workshop-muted font-semibold font-sans">
+                              {colorFormatted}
+                            </span>
+                          </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Password/Key Display */}
-                      {(() => {
-                        const vRec = vehicleMap.get(editingRecord.vehicleId);
-                        if (!vRec?.passwordOrPin) return null;
-                        return (
-                          <div className="flex items-center gap-1.5 text-status-success bg-status-success/10 px-2 py-1 rounded border border-status-success/20">
-                            <Key className="w-3 h-3" />
-                            {vRec.passwordOrPin.toLowerCase() === "key" ? (
-                              <span className="text-[10px] font-black tracking-[0.15em]">
-                                KEY
-                              </span>
-                            ) : (
-                              <span className="font-mono font-black text-xs">
-                                # {vRec.passwordOrPin}
-                              </span>
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight font-sans">
+                            <span className={cn(
+                              "font-sans font-extrabold whitespace-nowrap",
+                              editingRecord.isDeadVehicle
+                                ? "text-status-urgent italic"
+                                : "text-status-pending"
+                            )}>
+                              {editingRecord.isDeadVehicle
+                                ? "Dead"
+                                : `${editingRecord.mileage?.toLocaleString() || 0} KM`}
+                            </span>
+
+                            {vehicle?.passwordOrPin && (
+                              <>
+                                <span className="opacity-40 text-workshop-muted font-normal">|</span>
+                                <span className="inline-flex items-center gap-1 text-status-success font-extrabold font-sans">
+                                  {vehicle.passwordOrPin.toUpperCase() === "KEY" ? (
+                                    <Key className="w-4 h-4 text-status-success shrink-0" />
+                                  ) : (
+                                    <span className="text-status-success font-bold font-sans text-sm select-none pr-0.5">#</span>
+                                  )}
+                                  <span className="font-sans">
+                                    {vehicle.passwordOrPin.toUpperCase() === "KEY" 
+                                      ? "Key" 
+                                      : `PIN: ${vehicle.passwordOrPin}`}
+                                  </span>
+                                </span>
+                              </>
                             )}
                           </div>
-                        );
-                      })()}
 
-                      {/* Quick Dial Button */}
-                      {(() => {
-                        const customer = customers.find(
-                          (c) => c.id === editingRecord.customerId,
-                        );
-                        if (!customer?.phone) return null;
-                        return (
-                          <a
-                            href={`tel:${customer.phone}`}
-                            className="flex items-center gap-1.5 text-workshop-accent bg-workshop-accent/10 px-2 py-1 rounded border border-workshop-accent/20 hover:bg-workshop-accent hover:text-workshop-bg transition-all text-[10px] font-black uppercase tracking-widest shadow-sm shadow-workshop-accent/10"
-                          >
-                            <Phone className="w-3 h-3" />
-                            Dial {customer.name.split(" ")[0]}
-                          </a>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  {(editingRecord.status === "completed" ||
-                    (editingRecord.completionMileage &&
-                      editingRecord.completionMileage > 0)) && (
-                    <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-accent/30 shadow-sm shadow-workshop-accent/5 animate-in fade-in slide-in-from-top-1 duration-300">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-accent block mb-1 font-black">
-                        Completion Odometer
-                      </label>
-                      <input
-                        required={editingRecord.status === "completed"}
-                        type="number"
-                        value={editingRecord.completionMileage || ""}
-                        onChange={(e) =>
-                          setEditingRecord({
-                            ...editingRecord,
-                            completionMileage: Number(e.target.value),
-                          })
-                        }
-                        className="w-full bg-workshop-bg border border-workshop-accent/20 px-3 py-1.5 rounded-lg outline-none text-sm font-black focus:ring-1 focus:ring-workshop-accent text-workshop-text"
-                        placeholder="Reading at finish..."
-                      />
-                    </div>
-                  )}
-                </div>
+                          {/* Dial Customer quick action */}
+                          {customer?.phone && (
+                            <div className="pt-0.5 flex flex-wrap gap-2">
+                              <a
+                                href={`tel:${customer.phone}`}
+                                className="inline-flex items-center gap-1.5 text-workshop-accent hover:text-workshop-text transition-colors text-xs font-bold uppercase tracking-wider font-sans"
+                              >
+                                <Phone className="w-3.5 h-3.5 shrink-0" />
+                                Call {customer.name.split(" ")[0]}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
-                <div className="p-4 bg-workshop-surface rounded-xl border border-workshop-border/30 shadow-sm relative overflow-hidden">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted block mb-4 px-1 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-workshop-accent animate-pulse" />
-                    Maintenance Checklist
-                  </label>
-                  <div className="space-y-2 relative z-10">
-                    {parseTasks(editingRecord.description).map((task, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => toggleTask(idx)}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all text-left group/btn active:scale-[0.99]",
-                          task.completed 
-                            ? "bg-workshop-accent/5 border-workshop-accent/30 shadow-inner" 
-                            : "bg-workshop-bg/40 border-workshop-border hover:border-workshop-accent/40 hover:bg-workshop-bg/60"
-                        )}
-                      >
-                        <motion.div 
-                          className={cn(
-                            "w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all text-xs font-black",
-                            task.completed 
-                              ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/30" 
-                              : "border-workshop-border bg-workshop-bg group-hover/btn:border-workshop-accent/50"
-                          )}
-                          animate={{ scale: task.completed ? [1, 1.25, 0.95, 1] : 1 }}
-                          transition={{ duration: 0.3, ease: "easeInOut" }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          {task.completed && (
-                            <motion.svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 10 10"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-workshop-bg"
-                            >
-                              <motion.path
-                                d="M2 5 L4.5 7 L8.5 2.5"
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ type: "spring", stiffness: 350, damping: 20 }}
-                              />
-                            </motion.svg>
-                          )}
-                        </motion.div>
-                        <span className="relative text-sm font-bold tracking-tight text-left flex-1 min-w-0">
-                          <span className={cn(
-                            "transition-colors duration-300 block",
-                            task.completed ? "text-workshop-muted opacity-60" : "text-workshop-text"
-                          )}>
-                            {task.text}
+                    {/* TWO-COLUMN GRID CONTENT FOR REMAINING FORM CONTROLS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      
+                      {/* Left Column: Operations & Mechanical Parts */}
+                      <div className="space-y-6">
+                      
+                      {/* Section 1: Maintenance Checklist */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-workshop-muted">
+                            Checklist
+                          </label>
+                          <span className="text-[11px] text-workshop-accent font-bold bg-workshop-accent/10 px-2 py-0.5 rounded-full">
+                            {parseTasks(editingRecord.description).filter(t => t.completed).length}/{parseTasks(editingRecord.description).length} Done
                           </span>
-                          <motion.span
-                            className="absolute left-0 top-[52%] h-[1.5px] bg-workshop-muted opacity-60 origin-left"
-                            initial={{ width: "0%" }}
-                            animate={{ width: task.completed ? "100%" : "0%" }}
-                            transition={{ type: "spring", stiffness: 180, damping: 20 }}
-                          />
-                        </span>
-                      </button>
-                    ))}
-                    {parseTasks(editingRecord.description).length === 0 && (
-                      <div className="text-center py-6 border-2 border-dashed border-workshop-border rounded-xl">
-                        <p className="text-xs text-workshop-muted font-bold italic">
-                          No tasks defined in maintenance request.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
-                      Final Remarks
-                    </label>
-                    <textarea
-                      value={editingRecord.finalRemarks || ""}
-                      onChange={(e) =>
-                        setEditingRecord({
-                          ...editingRecord,
-                          finalRemarks: e.target.value,
-                        })
-                      }
-                      className="w-full bg-workshop-bg border border-workshop-border px-4 py-3 rounded-xl outline-none h-20 resize-none text-sm focus:ring-1 focus:ring-workshop-accent text-workshop-text transition-all"
-                      placeholder="Add final closing remarks or advice..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-workshop-muted uppercase tracking-widest text-[10px]">
-                      Adjust Parts Used
-                    </h3>
-                    <div className="relative">
-                      <Select
-                        value={editPartSelectValue}
-                        onValueChange={(val) => {
-                          addPartToEditingRecord(val);
-                          setTimeout(() => setEditPartSelectValue(""), 0);
-                        }}
-                      >
-                        <SelectTrigger className="w-full shadow-sm">
-                          <SelectValue placeholder="+ Add or Replace part..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {parts.map((p) => (
-                            <SelectItem key={p.id} value={p.id!}>
-                              {p.name} (Stock: {p.stockQuantity})
-                            </SelectItem>
+                        </div>
+                        
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+                          {parseTasks(editingRecord.description).map((task, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => toggleTask(idx)}
+                              className={cn(
+                                "w-full flex items-center gap-3.5 p-3 rounded-2xl border transition-all text-left outline-none group/btn",
+                                task.completed
+                                  ? "bg-status-success/5 border-status-success/20 shadow-inner"
+                                  : "bg-workshop-surface/30 border-workshop-border hover:border-workshop-accent/30 hover:bg-workshop-surface/50"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all text-xs font-black",
+                                  task.completed
+                                    ? "bg-status-success border-status-success text-workshop-bg shadow-md shadow-status-success/20"
+                                    : "border-workshop-border bg-workshop-bg group-hover/btn:border-workshop-accent/50"
+                                )}
+                              >
+                                {task.completed && (
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 10 10"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-workshop-bg"
+                                  >
+                                    <path d="M2 5 L4.5 7 L8.5 2.5" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="relative text-sm font-semibold tracking-tight text-left flex-1 min-w-0">
+                                <span className={cn(
+                                  "block",
+                                  task.completed ? "text-workshop-muted opacity-50 font-normal" : "text-workshop-text font-semibold"
+                                )}>
+                                  {task.text}
+                                </span>
+                              </span>
+                            </button>
                           ))}
-                        </SelectContent>
-                      </Select>
+                          {parseTasks(editingRecord.description).length === 0 && (
+                            <div className="text-center py-6 border border-dashed border-workshop-border/80 rounded-2xl bg-workshop-surface/15">
+                              <p className="text-xs text-workshop-muted font-bold italic">
+                                No specific service tasks outlined for this check-in.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Section 2: Adjust Parts Used */}
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-workshop-muted block px-1">
+                          Replaced Parts and Spares
+                        </label>
+                        
+                        <div className="relative">
+                          <Select
+                            value={editPartSelectValue}
+                            onValueChange={(val) => {
+                              addPartToEditingRecord(val);
+                              setTimeout(() => setEditPartSelectValue(""), 0);
+                            }}
+                          >
+                            <SelectTrigger className="w-full h-11 bg-workshop-surface/40 hover:bg-workshop-surface/60 border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent">
+                              <SelectValue placeholder="Add parts" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60 overflow-y-auto">
+                              {parts.map((p) => (
+                                <SelectItem key={p.id} value={p.id!} className="text-xs">
+                                  {p.name} — {formatCurrency(p.price)} (Stock: {p.stockQuantity})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
+                          {editingRecord.partsUsed && editingRecord.partsUsed.length > 0 ? (
+                            editingRecord.partsUsed.map((up, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-3 bg-workshop-surface/20 rounded-2xl border border-workshop-border/60 hover:bg-workshop-surface/30 transition-all shadow-sm"
+                              >
+                                <div className="flex-1 min-w-0 pr-3">
+                                  <p className="text-xs font-bold text-workshop-text truncate">
+                                    {up.name}
+                                  </p>
+                                  <p className="text-[10px] font-bold text-workshop-muted tracking-wide flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-workshop-accent">{formatCurrency(up.unitPrice)}</span>
+                                    <span>×</span>
+                                    <span>{up.quantity} units</span>
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(editingRecord.partsUsed || [])];
+                                      if (updated[idx].quantity > 1) {
+                                        updated[idx].quantity -= 1;
+                                        setEditingRecord({
+                                          ...editingRecord,
+                                          partsUsed: updated,
+                                        });
+                                      } else {
+                                        setEditingRecord({
+                                          ...editingRecord,
+                                          partsUsed: updated.filter((_, i) => i !== idx),
+                                        });
+                                      }
+                                    }}
+                                    className="w-7 h-7 bg-workshop-surface border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-status-urgent hover:bg-status-urgent/15 hover:border-status-urgent/30 transition-all text-sm outline-none"
+                                  >
+                                    <Minus className="w-3.5 h-3.5" />
+                                  </button>
+                                  <span className="w-5 text-center font-black text-xs text-workshop-text">
+                                    {up.quantity}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(editingRecord.partsUsed || [])];
+                                      updated[idx].quantity += 1;
+                                      setEditingRecord({
+                                        ...editingRecord,
+                                        partsUsed: updated,
+                                      });
+                                    }}
+                                    className="w-7 h-7 bg-workshop-surface border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-workshop-accent hover:bg-workshop-accent/15 hover:border-workshop-accent/30 transition-all text-sm outline-none"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-5 border border-dashed border-workshop-border/60 rounded-2xl bg-workshop-surface/5">
+                              <p className="text-xs text-workshop-muted italic">
+                                No spare parts assigned to this repair.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Section 3: Final Remarks */}
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-workshop-muted px-1 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-workshop-secondary" />
+                          Final Remarks & Advice
+                        </label>
+                        <textarea
+                          value={editingRecord.finalRemarks || ""}
+                          onChange={(e) =>
+                            setEditingRecord({
+                              ...editingRecord,
+                              finalRemarks: e.target.value,
+                            })
+                          }
+                          className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-workshop-accent/50 px-4 py-3 rounded-2xl outline-none h-20 resize-none text-sm focus:ring-1 focus:ring-workshop-accent text-workshop-text transition-all placeholder:text-workshop-muted/60"
+                          placeholder="Provide advice, parts warranty info, or technical notes for the customer..."
+                        />
+                      </div>
+
                     </div>
 
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
-                      {editingRecord.partsUsed?.map((up, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-3 bg-workshop-surface/30 rounded-xl border border-workshop-border shadow-sm"
-                        >
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-workshop-text uppercase">
-                              {up.name}
-                            </p>
-                            <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest">
-                              {formatCurrency(up.unitPrice)} x {up.quantity}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [
-                                  ...(editingRecord.partsUsed || []),
-                                ];
-                                if (updated[idx].quantity > 1) {
-                                  updated[idx].quantity -= 1;
-                                  setEditingRecord({
-                                    ...editingRecord,
-                                    partsUsed: updated,
-                                  });
-                                } else {
-                                  setEditingRecord({
-                                    ...editingRecord,
-                                    partsUsed: updated.filter(
-                                      (_, i) => i !== idx,
-                                    ),
-                                  });
+                    {/* Right Column: Status Picker, Billing & Estimates, Advice */}
+                    <div className="space-y-6">
+
+                      {/* Card B: M3 Segmented Status */}
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-workshop-muted px-1 block">
+                          service status
+                        </label>
+                        <div className="grid grid-cols-3 p-1 bg-workshop-card border border-workshop-border rounded-xl shadow-inner gap-1">
+                          {["pending", "in-progress", "completed"].map((statusOption) => {
+                            const isSelected = editingRecord.status === statusOption;
+                            const config = {
+                              "pending": { label: "Pending", bg: "bg-status-urgent text-workshop-bg shadow-sm", ring: "border-status-urgent/30 hover:bg-status-urgent/10", icon: Clock },
+                              "in-progress": { label: "Working", bg: "bg-status-pending text-workshop-bg shadow-sm", ring: "border-status-pending/30 hover:bg-status-pending/10", icon: Activity },
+                              "completed": { label: "Done", bg: "bg-status-success text-workshop-bg shadow-sm", ring: "border-status-success/30 hover:bg-status-success/10", icon: CheckCircle },
+                            }[statusOption as "pending" | "in-progress" | "completed"];
+
+                            return (
+                              <button
+                                key={statusOption}
+                                type="button"
+                                onClick={() =>
+                                  setEditingRecord({ ...editingRecord, status: statusOption as ServiceRecord["status"] })
                                 }
-                              }}
-                              className="w-6 h-6 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-status-urgent hover:bg-status-urgent/10 transition-all text-xs"
-                            >
-                              -
-                            </button>
-                            <span className="w-4 text-center font-black text-xs text-workshop-text">
-                              {up.quantity}
+                                className={cn(
+                                  "py-2 px-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex flex-col items-center justify-center gap-1 transition-all outline-none",
+                                  isSelected
+                                    ? `${config.bg} scale-[1.03] z-10 font-black`
+                                    : "text-workshop-muted hover:text-workshop-text bg-transparent"
+                                )}
+                              >
+                                <config.icon className="w-3.5 h-3.5" />
+                                <span>{config.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Card C: Completion Odometer if complete */}
+                      {(editingRecord.status === "completed" ||
+                        (editingRecord.completionMileage && editingRecord.completionMileage > 0)) && (
+                        <div className="p-4 bg-workshop-surface border border-workshop-accent/30 rounded-2xl shadow-inner animate-in duration-300 slide-in-from-top-1 fade-in">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-workshop-accent block mb-1.5 font-black">
+                            Completion Odometer Reading (KM)
+                          </label>
+                          <div className="relative">
+                            <input
+                              required={editingRecord.status === "completed"}
+                              type="number"
+                              value={editingRecord.completionMileage || ""}
+                              onChange={(e) =>
+                                  setEditingRecord({
+                                    ...editingRecord,
+                                    completionMileage: Number(e.target.value),
+                                  })
+                              }
+                              className="w-full bg-workshop-bg border border-workshop-accent/20 px-4 py-2.5 rounded-xl outline-none text-sm font-black focus:ring-1 focus:ring-workshop-accent text-workshop-text"
+                              placeholder="Final odometer reading..."
+                            />
+                            <div className="absolute right-3 top-3 text-[10px] uppercase font-bold text-workshop-accent/60">
+                              Odo Finish
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-workshop-muted mt-1 px-1">
+                            Required to complete job so service metrics compute mileage.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Card D: Billing Adjustments & Receipt summary */}
+                      <div className="space-y-4 font-sans">
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-bold text-workshop-muted uppercase tracking-wider block px-1">
+                            Labor Fee (INR)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-3 text-xs font-bold text-workshop-muted">
+                              ₹
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [
-                                  ...(editingRecord.partsUsed || []),
-                                ];
-                                updated[idx].quantity += 1;
+                            <input
+                              type="number"
+                              value={editingRecord.laborCost === 0 ? "" : (editingRecord.laborCost || "")}
+                              onChange={(e) =>
                                 setEditingRecord({
                                   ...editingRecord,
-                                  partsUsed: updated,
-                                });
-                              }}
-                              className="w-6 h-6 border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-workshop-accent hover:bg-workshop-accent/10 transition-all text-xs"
-                            >
-                              +
-                            </button>
+                                  laborCost: Number(e.target.value),
+                                })
+                              }
+                              className="w-full bg-workshop-card border border-workshop-border pl-8 pr-4 py-3 rounded-2xl outline-none text-sm font-black focus:ring-1 focus:ring-workshop-accent text-workshop-text transition-all"
+                              placeholder="0"
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-workshop-muted uppercase tracking-widest text-[10px]">
-                      Billing Adjustment
-                    </h3>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest">
-                        Labor Fees (INR)
-                      </label>
-                      <input
-                        type="number"
-                        value={editingRecord.laborCost}
-                        onChange={(e) =>
-                          setEditingRecord({
-                            ...editingRecord,
-                            laborCost: Number(e.target.value),
-                          })
-                        }
-                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none text-sm font-black focus:ring-1 focus:ring-workshop-accent text-workshop-text transition-all"
-                      />
-                    </div>
-                    <div className="p-5 bg-workshop-accent/90 text-workshop-bg rounded-xl shadow-lg space-y-3 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12" />
-                      <div className="flex justify-between text-xs font-medium opacity-80">
-                        <span>Labor Subtotal</span>
-                        <span className="font-bold">
-                          {formatCurrency(editingRecord.laborCost || 0)}
-                        </span>
+                        {/* M3 Invoice Tonal Receipt Container */}
+                        <div className="p-5 bg-workshop-card border border-workshop-border/80 text-workshop-text rounded-2xl shadow-md space-y-3.5 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-20 h-20 bg-workshop-accent/5 rounded-full -mr-10 -mt-10" />
+                          
+                          <div className="flex items-center gap-2 border-b border-workshop-border/40 pb-2">
+                            <Receipt className="w-4 h-4 text-workshop-accent" />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-workshop-muted">
+                              Billing Invoice Breakdown
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 text-xs font-medium">
+                            <div className="flex justify-between">
+                              <span className="text-workshop-muted">Labor Subtotal:</span>
+                              <span className="font-semibold">{formatCurrency(editingRecord.laborCost || 0)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-workshop-muted">Parts Subtotal:</span>
+                              <span className="font-semibold">
+                                {formatCurrency(
+                                  (editingRecord.partsUsed || []).reduce(
+                                    (acc, p) => acc + p.unitPrice * p.quantity,
+                                    0,
+                                  ),
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-dashed border-workshop-border/80 flex justify-between font-black text-lg items-baseline">
+                            <span className="text-workshop-accent text-[10px] uppercase tracking-wider">
+                              ESTIMATED TOTAL
+                            </span>
+                            <span className="font-mono text-xl tracking-tight text-workshop-accent">
+                              {formatCurrency(
+                                (editingRecord.laborCost || 0) +
+                                  (editingRecord.partsUsed || []).reduce(
+                                    (acc, p) => acc + p.unitPrice * p.quantity,
+                                    0,
+                                  ),
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-xs font-medium opacity-80">
-                        <span>Parts Subtotal</span>
-                        <span className="font-bold">
-                          {formatCurrency(
-                            (editingRecord.partsUsed || []).reduce(
-                              (acc, p) => acc + p.unitPrice * p.quantity,
-                              0,
-                            ),
-                          )}
-                        </span>
-                      </div>
-                      <div className="pt-3 border-t border-workshop-bg/10 flex justify-between font-black text-xl items-end">
-                        <span className="text-workshop-bg/60 text-[10px] uppercase tracking-[0.2em]">
-                          Updated Total
-                        </span>
-                        <span className="tracking-tighter">
-                          {formatCurrency(
-                            (editingRecord.laborCost || 0) +
-                              (editingRecord.partsUsed || []).reduce(
-                                (acc, p) => acc + p.unitPrice * p.quantity,
-                                0,
-                              ),
-                          )}
-                        </span>
-                      </div>
+
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-4 pt-6">
+                {/* Fixed Material Sticky Bottom Action Footer Bar */}
+                <div className="px-6 py-5 bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
                   <button
                     type="button"
                     onClick={() => setEditingRecord(null)}
-                    className="flex-1 px-4 py-3 border border-workshop-border rounded-xl text-sm font-bold text-workshop-muted hover:bg-workshop-surface transition-all uppercase tracking-widest"
+                    className="px-6 py-3 border border-workshop-border hover:border-workshop-muted-foreground/30 rounded-2xl text-xs font-bold text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface active:scale-[0.98] transition-all uppercase tracking-widest outline-none"
                   >
-                    Discard Changes
+                    DISCARD CHANGES
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-sm font-black shadow-md hover:brightness-110 transition-all uppercase tracking-widest"
+                    disabled={isUpdating}
+                    className="px-8 py-3 bg-workshop-accent text-workshop-bg rounded-2xl text-xs font-black shadow-lg hover:brightness-115 active:scale-[0.98] transition-all uppercase tracking-widest inline-flex items-center gap-2 disabled:opacity-55 outline-none"
                   >
                     {isUpdating ? (
-                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Updating...</span>
+                      </>
                     ) : (
-                      "Apply Update"
+                      <span>Update Record</span>
                     )}
                   </button>
                 </div>
               </form>
             </motion.div>
-          </div>
           </Portal>
         )}
       </AnimatePresence>
@@ -2151,14 +2182,15 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setDetailsRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] will-change-transform"
               >
                 <div className="flex items-center justify-between mb-8">
@@ -2212,18 +2244,16 @@ export function ServiceHistory() {
                       Expected Delivery Date
                       <span className="text-status-urgent">*</span>
                     </label>
-                    <input
-                      type="date"
-                      required
-                      min={new Date().toISOString().split('T')[0]}
+                    <MaterialCalendar
                       value={detailsRecord.expectedDeliveryDate || ""}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setDetailsRecord({
                           ...detailsRecord,
-                          expectedDeliveryDate: e.target.value,
+                          expectedDeliveryDate: val,
                         })
                       }
-                      className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none text-sm font-bold text-workshop-text focus:ring-1 focus:ring-workshop-accent transition-all shadow-sm"
+                      min={new Date().toISOString().split('T')[0]}
+                      className="py-3 text-sm font-bold text-workshop-text focus:ring-1 focus:ring-workshop-accent"
                     />
                   </div>
 
@@ -2263,14 +2293,15 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setRecordToDelete(null)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.15 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center transition-all"
               >
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">

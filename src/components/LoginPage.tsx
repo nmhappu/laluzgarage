@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Wrench, ChevronRight, Mail, Lock, AlertCircle, User as UserIcon } from 'lucide-react';
 import { motion } from 'motion/react';
-import { ThemeToggle } from './ThemeToggle';
 
 export function LoginPage() {
   const { login, register } = useAuth();
@@ -51,9 +50,6 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4 relative">
-      <div className="absolute top-6 right-6">
-        <ThemeToggle />
-      </div>
       <div className="max-w-md w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

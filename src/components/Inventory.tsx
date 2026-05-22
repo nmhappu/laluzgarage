@@ -170,20 +170,22 @@ export function Inventory() {
                 <motion.div 
                   key={part.id} 
                   variants={{
-                    hidden: { opacity: 0, y: 10 },
+                    hidden: { opacity: 0, y: 12, scale: 0.98 },
                     show: { 
                       opacity: 1, 
                       y: 0,
+                      scale: 1,
                       transition: {
-                        duration: 0.2,
-                        ease: [0.23, 1, 0.32, 1]
+                        duration: 0.3,
+                        ease: [0.2, 0, 0, 1.0]
                       }
                     }
                   }}
                   exit={{ 
                     opacity: 0, 
                     scale: 0.98,
-                    transition: { duration: 0.15 } 
+                    y: 8,
+                    transition: { duration: 0.2, ease: [0.2, 0, 0, 1.0] } 
                   }}
                   className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group"
                   onClick={() => {
@@ -262,13 +264,15 @@ export function Inventory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowEditModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh] bg-clip-padding"
               >
               <div className="flex justify-between items-center mb-6">
@@ -402,13 +406,15 @@ export function Inventory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
               <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
@@ -447,13 +453,15 @@ export function Inventory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[90vh] bg-clip-padding"
               >
               <h2 className="text-xl font-bold mb-6 text-workshop-text uppercase tracking-tight">NEW ASSET</h2>

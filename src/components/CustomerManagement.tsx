@@ -203,18 +203,25 @@ export function CustomerManagement() {
           ) : (
             <motion.div
               key="customer-list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              variants={{
+                enter: { opacity: 0 },
+                center: { opacity: 1, transition: { staggerChildren: 0.03 } },
+                exit: { opacity: 0 }
+              }}
               className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
             >
               {filteredCustomers.map((customer) => (
                 <motion.div
                   key={customer.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  variants={{
+                    enter: { opacity: 0, y: 15, scale: 0.97 },
+                    center: { opacity: 1, y: 0, scale: 1 },
+                    exit: { opacity: 0, y: 10, scale: 0.97 }
+                  }}
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   className="bg-workshop-card p-4 rounded-xl border border-workshop-border shadow-sm hover:border-workshop-accent/30 transition-all group relative h-[180px] flex flex-col justify-between overflow-hidden bg-clip-padding"
                 >
                   <div>
@@ -307,13 +314,15 @@ export function CustomerManagement() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
               >
               <div className="flex justify-between items-center mb-6">
@@ -377,13 +386,15 @@ export function CustomerManagement() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowEditModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-md rounded-xl p-8 shadow-2xl border border-workshop-border"
               >
               <div className="flex justify-between items-center mb-6">
@@ -445,13 +456,15 @@ export function CustomerManagement() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60"
+                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
               <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
@@ -490,13 +503,15 @@ export function CustomerManagement() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setSelectedCustomerForTransactions(null)}
                 className="absolute inset-0 bg-workshop-bg/80 backdrop-blur-sm"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                initial={{ opacity: 0, scale: 0.94, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                exit={{ opacity: 0, scale: 0.94, y: 15 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 className="relative bg-workshop-card w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-workshop-border"
               >
               <div className="bg-workshop-surface p-6 sm:p-8 text-workshop-text relative border-b border-workshop-border">

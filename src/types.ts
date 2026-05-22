@@ -72,3 +72,5 @@ export interface WorkshopUser {
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
 }
+
+

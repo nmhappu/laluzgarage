@@ -16,6 +16,7 @@ import { cn } from '../lib/utils';
 import type { Customer, Vehicle } from '../types';
 
 import { Portal } from './Portal';
+import { MaterialCalendar } from './ui/MaterialCalendar';
 
 interface ServiceIntakeProps {
   onClose: () => void;
@@ -215,15 +216,16 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
           onClick={onClose}
-          className="absolute inset-0 bg-workshop-bg/60"
+          className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
         />
         
         <motion.div
-          initial={{ opacity: 0, scale: 0.98, y: 10 }}
+          initial={{ opacity: 0, scale: 0.92, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.98, y: 10 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, scale: 0.92, y: 10 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
           className="relative bg-workshop-card w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-workshop-border bg-clip-padding"
         >
           {/* Header */}
@@ -265,10 +267,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
               {Math.floor(step) === 1 ? (
                 <motion.div
                   key="step1"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.98, x: 15 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, x: -15 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                   className="space-y-6"
                 >
                   {step === 1 ? (
@@ -476,10 +478,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
               ) : step === 2 ? (
                 <motion.div
                   key="step2"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.98, x: 15 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, x: -15 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                   className="space-y-6"
                 >
                   <button
@@ -634,10 +636,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
               ) : (
                 <motion.div
                   key="step3"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.98, x: 15 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, x: -15 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                   className="space-y-6"
                 >
                   <button
@@ -750,16 +752,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           Service Date
                           <span className="text-status-urgent">*</span>
                         </label>
-                        <input
-                          type="date"
-                          required
-                          max={new Date().toISOString().split("T")[0]}
+                        <MaterialCalendar
                           value={jobForm.serviceDate}
-                          onChange={(e) =>
-                            setJobForm({ ...jobForm, serviceDate: e.target.value })
+                          onChange={(val) =>
+                            setJobForm({ ...jobForm, serviceDate: val })
                           }
+                          max={new Date().toISOString().split("T")[0]}
                           className={cn(
-                            "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold",
+                            "py-4",
                             jobForm.serviceDate ===
                               new Date().toISOString().split("T")[0]
                               ? "text-workshop-accent"
@@ -772,18 +772,16 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           Expected Delivery Date
                           <span className="text-status-urgent">*</span>
                         </label>
-                        <input
-                          type="date"
-                          required
-                          min={new Date().toISOString().split("T")[0]}
+                        <MaterialCalendar
                           value={jobForm.expectedDeliveryDate}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             setJobForm({
                               ...jobForm,
-                              expectedDeliveryDate: e.target.value,
+                              expectedDeliveryDate: val,
                             })
                           }
-                          className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text"
+                          min={new Date().toISOString().split("T")[0]}
+                          className="py-4 text-workshop-text"
                         />
                       </div>
                     </div>

@@ -53,9 +53,10 @@ export function BackButtonHandler() {
     <AnimatePresence>
       {showExitHint && (
         <motion.div 
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          initial={{ opacity: 0, y: 15, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          exit={{ opacity: 0, y: 10, scale: 0.92 }}
+          transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
           className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[999] pointer-events-none"
         >
           <div className="bg-workshop-surface/95 backdrop-blur-md border border-workshop-accent/30 px-6 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex items-center gap-3">

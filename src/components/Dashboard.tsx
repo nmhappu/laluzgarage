@@ -169,13 +169,14 @@ export function Dashboard() {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 12, scale: 0.98 },
     show: { 
       opacity: 1, 
       y: 0,
+      scale: 1,
       transition: {
-        duration: 0.2,
-        ease: [0.23, 1, 0.32, 1]
+        duration: 0.3,
+        ease: [0.2, 0, 0, 1.0]
       }
     }
   };
@@ -246,7 +247,7 @@ export function Dashboard() {
             </div>
 
             <div
-              className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0"
+              className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0 pointer-events-none"
               style={{
                 maskImage:
                   'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',

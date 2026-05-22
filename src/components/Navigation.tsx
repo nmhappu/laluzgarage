@@ -169,8 +169,8 @@ export function Navigation() {
 
       {/* Mobile Bottom Navigation */}
       <nav className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-card border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-300 ease-in-out",
-        isModalOpen && "backdrop-blur-md bg-workshop-card/90"
+        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-bg border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-300 ease-in-out",
+        isModalOpen && "backdrop-blur-md bg-workshop-bg/90"
       )}>
         <div className="flex items-center justify-between gap-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">
           {navItems.map((item) => (

@@ -14,11 +14,13 @@ import {
   User,
   ScanHeart,
   ChevronRight,
+  ChevronDown,
   Trash2,
   Edit2,
   ArrowRight,
   ArrowLeft,
   ArrowDown,
+  ArrowUp,
   RefreshCw,
   Phone,
   Key,
@@ -158,7 +160,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                       ? "DEAD"
                       : `${record.mileage.toLocaleString()} KM`}
                   </span>
-                  {record.completionMileage && (
+                  {!!record.completionMileage && (
                     <>
                       <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
                       <span className="text-status-success font-mono whitespace-nowrap shrink-0">
@@ -378,6 +380,7 @@ export function ServiceHistory() {
   const [detailsRecord, setDetailsRecord] = useState<ServiceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<ServiceRecord | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [contactMenuOpen, setContactMenuOpen] = useState(false);
 
   // --- State: Search & Lookup Flow ---
   const [lookupStep, setLookupStep] = useState<"search" | "form">("search");
@@ -484,6 +487,10 @@ export function ServiceHistory() {
     window.addEventListener("appBackButton", handleBackButton);
     return () => window.removeEventListener("appBackButton", handleBackButton);
   }, [editingRecord, showAddModal, lookupStep, detailsRecord]);
+
+  useEffect(() => {
+    setContactMenuOpen(false);
+  }, [editingRecord]);
 
   // --- Data Fetching ---
   const fetchData = async () => {
@@ -983,9 +990,9 @@ export function ServiceHistory() {
           </p>
         </div>
       </header>      {/* Status Tabs & Search */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="w-full lg:w-auto flex justify-start">
-          <div className="w-full lg:w-auto overflow-x-auto no-scrollbar flex items-center bg-workshop-surface/40 p-1.5 rounded-2xl border border-workshop-border/60">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="w-full xl:w-auto flex justify-start min-w-0">
+          <div className="w-full xl:w-auto overflow-x-auto no-scrollbar flex items-center bg-workshop-surface/40 p-1.5 rounded-2xl border border-workshop-border/60">
             <div className="flex items-center gap-1 min-w-max">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -1030,7 +1037,7 @@ export function ServiceHistory() {
           </div>
         </div>
 
-        <div className="relative w-full lg:w-80 group">
+        <div className="relative w-full xl:w-80 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="w-4 h-4 text-workshop-muted transition-colors group-focus-within:text-workshop-accent" />
           </div>
@@ -1709,23 +1716,56 @@ export function ServiceHistory() {
                   </h2>
                 </div>
 
-                <div className="text-xs font-bold text-status-success font-sans flex items-center gap-1 select-none">
-                  <ArrowDown className="w-4 h-4 text-status-success shrink-0 text-status-success" />
-                  <span className="font-sans font-black tracking-normal uppercase">
-                    {(() => {
-                      const dateVal = editingRecord.date || editingRecord.createdAt;
-                      if (!dateVal) return "";
-                      try {
-                        const d = new Date(dateVal);
-                        const day = d.getDate();
-                        const month = d.toLocaleDateString("en-US", { month: "short" });
-                        const year = d.getFullYear();
-                        return `${day} ${month} ${year}`;
-                      } catch {
-                        return "";
-                      }
-                    })()}
-                  </span>
+                <div className="flex flex-col items-end gap-1.5 select-none text-right">
+                  {/* Service Intake Date */}
+                  <div className="text-xs font-bold text-status-success font-sans flex items-center gap-1">
+                    <ArrowDown className="w-4 h-4 text-status-success shrink-0" />
+                    <span className="font-sans font-black tracking-normal uppercase">
+                      {(() => {
+                        const dateVal = editingRecord.date || editingRecord.createdAt;
+                        if (!dateVal) return "";
+                        try {
+                          const d = new Date(dateVal);
+                          const day = d.getDate();
+                          const month = d.toLocaleDateString("en-US", { month: "short" });
+                          const year = d.getFullYear();
+                          return `${day} ${month} ${year}`;
+                        } catch {
+                          return "";
+                        }
+                      })()}
+                    </span>
+                  </div>
+
+                  {/* Due Date with Up Arrow */}
+                  {editingRecord.expectedDeliveryDate && (() => {
+                    try {
+                      const dueDate = parseISO(editingRecord.expectedDeliveryDate);
+                      const today = startOfDay(new Date());
+                      const normalizedDueDate = startOfDay(dueDate);
+                      const isPast = isAfter(today, normalizedDueDate);
+                      const isToday = isSameDay(normalizedDueDate, today);
+                      const isOverdue = isPast && !isToday;
+
+                      // Red if overdue, Yellow/Amber if today or days ahead
+                      const textColorClass = isOverdue ? "text-status-urgent" : "text-status-pending";
+
+                      const day = dueDate.getDate();
+                      const month = dueDate.toLocaleDateString("en-US", { month: "short" });
+                      const year = dueDate.getFullYear();
+
+                      return (
+                        <div className={cn("text-xs font-bold font-sans flex items-center gap-1", textColorClass)}>
+                          <ArrowUp className="w-4 h-4 shrink-0 font-bold" />
+                          <span className="font-sans font-black tracking-normal uppercase">
+                            {`${day} ${month} ${year}`}
+                          </span>
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
                 </div>
               </div>
 
@@ -1790,16 +1830,66 @@ export function ServiceHistory() {
                             )}
                           </div>
 
-                          {/* Dial Customer quick action */}
+                          {/* Dial Customer quick action with dropdown */}
                           {customer?.phone && (
-                            <div className="pt-0.5 flex flex-wrap gap-2">
-                              <a
-                                href={`tel:${customer.phone}`}
-                                className="inline-flex items-center gap-1.5 text-workshop-accent hover:text-workshop-text transition-colors text-xs font-bold uppercase tracking-wider font-sans"
-                              >
-                                <Phone className="w-3.5 h-3.5 shrink-0" />
-                                Call {customer.name.split(" ")[0]}
-                              </a>
+                            <div className="pt-1.5 relative inline-block text-left select-none">
+                              <div className="flex items-center gap-1">
+                                <a
+                                  href={`tel:${customer.phone}`}
+                                  className="inline-flex items-center gap-1.5 p-1.5 px-3 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all text-xs font-bold uppercase tracking-wider font-sans shadow-sm"
+                                >
+                                  <Phone className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Call {customer.name.split(" ")[0]}</span>
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setContactMenuOpen(!contactMenuOpen);
+                                  }}
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all shadow-sm cursor-pointer"
+                                  id="contact-actions-dropdown"
+                                >
+                                  <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", contactMenuOpen && "rotate-180")} />
+                                </button>
+                              </div>
+
+                              <AnimatePresence>
+                                {contactMenuOpen && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-[110]"
+                                      onClick={() => setContactMenuOpen(false)}
+                                    />
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                                      exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                      transition={{ duration: 0.15 }}
+                                      className="absolute left-0 mt-1.5 w-60 rounded-xl bg-workshop-card border border-workshop-border shadow-xl z-[120] overflow-hidden py-1"
+                                    >
+                                      {(() => {
+                                        const vcardText = `BEGIN:VCARD\nVERSION:3.0\nFN:${customer.name}\nTEL;TYPE=CELL:${customer.phone}\nEND:VCARD`;
+                                        const vcardUrl = `data:text/vcard;charset=utf-8,${encodeURIComponent(vcardText)}`;
+                                        return (
+                                          <a
+                                            href={vcardUrl}
+                                            download={`${customer.name.replace(/\s+/g, "_")}.vcf`}
+                                            onClick={() => setContactMenuOpen(false)}
+                                            className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer"
+                                            id="add-to-contacts-option"
+                                          >
+                                            <User className="w-4 h-4 text-workshop-secondary shrink-0" />
+                                            <span>Add {customer.name.split(" ")[0]} to Contacts</span>
+                                          </a>
+                                        );
+                                      })()}
+                                    </motion.div>
+                                  </>
+                                )}
+                              </AnimatePresence>
                             </div>
                           )}
                         </div>
@@ -2038,7 +2128,7 @@ export function ServiceHistory() {
 
                       {/* Card C: Completion Odometer if complete */}
                       {(editingRecord.status === "completed" ||
-                        (editingRecord.completionMileage && editingRecord.completionMileage > 0)) && (
+                        ((editingRecord.completionMileage || 0) > 0)) && (
                         <div className="p-4 bg-workshop-surface border border-workshop-accent/30 rounded-2xl shadow-inner animate-in duration-300 slide-in-from-top-1 fade-in">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-workshop-accent block mb-1.5 font-black">
                             Completion Odometer Reading (KM)

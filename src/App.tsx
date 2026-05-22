@@ -91,7 +91,7 @@ function AppContent() {
       <div className="flex flex-col md:flex-row h-mobile-screen overflow-hidden bg-workshop-bg">
         <Navigation />
         
-        <main className="flex-1 flex flex-col min-h-0 bg-transparent text-workshop-text relative">
+        <main className="flex-1 flex flex-col min-h-0 min-w-0 bg-transparent text-workshop-text relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pt-[calc(5.5rem+env(safe-area-inset-top,0px))] md:pt-8 scroll-smooth pb-32 md:pb-8">
             <AnimatedRoutes />
           </div>

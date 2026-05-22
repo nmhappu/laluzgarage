@@ -1701,7 +1701,7 @@ export function ServiceHistory() {
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Redesigned Premium Clean Top Bar Header */}
-              <div className="flex justify-between items-center px-6 py-4 bg-workshop-bg shrink-0 select-none">
+              <div className="flex justify-between items-center px-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
                 <button
                   type="button"
                   onClick={() => setEditingRecord(null)}
@@ -2234,7 +2234,7 @@ export function ServiceHistory() {
               </div>
 
                 {/* Fixed Material Sticky Bottom Action Footer Bar */}
-                <div className="px-6 py-5 bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
+                <div className="px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
                   <button
                     type="button"
                     onClick={() => setEditingRecord(null)}

@@ -60,10 +60,13 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     personalItems: '',
     expectedDeliveryDate: '',
     serviceDate: new Date().toISOString().split('T')[0],
-    isDeadVehicle: false
+    isDeadVehicle: false,
+    isUnknownMileage: false
   });
 
   const [useKey, setUseKey] = useState(false);
+
+  const isMileageInvalid = !jobForm.isDeadVehicle && !jobForm.isUnknownMileage && (!jobForm.mileage || parseInt(jobForm.mileage, 10) === 0);
 
   // Fetch basics for lookup
   useEffect(() => {
@@ -186,8 +189,9 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
         technicianName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown Advisor',
         date: jobForm.serviceDate + "T" + new Date().toISOString().split('T')[1],
         expectedDeliveryDate: jobForm.expectedDeliveryDate,
-        mileage: Number(jobForm.mileage),
+        mileage: (jobForm.isDeadVehicle || jobForm.isUnknownMileage) ? 0 : Number(jobForm.mileage || 0),
         isDeadVehicle: jobForm.isDeadVehicle,
+        isUnknownMileage: jobForm.isUnknownMileage,
         personalItems: jobForm.personalItems,
         description: jobForm.description,
         status: 'pending',
@@ -666,8 +670,8 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         <input
                           type="text"
                           inputMode="numeric"
-                          disabled={jobForm.isDeadVehicle}
-                          value={jobForm.isDeadVehicle ? "" : jobForm.mileage}
+                          disabled={jobForm.isDeadVehicle || jobForm.isUnknownMileage}
+                          value={jobForm.isDeadVehicle || jobForm.isUnknownMileage ? "" : jobForm.mileage}
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === "" || /^\d+$/.test(val)) {
@@ -676,45 +680,87 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           }}
                           className={cn(
                             "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono text-lg font-black text-workshop-text transition-all",
-                            jobForm.isDeadVehicle && "opacity-40 grayscale"
+                            (jobForm.isDeadVehicle || jobForm.isUnknownMileage) && "opacity-40 grayscale"
                           )}
                           placeholder={
-                            jobForm.isDeadVehicle ? "N/A - DEAD VEHICLE" : "000000"
+                            jobForm.isDeadVehicle 
+                              ? "N/A - DEAD VEHICLE" 
+                              : jobForm.isUnknownMileage 
+                                ? "N/A - VEHICLE LOCKED" 
+                                : "000000"
                           }
                         />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setJobForm({
-                                ...jobForm,
-                                isDeadVehicle: !jobForm.isDeadVehicle,
-                                mileage: !jobForm.isDeadVehicle
-                                  ? "0"
-                                  : jobForm.mileage,
-                              })
-                            }
-                            className={cn(
-                              "flex items-center gap-2 px-3 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
-                              jobForm.isDeadVehicle
-                                ? "bg-status-urgent border-status-urgent/40 text-white shadow-lg shadow-status-urgent/20"
-                                : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-status-urgent/50 hover:text-status-urgent"
-                            )}
-                          >
-                            Vehicle Dead
-                            <div
-                              className={cn(
-                                "w-2 h-2 rounded-full",
-                                jobForm.isDeadVehicle
-                                  ? "bg-white animate-pulse"
-                                  : "bg-workshop-muted opacity-30"
-                              )}
-                            />
-                          </button>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
                           <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest opacity-50">
                             KM / Miles
                           </span>
                         </div>
+                      </div>
+
+                      {/* Input "0" validation feedback */}
+                      {!jobForm.isDeadVehicle && !jobForm.isUnknownMileage && jobForm.mileage === "0" && (
+                        <p className="text-status-urgent text-[10px] font-bold mt-1 uppercase tracking-wider">
+                          Odometer reading cannot be 0 (input a valid positive mileage or select 'Unknown' / 'Dead')
+                        </p>
+                      )}
+
+                      {/* Status Chips Row */}
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setJobForm({
+                              ...jobForm,
+                              isDeadVehicle: !jobForm.isDeadVehicle,
+                              isUnknownMileage: false,
+                              mileage: "",
+                            })
+                          }
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                            jobForm.isDeadVehicle
+                              ? "bg-status-urgent border-status-urgent/40 text-white shadow-lg shadow-status-urgent/20"
+                              : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-status-urgent/50 hover:text-status-urgent"
+                          )}
+                        >
+                          Vehicle Dead
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              jobForm.isDeadVehicle
+                                ? "bg-white animate-pulse"
+                                : "bg-workshop-muted opacity-30"
+                            )}
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setJobForm({
+                              ...jobForm,
+                              isUnknownMileage: !jobForm.isUnknownMileage,
+                              isDeadVehicle: false,
+                              mileage: "",
+                            })
+                          }
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                            jobForm.isUnknownMileage
+                              ? "bg-white border-white text-black shadow-lg shadow-white/15"
+                              : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-white/50 hover:text-white"
+                          )}
+                        >
+                          Unknown (Locked/Alive)
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              jobForm.isUnknownMileage
+                                ? "bg-black"
+                                : "bg-workshop-muted opacity-30"
+                            )}
+                          />
+                        </button>
                       </div>
                     </div>
 
@@ -809,7 +855,8 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       loading ||
                       !jobForm.description ||
                       !jobForm.serviceDate ||
-                      !jobForm.expectedDeliveryDate
+                      !jobForm.expectedDeliveryDate ||
+                      isMileageInvalid
                     }
                     className="w-full py-5 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 transition-all shadow-xl shadow-workshop-accent/10 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale"
                   >

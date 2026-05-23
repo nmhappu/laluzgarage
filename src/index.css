@@ -141,3 +141,61 @@
     display: none; /* Chrome, Safari and Opera */
   }
 }
+
+/* Material 3 Skeleton Loading Animation */
+@keyframes shimmer-m3-anim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-card-m3 {
+  background-color: var(--card-bg);
+  border: 1px solid rgba(var(--border-color), 0.4);
+  border-radius: 1rem; /* M3 Medium Component Radius: 16px */
+  overflow: hidden;
+  position: relative;
+  opacity: 0.95;
+  transition: all 0.2s ease;
+}
+
+.skeleton-element-m3 {
+  background-color: var(--muted-bg);
+  border-radius: 9999px; /* rounded-full */
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-element-m3::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer-m3-anim 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] .skeleton-element-m3::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(0, 0, 0, 0.02) 25%,
+    rgba(0, 0, 0, 0.05) 50%,
+    rgba(0, 0, 0, 0.02) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+

@@ -153,12 +153,16 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                       "font-mono whitespace-nowrap pr-1 shrink-0",
                       record.isDeadVehicle
                         ? "text-status-urgent italic opacity-80"
-                        : "text-status-pending",
+                        : record.isUnknownMileage
+                          ? "text-white italic bg-white/10 px-1.5 py-0.5 rounded border border-white/20 select-none text-[9px] font-black tracking-widest leading-none"
+                          : "text-status-pending",
                     )}
                   >
                     {record.isDeadVehicle
                       ? "DEAD"
-                      : `${record.mileage.toLocaleString()} KM`}
+                      : record.isUnknownMileage
+                        ? "LOCKED"
+                        : `${record.mileage.toLocaleString()} KM`}
                   </span>
                   {!!record.completionMileage && (
                     <>
@@ -328,18 +332,18 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
 });
 
 const contentVariants = {
-  enter: (direction: 'forward' | 'backward') => ({
+  enter: {
     opacity: 0,
-    x: direction === 'forward' ? 30 : -30,
-  }),
+    y: 16,
+  },
   center: {
     opacity: 1,
-    x: 0,
+    y: 0,
   },
-  exit: (direction: 'forward' | 'backward') => ({
+  exit: {
     opacity: 0,
-    x: direction === 'forward' ? -30 : 30,
-  }),
+    y: -8,
+  },
 };
 
 export function ServiceHistory() {
@@ -458,6 +462,7 @@ export function ServiceHistory() {
     expectedDeliveryDate: "",
     date: new Date().toISOString().split("T")[0],
     isDeadVehicle: false,
+    isUnknownMileage: false,
     partsUsed: [],
   });
 
@@ -648,6 +653,7 @@ export function ServiceHistory() {
           expectedDeliveryDate: newRecord.expectedDeliveryDate ?? "",
           date: newRecord.date || (new Date().toISOString().split("T")[0] + "T" + new Date().toISOString().split("T")[1]),
           isDeadVehicle: !!newRecord.isDeadVehicle,
+          isUnknownMileage: !!newRecord.isUnknownMileage,
           partsUsed: newRecord.partsUsed || [],
           technicianId: auth.currentUser?.uid || "unknown",
           technicianName:
@@ -825,6 +831,7 @@ export function ServiceHistory() {
           laborCost: Number(editingRecord.laborCost) || 0,
           expectedDeliveryDate: editingRecord.expectedDeliveryDate ?? "",
           isDeadVehicle: !!editingRecord.isDeadVehicle,
+          isUnknownMileage: !!editingRecord.isUnknownMileage,
           completionMileage: editingRecord.completionMileage ?? 0,
         };
 
@@ -1122,35 +1129,54 @@ export function ServiceHistory() {
       </div>
 
       <div className="space-y-4">
-        <AnimatePresence mode="wait" custom={tabState.direction}>
+        <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
               key="loading-skeletons"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-4"
+              transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
+              className="space-y-4 font-sans"
             >
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={`skeleton-${i}`}
-                  className="bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden p-6 animate-pulse"
+                  className="skeleton-card-m3 p-5 md:p-6 space-y-4"
                 >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-6 bg-workshop-surface rounded opacity-40" />
-                    <div className="flex-1 h-px bg-workshop-border opacity-40" />
-                    <div className="w-20 h-6 bg-workshop-surface rounded opacity-40" />
+                  {/* Top: Date and Status Badge placeholder */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-6 skeleton-element-m3" />
+                    <div className="flex-1 h-px bg-workshop-border/30" />
+                    <div className="w-20 h-6 skeleton-element-m3" />
                   </div>
-                  <div className="space-y-3">
-                    <div className="h-5 bg-workshop-surface rounded w-1/3 opacity-40" />
-                    <div className="h-4 bg-workshop-surface rounded w-1/2 opacity-40" />
-                    <div className="h-20 bg-workshop-surface rounded w-full opacity-20" />
+
+                  {/* Mid: Customer and Vehicle Info placeholder */}
+                  <div className="space-y-2.5">
+                    <div className="h-4 w-32 sm:w-40 skeleton-element-m3" />
+                    <div className="h-3.5 w-48 sm:w-64 skeleton-element-m3" />
+                    <div className="h-3.5 w-24 skeleton-element-m3" />
                   </div>
-                  <div className="mt-6 pt-4 border-t border-workshop-border flex justify-between">
-                    <div className="h-8 bg-workshop-surface rounded w-24 opacity-40" />
-                    <div className="flex gap-2">
-                      <div className="h-8 w-8 bg-workshop-surface rounded opacity-40" />
-                      <div className="h-8 w-8 bg-workshop-surface rounded opacity-40" />
+
+                  {/* Mid-Lower: Description container placeholder */}
+                  <div className="w-full h-16 rounded-xl bg-workshop-surface/10 p-2.5 border border-workshop-border/10 skeleton-element-m3" />
+
+                  {/* Lower: Advisor info */}
+                  <div className="flex items-center justify-between gap-4 pt-1">
+                    <div className="h-3.5 w-40 skeleton-element-m3" />
+                  </div>
+
+                  <div className="h-px bg-workshop-border/30 w-full" />
+
+                  {/* Bottom: Job total and actions buttons */}
+                  <div className="flex items-center justify-between gap-4 pt-1">
+                    <div className="space-y-1.5">
+                      <div className="h-2 w-10 skeleton-element-m3" />
+                      <div className="h-5 w-24 skeleton-element-m3" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 skeleton-element-m3 rounded-lg" />
+                      <div className="w-8 h-8 skeleton-element-m3 rounded-lg" />
                     </div>
                   </div>
                 </div>
@@ -1159,12 +1185,11 @@ export function ServiceHistory() {
           ) : filteredRecords.length === 0 ? (
             <motion.div
               key={`empty-state-${activeTab}`}
-              custom={tabState.direction}
               variants={contentVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               className="text-center py-20 text-workshop-muted text-sm italic"
             >
               {searchLogs
@@ -1174,12 +1199,11 @@ export function ServiceHistory() {
           ) : (
             <motion.div
               key={`records-list-${activeTab}`}
-              custom={tabState.direction}
               variants={contentVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               className="space-y-4"
             >
               {filteredRecords.map((record) => {
@@ -1211,15 +1235,16 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowAddModal(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-workshop-bg/85"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding will-change-transform"
               >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -1756,7 +1781,8 @@ export function ServiceHistory() {
               initial={{ x: "100%", opacity: 0.95 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "100%", opacity: 0.95 }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+              style={{ willChange: "transform, opacity" }}
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Redesigned Premium Clean Top Bar Header */}
@@ -1842,16 +1868,19 @@ export function ServiceHistory() {
                         : "No color specified";
                       return (
                         <div className="text-left space-y-1.5 font-sans">
-                          <h1 className="text-4xl sm:text-6xl font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
-                            {vehicle?.make} {vehicle?.model}
-                          </h1>
+                          <div className="flex flex-row items-baseline justify-between w-full gap-4">
+                            <h1 className="text-[28px] sm:text-[52px] md:text-[64px] font-black text-workshop-accent tracking-tight uppercase leading-none font-sans truncate">
+                              {vehicle?.make} {vehicle?.model}
+                            </h1>
+                            {vehicle?.plateNumber && (
+                              <span className="text-[28px] sm:text-[52px] md:text-[64px] font-black text-workshop-secondary tracking-tight uppercase leading-none font-sans shrink-0 text-right">
+                                {vehicle.plateNumber}
+                              </span>
+                            )}
+                          </div>
                           
                           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight text-workshop-text font-sans">
                             <span className="text-workshop-text font-black">{customer?.name}</span>
-                            <span className="opacity-40 text-workshop-muted font-normal">|</span>
-                            <span className="text-workshop-secondary font-sans font-bold">
-                              {vehicle?.plateNumber}
-                            </span>
                             <span className="opacity-40 text-workshop-muted font-normal">|</span>
                             <span className="text-workshop-muted font-semibold font-sans">
                               {colorFormatted}
@@ -1862,12 +1891,16 @@ export function ServiceHistory() {
                             <span className={cn(
                               "font-sans font-extrabold whitespace-nowrap",
                               editingRecord.isDeadVehicle
-                                ? "text-status-urgent italic"
-                                : "text-status-pending"
+                                ? "text-status-urgent italic font-black text-xs uppercase bg-status-urgent/10 border border-status-urgent/20 px-2 py-0.5 rounded"
+                                : editingRecord.isUnknownMileage
+                                  ? "text-black bg-white border border-white px-2 py-0.5 rounded font-black text-xs uppercase tracking-wider select-none shadow-md shadow-white/5"
+                                  : "text-status-pending"
                             )}>
                               {editingRecord.isDeadVehicle
                                 ? "Dead"
-                                : `${editingRecord.mileage?.toLocaleString() || 0} KM`}
+                                : editingRecord.isUnknownMileage
+                                  ? "Locked"
+                                  : `${editingRecord.mileage?.toLocaleString() || 0} KM`}
                             </span>
 
                             {vehicle?.passwordOrPin && (
@@ -2359,15 +2392,16 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setDetailsRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-workshop-bg/85"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] will-change-transform"
               >
                 <div className="flex items-center justify-between mb-8">
@@ -2470,15 +2504,16 @@ export function ServiceHistory() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setRecordToDelete(null)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-workshop-bg/95"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center transition-all"
               >
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">

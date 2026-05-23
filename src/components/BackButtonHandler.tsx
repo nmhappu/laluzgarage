@@ -53,13 +53,14 @@ export function BackButtonHandler() {
     <AnimatePresence>
       {showExitHint && (
         <motion.div 
-          initial={{ opacity: 0, y: 15, scale: 0.92 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.92 }}
-          transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+          style={{ willChange: "transform, opacity" }}
           className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[999] pointer-events-none"
         >
-          <div className="bg-workshop-surface/95 backdrop-blur-md border border-workshop-accent/30 px-6 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex items-center gap-3">
+          <div className="bg-workshop-surface border border-workshop-accent/30 px-6 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.45)] flex items-center gap-3">
             <div className="w-1.5 h-1.5 rounded-full bg-workshop-accent animate-pulse" />
             <p className="text-workshop-text text-[10px] font-black uppercase tracking-[0.2em] leading-none whitespace-nowrap">
               Press back again to exit

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, Users, LogOut, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
@@ -10,7 +10,7 @@ import { Portal } from './Portal';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/customers', icon: Users, label: 'Customers' },
+  { to: '/vehicles', icon: History, label: 'Vehicle' },
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/services', icon: ClipboardList, label: 'Services' },
 ];
@@ -22,9 +22,10 @@ export function Navigation() {
   const location = useLocation();
 
   const getPageTitle = () => {
-    const item = navItems.find(item => item.to === location.pathname);
-    if (!item || location.pathname === '/') return 'LaluZ Garage';
-    return item.label;
+    if (location.pathname === '/') {
+      return 'LaluZ Garage';
+    }
+    return 'LZG';
   };
 
   const pageTitle = getPageTitle();
@@ -33,11 +34,11 @@ export function Navigation() {
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-300 ease-in-out",
-        isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
+        "hidden md:flex flex-col w-64 bg-workshop-surface text-workshop-muted h-screen sticky top-0 shrink-0 border-r border-workshop-border transition-all duration-300 ease-in-out font-sans",
+        isModalOpen && "bg-workshop-surface/95"
       )}>
-        <div className="p-8 h-32">
-          <NavLink to="/" className="flex items-center justify-between group hover:no-underline">
+        <div className="p-8 h-32 font-sans">
+          <NavLink to="/" className="flex items-center justify-between group hover:no-underline font-sans">
             <AnimatePresence mode="wait">
               <motion.h1 
                 key={pageTitle}
@@ -45,13 +46,13 @@ export function Navigation() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -15 }}
                 transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-                className="text-workshop-text text-xl font-logo font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
+                className="text-workshop-text text-xl font-sans font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
               >
                 {pageTitle}
               </motion.h1>
             </AnimatePresence>
           </NavLink>
-          <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em]">Workshop Manager</p>
+          <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
         </div>
 
         <motion.nav 
@@ -66,7 +67,7 @@ export function Navigation() {
               }
             }
           }}
-          className="flex-1 px-4 py-4 space-y-1"
+          className="flex-1 px-4 py-4 space-y-1 font-sans"
         >
           {navItems.map((item) => (
             <motion.div
@@ -79,7 +80,7 @@ export function Navigation() {
               <NavLink
                 to={item.to}
                 className={({ isActive }) => cn(
-                  "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all group overflow-hidden z-10",
+                  "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all group overflow-hidden z-10 font-sans",
                   isActive 
                     ? "text-workshop-bg" 
                     : "text-workshop-muted hover:bg-workshop-card/50 hover:text-workshop-text"
@@ -95,7 +96,7 @@ export function Navigation() {
                       />
                     )}
                     <item.icon className="w-4 h-4 transition-transform group-active:scale-90 relative z-10" />
-                    <span className="relative z-10">{item.label}</span>
+                    <span className="relative z-10 font-sans">{item.label}</span>
                   </>
                 )}
               </NavLink>
@@ -135,7 +136,7 @@ export function Navigation() {
       {/* Mobile Top Bar */}
       <nav className={cn(
         "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-300 ease-in-out",
-        isModalOpen && "backdrop-blur-md bg-workshop-surface/90"
+        isModalOpen && "bg-workshop-surface/95"
       )}>
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
@@ -170,7 +171,7 @@ export function Navigation() {
       {/* Mobile Bottom Navigation */}
       <nav className={cn(
         "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-bg border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-300 ease-in-out",
-        isModalOpen && "backdrop-blur-md bg-workshop-bg/90"
+        isModalOpen && "bg-workshop-bg/95"
       )}>
         <div className="flex items-center justify-between gap-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">
           {navItems.map((item) => (
@@ -189,7 +190,7 @@ export function Navigation() {
                       <motion.div
                         layoutId="mobileActivePill"
                         className="absolute inset-0 bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)] rounded-full z-0"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
                       />
                     )}
                     <item.icon className={cn("w-6 h-6 relative z-10 transition-all duration-300", isActive ? "scale-110" : "scale-100")} />
@@ -216,15 +217,16 @@ export function Navigation() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                 onClick={() => setShowLogoutConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-workshop-bg/85"
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">

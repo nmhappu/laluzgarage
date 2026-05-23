@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { ClipboardList, PlusCircle, Car, Clock, Package, Users, Wrench } from 'lucide-react';
+import { ClipboardList, PlusCircle, Car, Clock, Package, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -20,11 +20,13 @@ export function Dashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [metrics, setMetrics] = useState({
     totalCustomers: 0,
+    totalVehicles: 0,
     pendingWorks: 0,
     issuesAttended: 0,
     completedWorks: 0,
     history: {
       customers: [] as HistoryItem[],
+      vehicles: [] as HistoryItem[],
       pending: [] as HistoryItem[],
       issues: [] as HistoryItem[],
       completed: [] as HistoryItem[],
@@ -90,6 +92,7 @@ export function Dashboard() {
       
       // Calculate Metrics
       const totalCustomers = customersSnap.size;
+      const totalVehicles = vehiclesSnap.size;
 
       const pendingJobs = enrichedRecords.filter((s) => s.status === 'pending' || s.status === 'in-progress');
       
@@ -102,6 +105,7 @@ export function Dashboard() {
 
       // Calculate 7-day histories
       const customerHistory = getHistoryData(customers, 'createdAt');
+      const vehicleHistory = getHistoryData(vehicles, 'createdAt');
       const pendingHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'pending' || r.status === 'in-progress');
       const completedHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'completed');
       
@@ -127,11 +131,13 @@ export function Dashboard() {
 
       setMetrics({
         totalCustomers,
+        totalVehicles,
         pendingWorks: pendingJobs.length,
         issuesAttended,
         completedWorks,
         history: {
           customers: customerHistory,
+          vehicles: vehicleHistory,
           pending: pendingHistory,
           issues: issuesHistory,
           completed: completedHistory
@@ -152,7 +158,7 @@ export function Dashboard() {
   }, []);
 
   const stats = [
-    { label: 'Total Customers', value: metrics.totalCustomers, icon: Users, color: 'text-secondary', trend: metrics.history.customers },
+    { label: 'Registered Vehicles', value: metrics.totalVehicles, icon: Car, color: 'text-secondary', trend: metrics.history.vehicles },
     { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending },
     { label: 'Completed Jobs', value: metrics.completedWorks, icon: Package, color: 'text-workshop-accent', trend: metrics.history.completed },
     { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-status-success', trend: metrics.history.issues },
@@ -201,7 +207,7 @@ export function Dashboard() {
             className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:brightness-110 transition-all active:scale-95"
           >
             <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-            New Customer
+            Vehicle Intake
           </button>
         </motion.div>
       </header>

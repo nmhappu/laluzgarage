@@ -265,14 +265,15 @@ export function MaterialCalendar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-[490] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+              className="fixed inset-0 z-[490] bg-black/75 flex items-center justify-center p-4"
             >
               {/* Modal Container */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                transition={{ type: 'spring', damping: 24, stiffness: 220 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 onClick={(e) => e.stopPropagation()}
                 className="w-full max-w-[328px] overflow-hidden rounded-[28px] border border-workshop-border bg-[#16181D] shadow-[0_12px_48px_rgba(0,0,0,0.6)] flex flex-col font-sans"
               >

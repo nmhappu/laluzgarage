@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
-import { CustomerManagement } from './components/CustomerManagement';
+import { VehicleHistory } from './components/VehicleHistory';
 import { Inventory } from './components/Inventory';
 import { ServiceHistory } from './components/ServiceHistory';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,57 +12,39 @@ import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
 import { ThemeProvider } from './contexts/ThemeContext';
 
-const pathOrder = ['/', '/customers', '/inventory', '/services'];
-
 const m3Variants = {
-  enter: (direction: 'forward' | 'backward') => ({
+  enter: {
     opacity: 0,
-    x: direction === 'forward' ? 30 : -30,
-  }),
+    y: 12,
+  },
   center: {
     opacity: 1,
-    x: 0,
+    y: 0,
   },
-  exit: (direction: 'forward' | 'backward') => ({
+  exit: {
     opacity: 0,
-    x: direction === 'forward' ? -30 : 30,
-  }),
+    y: -8,
+  },
 };
 
 function AnimatedRoutes() {
   const location = useLocation();
   
-  const [state, setState] = useState({
-    currentPath: location.pathname,
-    direction: 'forward' as 'forward' | 'backward',
-  });
-
-  if (location.pathname !== state.currentPath) {
-    const prevIndex = pathOrder.indexOf(state.currentPath);
-    const currentIndex = pathOrder.indexOf(location.pathname);
-    const newDirection = currentIndex > prevIndex ? 'forward' : 'backward';
-    
-    setState({
-      currentPath: location.pathname,
-      direction: newDirection,
-    });
-  }
-  
   return (
-    <AnimatePresence mode="wait" custom={state.direction}>
+    <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        custom={state.direction}
         variants={m3Variants}
         initial="enter"
         animate="center"
         exit="exit"
-        transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+        transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+        style={{ willChange: "transform, opacity" }}
         className="w-full max-w-7xl mx-auto"
       >
         <Routes location={location}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/customers" element={<CustomerManagement />} />
+          <Route path="/vehicles" element={<VehicleHistory />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/services" element={<ServiceHistory />} />
         </Routes>

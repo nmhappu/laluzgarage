@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
+import { useLocation } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -56,6 +57,15 @@ import {
   SelectValue,
 } from "./ui/CustomSelect";
 
+const capitalizeName = (name?: string) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 interface ServiceRecordCardProps {
   record: ServiceRecord;
   v?: Vehicle;
@@ -70,7 +80,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
     <motion.div
       onClick={onClick}
       className={cn(
-        "relative bg-workshop-card rounded-xl border border-workshop-border shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
+        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-workshop-border shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
         record.status === "completed"
           ? "hover:border-workshop-accent/50"
           : record.status === "in-progress"
@@ -133,7 +143,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
           <div className="flex-1 space-y-3">
             <div className="flex flex-col gap-1">
               <div className="text-workshop-text text-sm md:text-[15px] font-black uppercase tracking-tight">
-                {customer?.name || "Unknown"}
+                {capitalizeName(customer?.name) || "Unknown"}
               </div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight opacity-70">
                 <span className="text-workshop-text">
@@ -150,12 +160,12 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
                     className={cn(
-                      "font-mono whitespace-nowrap pr-1 shrink-0",
+                      "font-mono whitespace-nowrap shrink-0",
                       record.isDeadVehicle
-                        ? "text-status-urgent italic opacity-80"
+                        ? "text-white bg-status-urgent px-1.5 py-0.5 rounded border border-status-urgent select-none text-[9px] font-black tracking-widest leading-none font-sans"
                         : record.isUnknownMileage
-                          ? "text-white italic bg-white/10 px-1.5 py-0.5 rounded border border-white/20 select-none text-[9px] font-black tracking-widest leading-none"
-                          : "text-status-pending",
+                          ? "text-black bg-white px-1.5 py-0.5 rounded border border-white select-none text-[9px] font-black tracking-widest leading-none font-sans"
+                          : "text-status-pending pr-1",
                     )}
                   >
                     {record.isDeadVehicle
@@ -347,20 +357,59 @@ const contentVariants = {
 };
 
 export function ServiceHistory() {
+  const location = useLocation();
   // --- State: Core Data ---
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
-  const [addPartSelectValue, setAddPartSelectValue] = useState("");
-  const [editPartSelectValue, setEditPartSelectValue] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // --- State: Custom Parts Dropdown Search & Control ---
+  const [addPartSearchQuery, setAddPartSearchQuery] = useState("");
+  const [addPartDropdownOpen, setAddPartDropdownOpen] = useState(false);
+  const [editPartSearchQuery, setEditPartSearchQuery] = useState("");
+  const [editPartDropdownOpen, setEditPartDropdownOpen] = useState(false);
+
+  const filteredPartsForAdd = useMemo(() => {
+    if (!addPartSearchQuery.trim()) return parts;
+    const q = addPartSearchQuery.toLowerCase();
+    return parts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.category && p.category.toLowerCase().includes(q)),
+    );
+  }, [parts, addPartSearchQuery]);
+
+  const filteredPartsForEdit = useMemo(() => {
+    if (!editPartSearchQuery.trim()) return parts;
+    const q = editPartSearchQuery.toLowerCase();
+    return parts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.category && p.category.toLowerCase().includes(q)),
+    );
+  }, [parts, editPartSearchQuery]);
   
   // --- State: UI Control ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "all" | "pending" | "in-progress" | "completed" | "cancelled"
   >("all");
+
+  // Sync activeTab from location state
+  useEffect(() => {
+    if (location.state && typeof location.state === "object" && "activeTab" in location.state) {
+      const stateObj = location.state as Record<string, unknown>;
+      const tabVal = stateObj.activeTab;
+      if (
+        typeof tabVal === "string" &&
+        ["all", "pending", "in-progress", "completed", "cancelled"].includes(tabVal)
+      ) {
+        setActiveTab(tabVal as "all" | "pending" | "in-progress" | "completed" | "cancelled");
+      }
+    }
+  }, [location.state]);
   
   const tabOrder = ["all", "pending", "in-progress", "completed", "cancelled"];
   const [tabState, setTabState] = useState({
@@ -465,6 +514,8 @@ export function ServiceHistory() {
     isUnknownMileage: false,
     partsUsed: [],
   });
+
+  const isNewRecordMileageInvalid = !newRecord.isDeadVehicle && !newRecord.isUnknownMileage && (!newRecord.mileage || Number(newRecord.mileage) <= 0);
 
   // --- Effects: Handlers & External Events ---
   useEffect(() => {
@@ -1361,7 +1412,7 @@ export function ServiceHistory() {
                                 : "New Vehicle Entry Needed"}
                             </p>
                             <p className="text-sm font-bold text-workshop-text leading-tight uppercase flex items-center gap-2">
-                              {res.customer.name}
+                              {capitalizeName(res.customer.name)}
                               {res.vehicle && (
                                 <>
                                   <span className="text-workshop-muted font-normal opacity-40">
@@ -1458,17 +1509,17 @@ export function ServiceHistory() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">
                         Current KM Reading
                       </label>
                       <div className="relative">
                         <input
-                          required
+                          required={!newRecord.isDeadVehicle && !newRecord.isUnknownMileage}
                           type="number"
-                          disabled={newRecord.isDeadVehicle}
+                          disabled={newRecord.isDeadVehicle || newRecord.isUnknownMileage}
                           value={
-                            newRecord.isDeadVehicle ? "" : newRecord.mileage
+                            newRecord.isDeadVehicle || newRecord.isUnknownMileage ? "" : (newRecord.mileage || "")
                           }
                           onChange={(e) =>
                             setNewRecord({
@@ -1478,29 +1529,81 @@ export function ServiceHistory() {
                           }
                           className={cn(
                             "w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl outline-none text-workshop-text",
-                            newRecord.isDeadVehicle && "opacity-40",
+                            (newRecord.isDeadVehicle || newRecord.isUnknownMileage) && "opacity-40",
                           )}
                           placeholder={
-                            newRecord.isDeadVehicle ? "Vehicle Dead" : "0"
+                            newRecord.isDeadVehicle 
+                              ? "N/A - DEAD VEHICLE" 
+                              : newRecord.isUnknownMileage 
+                                ? "N/A - VEHICLE LOCKED" 
+                                : "0"
                           }
                         />
+                      </div>
+
+                      {/* Input "0" validation feedback */}
+                      {!newRecord.isDeadVehicle && !newRecord.isUnknownMileage && (!newRecord.mileage || Number(newRecord.mileage) <= 0) && (
+                        <p className="text-status-urgent text-[10px] font-bold mt-1 uppercase tracking-wider">
+                          Odometer reading must be greater than zero
+                        </p>
+                      )}
+
+                      {/* Status Chips Row */}
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
                         <button
                           type="button"
                           onClick={() =>
                             setNewRecord({
                               ...newRecord,
                               isDeadVehicle: !newRecord.isDeadVehicle,
+                              isUnknownMileage: false,
                               mileage: 0,
                             })
                           }
                           className={cn(
-                            "absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-[8px] font-black uppercase transition-all",
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
                             newRecord.isDeadVehicle
-                              ? "bg-status-urgent text-white"
-                              : "bg-workshop-bg text-workshop-muted border border-workshop-border",
+                              ? "bg-status-urgent border-status-urgent/40 text-white shadow-lg shadow-status-urgent/20"
+                              : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-status-urgent/50 hover:text-status-urgent"
                           )}
                         >
-                          {newRecord.isDeadVehicle ? "Dead" : "Alive"}
+                          Vehicle Dead
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              newRecord.isDeadVehicle
+                                ? "bg-white animate-pulse"
+                                : "bg-workshop-muted opacity-30"
+                            )}
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewRecord({
+                              ...newRecord,
+                              isUnknownMileage: !newRecord.isUnknownMileage,
+                              isDeadVehicle: false,
+                              mileage: 0,
+                            })
+                          }
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                            newRecord.isUnknownMileage
+                              ? "bg-white border-white text-black shadow-lg shadow-white/15"
+                              : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-white/50 hover:text-white"
+                          )}
+                        >
+                          Unknown (Locked/Alive)
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              newRecord.isUnknownMileage
+                                ? "bg-black"
+                                : "bg-workshop-muted opacity-30"
+                            )}
+                          />
                         </button>
                       </div>
                     </div>
@@ -1592,28 +1695,132 @@ export function ServiceHistory() {
                         </h3>
                       </div>
                       <div className="relative">
-                        <Select
-                          value={addPartSelectValue}
-                          onValueChange={(val) => {
-                            addPartToRecord(val);
-                            setTimeout(() => setAddPartSelectValue(""), 0);
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => setAddPartDropdownOpen(!addPartDropdownOpen)}
+                          className="w-full h-11 px-4 bg-workshop-surface/40 hover:bg-workshop-surface/60 border border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent flex items-center justify-between group text-left"
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="+ Allocate part..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {parts.map((p) => (
-                              <SelectItem
-                                key={p.id}
-                                value={p.id!}
-                                disabled={p.stockQuantity <= 0}
-                              >
-                                {p.name} ({p.stockQuantity} rem.)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <span className="text-workshop-muted/80 font-medium truncate">
+                            + Allocate part...
+                          </span>
+                          <ChevronDown className={cn("w-4 h-4 text-workshop-muted transition-transform duration-300 shrink-0", addPartDropdownOpen && "rotate-180")} />
+                        </button>
+
+                        {/* Close backdrop click outside */}
+                        {addPartDropdownOpen && (
+                          <div 
+                            className="fixed inset-0 z-[120]" 
+                            onClick={() => {
+                              setAddPartDropdownOpen(false);
+                              setAddPartSearchQuery("");
+                            }}
+                          />
+                        )}
+
+                        {/* Floating Combobox Popover */}
+                        <AnimatePresence>
+                          {addPartDropdownOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4, scale: 0.99 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 4, scale: 0.99 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute top-full mt-2 w-full bg-workshop-card border border-workshop-border rounded-2xl shadow-2xl z-[130] overflow-hidden flex flex-col max-h-72"
+                            >
+                              {/* Search input */}
+                              <div className="p-2 border-b border-workshop-border bg-workshop-bg/50 flex items-center gap-2">
+                                <Search className="w-4 h-4 text-workshop-muted shrink-0 ml-1.5" />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Type parts name or category..."
+                                  value={addPartSearchQuery}
+                                  onChange={(e) => setAddPartSearchQuery(e.target.value)}
+                                  className="w-full bg-transparent border-none text-sm text-workshop-text focus:outline-none placeholder:text-workshop-muted/60 py-1"
+                                />
+                                {addPartSearchQuery && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddPartSearchQuery("")}
+                                    className="p-1 hover:bg-workshop-surface rounded-md transition-colors"
+                                  >
+                                    <X className="w-3 h-3 text-workshop-muted hover:text-workshop-text" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Custom list of parts matching query */}
+                              <div className="overflow-y-auto max-h-56 p-1.5 space-y-1 scrollbar-thin scrollbar-thumb-workshop-border">
+                                {filteredPartsForAdd.length > 0 ? (
+                                  filteredPartsForAdd.map((p) => {
+                                    const isOutOfStock = p.stockQuantity <= 0;
+                                    const isLowStock = !isOutOfStock && p.stockQuantity < 10;
+                                    
+                                    return (
+                                      <button
+                                        type="button"
+                                        key={p.id}
+                                        disabled={isOutOfStock}
+                                        onClick={() => {
+                                          addPartToRecord(p.id!);
+                                        }}
+                                        className={cn(
+                                          "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item",
+                                          isOutOfStock 
+                                            ? "opacity-4 relative shadow-none cursor-not-allowed bg-transparent" 
+                                            : "hover:bg-workshop-surface/60 active:scale-[0.98]"
+                                        )}
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-xs text-workshop-text uppercase group-hover/item:text-workshop-accent transition-colors">
+                                              {p.name}
+                                            </span>
+                                            {p.category && (
+                                              <span className="text-[9px] bg-workshop-surface text-workshop-muted px-1.5 py-0.5 rounded-md font-mono tracking-wider uppercase">
+                                                {p.category}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          <div className="flex items-center gap-3 mt-1.5">
+                                            {/* Stock levels and status badges */}
+                                            {isOutOfStock ? (
+                                              <span className="flex items-center gap-1.5 text-[10px] font-black text-status-urgent uppercase tracking-widest">
+                                                <span className="w-1.5 h-1.5 bg-status-urgent rounded-full animate-pulse" />
+                                                Out of Stock
+                                              </span>
+                                            ) : isLowStock ? (
+                                              <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                                                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                                Low Stock: {p.stockQuantity} rem.
+                                              </span>
+                                            ) : (
+                                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-workshop-secondary uppercase tracking-widest opacity-80">
+                                                <span className="w-1.5 h-1.5 bg-workshop-accent rounded-full" />
+                                                In Stock: {p.stockQuantity}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="text-right pl-3 shrink-0">
+                                          <span className="text-xs font-black text-workshop-accent bg-workshop-accent/5 px-2 py-1 rounded-lg border border-workshop-accent/15">
+                                            {formatCurrency(p.price)}
+                                          </span>
+                                        </div>
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="text-center py-4 text-xs text-workshop-muted italic">
+                                    No parts match "{addPartSearchQuery}"
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
@@ -1755,7 +1962,7 @@ export function ServiceHistory() {
                     </button>
                     <button
                       type="submit"
-                      disabled={loading || !newRecord.vehicleId || !newRecord.date || !newRecord.expectedDeliveryDate || !newRecord.description}
+                      disabled={loading || !newRecord.vehicleId || !newRecord.date || !newRecord.expectedDeliveryDate || !newRecord.description || isNewRecordMileageInvalid}
                       className="flex-1 px-4 py-4 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
                     >
                       {loading ? (
@@ -1786,22 +1993,33 @@ export function ServiceHistory() {
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Redesigned Premium Clean Top Bar Header */}
-              <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+              <div className="relative overflow-hidden flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+                {/* Beautiful Faded Text Silhouette Watermark */}
+                <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 pointer-events-none select-none text-[100px] sm:text-[160px] md:text-[196px] font-black text-white/[0.015] tracking-[0.13em] uppercase font-sans whitespace-nowrap z-0">
+                  RECORD
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setEditingRecord(null)}
-                  className="flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
+                  className="relative z-10 flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
                 >
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
                 </button>
 
-                <div className="flex-1 pl-1">
-                  <h2 className="text-base font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
-                    Service Record
-                  </h2>
+                <div className="relative z-10 flex-1 pl-1 flex flex-col justify-center">
+                  <span 
+                    style={{ fontFamily: "'Google Sans', 'Inter', sans-serif" }}
+                    className="text-base font-black text-workshop-accent uppercase tracking-tight leading-none"
+                  >
+                    {(() => {
+                      const vehicle = vehicleMap.get(editingRecord.vehicleId);
+                      return vehicle ? `${vehicle.make} ${vehicle.model}` : "";
+                    })()}
+                  </span>
                 </div>
 
-                <div className="flex flex-col items-end gap-1.5 select-none text-right">
+                <div className="relative z-10 flex flex-col items-end gap-1.5 select-none text-right">
                   {/* Service Intake Date */}
                   <div className="text-xs font-bold text-status-success font-sans flex items-center gap-1">
                     <ArrowDown className="w-4 h-4 text-status-success shrink-0" />
@@ -1869,18 +2087,19 @@ export function ServiceHistory() {
                       return (
                         <div className="text-left space-y-1.5 font-sans">
                           <div className="flex flex-row items-baseline justify-between w-full gap-4">
-                            <h1 className="text-[28px] sm:text-[52px] md:text-[64px] font-black text-workshop-accent tracking-tight uppercase leading-none font-sans truncate">
-                              {vehicle?.make} {vehicle?.model}
-                            </h1>
-                            {vehicle?.plateNumber && (
-                              <span className="text-[28px] sm:text-[52px] md:text-[64px] font-black text-workshop-secondary tracking-tight uppercase leading-none font-sans shrink-0 text-right">
+                            {vehicle?.plateNumber ? (
+                              <h1 className="text-[31px] sm:text-[55px] md:text-[67px] font-black text-blue-500 tracking-tight uppercase leading-none font-sans truncate">
                                 {vehicle.plateNumber}
-                              </span>
+                              </h1>
+                            ) : (
+                              <h1 className="text-[31px] sm:text-[55px] md:text-[67px] font-black text-blue-500 tracking-tight uppercase leading-none font-sans truncate">
+                                -
+                              </h1>
                             )}
                           </div>
                           
                           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight text-workshop-text font-sans">
-                            <span className="text-workshop-text font-black">{customer?.name}</span>
+                            <span className="text-workshop-text font-black">{capitalizeName(customer?.name)}</span>
                             <span className="opacity-40 text-workshop-muted font-normal">|</span>
                             <span className="text-workshop-muted font-semibold font-sans">
                               {colorFormatted}
@@ -1931,7 +2150,7 @@ export function ServiceHistory() {
                                   className="inline-flex items-center gap-1.5 p-1.5 px-3 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all text-xs font-bold uppercase tracking-wider font-sans shadow-sm"
                                 >
                                   <Phone className="w-3.5 h-3.5 shrink-0" />
-                                  <span>Call {customer.name.split(" ")[0]}</span>
+                                  <span>Call {capitalizeName(customer.name).split(" ")[0]}</span>
                                 </a>
 
                                 <button
@@ -2004,7 +2223,7 @@ export function ServiceHistory() {
                                         id="add-to-contacts-option"
                                       >
                                         <User className="w-4 h-4 text-workshop-secondary shrink-0" />
-                                        <span>Add {customer.name.split(" ")[0]} to Contacts</span>
+                                        <span>Add {capitalizeName(customer.name).split(" ")[0]} to Contacts</span>
                                       </button>
                                     </motion.div>
                                   </>
@@ -2097,24 +2316,132 @@ export function ServiceHistory() {
                         </label>
                         
                         <div className="relative">
-                          <Select
-                            value={editPartSelectValue}
-                            onValueChange={(val) => {
-                              addPartToEditingRecord(val);
-                              setTimeout(() => setEditPartSelectValue(""), 0);
-                            }}
+                          <button
+                            type="button"
+                            onClick={() => setEditPartDropdownOpen(!editPartDropdownOpen)}
+                            className="w-full h-11 px-4 bg-workshop-surface/40 hover:bg-workshop-surface/60 border border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent flex items-center justify-between group text-left"
                           >
-                            <SelectTrigger className="w-full h-11 bg-workshop-surface/40 hover:bg-workshop-surface/60 border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent">
-                              <SelectValue placeholder="Add parts" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-60 overflow-y-auto">
-                              {parts.map((p) => (
-                                <SelectItem key={p.id} value={p.id!} className="text-xs">
-                                  {p.name} — {formatCurrency(p.price)} (Stock: {p.stockQuantity})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <span className="text-workshop-muted/80 font-medium truncate">
+                              Search or select parts...
+                            </span>
+                            <ChevronDown className={cn("w-4 h-4 text-workshop-muted transition-transform duration-300 shrink-0", editPartDropdownOpen && "rotate-180")} />
+                          </button>
+
+                          {/* Close backdrop click outside */}
+                          {editPartDropdownOpen && (
+                            <div 
+                              className="fixed inset-0 z-[120]" 
+                              onClick={() => {
+                                setEditPartDropdownOpen(false);
+                                setEditPartSearchQuery("");
+                              }}
+                            />
+                          )}
+
+                          {/* Floating Combobox Popover */}
+                          <AnimatePresence>
+                            {editPartDropdownOpen && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 4, scale: 0.99 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.99 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute top-full mt-2 w-full bg-workshop-card border border-workshop-border rounded-2xl shadow-2xl z-[130] overflow-hidden flex flex-col max-h-72"
+                              >
+                                {/* Search input */}
+                                <div className="p-2 border-b border-workshop-border bg-workshop-bg/50 flex items-center gap-2">
+                                  <Search className="w-4 h-4 text-workshop-muted shrink-0 ml-1.5" />
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="Type parts name or category..."
+                                    value={editPartSearchQuery}
+                                    onChange={(e) => setEditPartSearchQuery(e.target.value)}
+                                    className="w-full bg-transparent border-none text-sm text-workshop-text focus:outline-none placeholder:text-workshop-muted/60 py-1"
+                                  />
+                                  {editPartSearchQuery && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditPartSearchQuery("")}
+                                      className="p-1 hover:bg-workshop-surface rounded-md transition-colors"
+                                    >
+                                      <X className="w-3 h-3 text-workshop-muted hover:text-workshop-text" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Custom list of parts matching query */}
+                                <div className="overflow-y-auto max-h-56 p-1.5 space-y-1 scrollbar-thin scrollbar-thumb-workshop-border">
+                                  {filteredPartsForEdit.length > 0 ? (
+                                    filteredPartsForEdit.map((p) => {
+                                      const isOutOfStock = p.stockQuantity <= 0;
+                                      const isLowStock = !isOutOfStock && p.stockQuantity < 10;
+                                      
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={p.id}
+                                          disabled={isOutOfStock}
+                                          onClick={() => {
+                                            addPartToEditingRecord(p.id!);
+                                          }}
+                                          className={cn(
+                                            "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item",
+                                            isOutOfStock 
+                                              ? "opacity-4 relative shadow-none cursor-not-allowed bg-transparent" 
+                                              : "hover:bg-workshop-surface/60 active:scale-[0.98]"
+                                          )}
+                                        >
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-bold text-xs text-workshop-text uppercase group-hover/item:text-workshop-accent transition-colors">
+                                                {p.name}
+                                              </span>
+                                              {p.category && (
+                                                <span className="text-[9px] bg-workshop-surface text-workshop-muted px-1.5 py-0.5 rounded-md font-mono tracking-wider uppercase">
+                                                  {p.category}
+                                                </span>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                              {/* Stock levels and status badges */}
+                                              {isOutOfStock ? (
+                                                <span className="flex items-center gap-1.5 text-[10px] font-black text-status-urgent uppercase tracking-widest">
+                                                  <span className="w-1.5 h-1.5 bg-status-urgent rounded-full animate-pulse" />
+                                                  Out of Stock
+                                                </span>
+                                              ) : isLowStock ? (
+                                                <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                                                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                                  Low Stock: {p.stockQuantity} rem.
+                                                </span>
+                                              ) : (
+                                                <span className="flex items-center gap-1.5 text-[10px] font-bold text-workshop-secondary uppercase tracking-widest opacity-80">
+                                                  <span className="w-1.5 h-1.5 bg-workshop-accent rounded-full" />
+                                                  In Stock: {p.stockQuantity}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="text-right pl-3 shrink-0">
+                                            <span className="text-xs font-black text-workshop-accent bg-workshop-accent/5 px-2 py-1 rounded-lg border border-workshop-accent/15">
+                                              {formatCurrency(p.price)}
+                                            </span>
+                                          </div>
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <div className="text-center py-4 text-xs text-workshop-muted italic">
+                                      No parts match "{editPartSearchQuery}"
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">

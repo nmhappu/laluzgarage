@@ -17,6 +17,7 @@ import type { Customer, Vehicle } from '../types';
 
 import { Portal } from './Portal';
 import { MaterialCalendar } from './ui/MaterialCalendar';
+import { WavyProgress } from './WavyProgress';
 
 interface ServiceIntakeProps {
   onClose: () => void;
@@ -148,7 +149,22 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
   };
 
   const handleBackStep = () => {
-    setStep(prev => Math.floor(prev - 1));
+    if (step === 3 && selectedVehicle) {
+      setSelectedVehicle(null);
+      setSelectedCustomer(null);
+      setStep(1);
+    } else {
+      setStep(prev => {
+        if (prev === 2 && selectedCustomer) {
+          setSelectedCustomer(null);
+          return 1;
+        }
+        if (prev === 1.5) {
+          return 1;
+        }
+        return Math.floor(prev - 1);
+      });
+    }
   };
 
   const handleSubmitIntake = async () => {
@@ -253,16 +269,64 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
             </div>
   
             {/* Progress Bar */}
-            <div className="flex items-center gap-2">
-              {[1, 2, 3].map((s) => (
-                <div 
-                  key={s} 
-                  className={cn(
-                    "h-1.5 rounded-full transition-all duration-500",
-                    Math.floor(step) >= s ? "bg-workshop-accent flex-1 shadow-[0_0_8px_rgba(16,185,129,0.3)]" : "bg-workshop-surface w-4"
-                  )}
+            <div className="relative w-full py-2 px-1 select-none">
+              {/* Progress Track and Wavy Line Container */}
+              <div className="relative w-full h-8 flex items-center mb-1">
+                {/* Wavy active line using Material Web Component spec */}
+                <WavyProgress 
+                  value={(() => {
+                    if (step === 1) return 0;
+                    if (step === 1.5) return 25;
+                    if (step === 2) return 50;
+                    if (step === 2.5) return 75;
+                    return 100;
+                  })()}
+                  max={100}
+                  height={24}
+                  waveLength={32}
+                  amplitude={5.5}
+                  strokeWidth={5}
+                  className="absolute inset-x-0 z-10"
                 />
-              ))}
+
+                {/* Step Nodes Row */}
+                <div className="absolute inset-x-0 flex justify-between items-center z-20">
+                  {[1, 2, 3].map((s) => {
+                    const isCompleted = step > s && Math.floor(step) !== s;
+                    const isActive = Math.floor(step) === s;
+                    
+                    return (
+                      <div key={s} className="relative flex flex-col items-center">
+                        <div 
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 border font-bold text-xs select-none",
+                            isCompleted 
+                              ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-md shadow-workshop-accent/20"
+                              : isActive
+                                ? "bg-workshop-bg border-workshop-accent text-workshop-accent scale-110 shadow-lg shadow-workshop-accent/30"
+                                : "bg-workshop-bg border-workshop-border text-workshop-muted"
+                          )}
+                        >
+                          {isCompleted ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            s
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Labels for Steps */}
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-workshop-muted opacity-80 mt-1 select-none">
+                <span className={cn(Math.floor(step) >= 1 ? "text-workshop-accent" : "")}>Customer</span>
+                <span className={cn(Math.floor(step) >= 2 ? "text-workshop-accent" : "")}>Vehicle</span>
+                <span className={cn(Math.floor(step) >= 3 ? "text-workshop-accent" : "")}>Job Info</span>
+              </div>
             </div>
           </div>
   
@@ -492,7 +556,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     onClick={handleBackStep}
                     className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Client Info
+                    <ArrowLeft className="w-4 h-4" /> {selectedCustomer ? "Back to Search" : "Client Info"}
                   </button>
                   <div className="space-y-1">
                     <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
@@ -650,7 +714,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     onClick={handleBackStep}
                     className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Vehicle Info
+                    <ArrowLeft className="w-4 h-4" /> {selectedVehicle ? "Back to Search" : "Vehicle Info"}
                   </button>
                   <div className="space-y-1">
                     <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">

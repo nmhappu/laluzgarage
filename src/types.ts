@@ -25,7 +25,6 @@ export interface Vehicle {
 export interface Part {
   id: string;
   name: string;
-  sku: string;
   category: string;
   stockQuantity: number;
   price: number;

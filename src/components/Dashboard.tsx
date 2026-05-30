@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { ClipboardList, PlusCircle, Car, Clock, Package, Wrench } from 'lucide-react';
@@ -15,6 +16,7 @@ interface HistoryItem {
 }
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const [showIntake, setShowIntake] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<ServiceRecord[]>([]);
   const [isMounted, setIsMounted] = useState(false);
@@ -158,9 +160,9 @@ export function Dashboard() {
   }, []);
 
   const stats = [
-    { label: 'Registered Vehicles', value: metrics.totalVehicles, icon: Car, color: 'text-secondary', trend: metrics.history.vehicles },
-    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending },
-    { label: 'Completed Jobs', value: metrics.completedWorks, icon: Package, color: 'text-workshop-accent', trend: metrics.history.completed },
+    { label: 'Registered Vehicles', value: metrics.totalVehicles, icon: Car, color: 'text-secondary', trend: metrics.history.vehicles, target: '/services', state: { activeTab: 'all' } },
+    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending, target: '/services', state: { activeTab: 'pending' } },
+    { label: 'Completed Jobs', value: metrics.completedWorks, icon: Package, color: 'text-workshop-accent', trend: metrics.history.completed, target: '/services', state: { activeTab: 'completed' } },
     { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-status-success', trend: metrics.history.issues },
   ];
 
@@ -232,8 +234,14 @@ export function Dashboard() {
           <motion.div 
             key={stat.label}
             variants={itemVariants}
+            onClick={() => {
+              if (stat.target) {
+                navigate(stat.target, { state: stat.state });
+              }
+            }}
             className={cn(
-              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30"
+              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30",
+              stat.target && "cursor-pointer active:scale-[0.99] select-none"
             )}
           >
             <div className="flex-1 flex items-center gap-4">

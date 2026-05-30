@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Tag, Trash2, MapPin, AlertCircle, ArrowLeft, Package, Layers, Hash, DollarSign, Info } from 'lucide-react';
+import { Plus, Search, Tag, Trash2, MapPin, AlertCircle, ArrowLeft, Package, Layers, DollarSign, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
@@ -18,7 +18,6 @@ export function Inventory() {
   
   const [newPart, setNewPart] = useState<Partial<Part>>({
     name: '',
-    sku: '',
     category: '',
     stockQuantity: 0,
     price: 0,
@@ -67,7 +66,6 @@ export function Inventory() {
       setShowAddModal(false);
       setNewPart({ 
         name: '', 
-        sku: '', 
         category: '', 
         stockQuantity: 0, 
         price: 0, 
@@ -115,7 +113,6 @@ export function Inventory() {
     if (!query) return parts;
     return parts.filter(p => 
       p.name.toLowerCase().includes(query) ||
-      (p.sku && p.sku.toLowerCase().includes(query)) ||
       (p.category && p.category.toLowerCase().includes(query))
     );
   }, [parts, searchTerm]);
@@ -140,7 +137,7 @@ export function Inventory() {
         <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
         <input 
           type="text" 
-          placeholder="Search by name, SKU or category..."
+          placeholder="Search by name or category..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-workshop-accent focus:border-workshop-accent text-sm text-workshop-text"
@@ -197,25 +194,19 @@ export function Inventory() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm md:text-[15px] font-bold text-workshop-text tracking-tight uppercase group-hover:text-workshop-accent transition-colors flex items-center gap-2">
                       {part.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
+                        {part.category || 'General'}
+                      </span>
+
                       {isLowStock && (
                         <span className="flex items-center gap-1 text-[8px] bg-status-urgent/10 text-status-urgent px-1.5 py-0.5 rounded border border-status-urgent/20 animate-pulse">
                           <AlertCircle className="w-2 h-2" />
                           LOW STOCK
                         </span>
                       )}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
-                        {part.category || 'General'}
-                      </span>
-                      {part.sku && (
-                        <>
-                          <span className="w-1 h-1 bg-workshop-border rounded-full" />
-                          <span className="text-[10px] text-workshop-secondary font-mono tracking-tighter uppercase opacity-70">
-                            {part.sku}
-                          </span>
-                        </>
-                      )}
+
                       {part.location && (
                         <>
                           <span className="w-1 h-1 bg-workshop-border rounded-full" />
@@ -322,41 +313,21 @@ export function Inventory() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
-                              Category Tag
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
-                                <Layers className="w-4 h-4" />
-                              </span>
-                              <input 
-                                type="text" 
-                                value={editingPart.category || ''}
-                                onChange={e => setEditingPart({...editingPart, category: e.target.value})}
-                                className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
-                                placeholder="e.g., Engine, Brakes..."
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
-                              SKU Identifier
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
-                                <Hash className="w-4 h-4" />
-                              </span>
-                              <input 
-                                type="text" 
-                                value={editingPart.sku || ''}
-                                onChange={e => setEditingPart({...editingPart, sku: e.target.value})}
-                                className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm font-mono tracking-tight uppercase transition-all font-bold shadow-sm"
-                                placeholder="e.g., SKU-9022-X..."
-                              />
-                            </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                            Category Tag
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
+                              <Layers className="w-4 h-4" />
+                            </span>
+                            <input 
+                              type="text" 
+                              value={editingPart.category || ''}
+                              onChange={e => setEditingPart({...editingPart, category: e.target.value})}
+                              className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
+                              placeholder="e.g., Engine, Brakes..."
+                            />
                           </div>
                         </div>
                       </div>
@@ -618,41 +589,21 @@ export function Inventory() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
-                              Category Tag
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
-                                <Layers className="w-4 h-4" />
-                              </span>
-                              <input 
-                                type="text" 
-                                value={newPart.category || ''}
-                                onChange={e => setNewPart({...newPart, category: e.target.value})}
-                                className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
-                                placeholder="e.g., Engine, Brakes..."
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
-                              SKU Identifier
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
-                                <Hash className="w-4 h-4" />
-                              </span>
-                              <input 
-                                type="text" 
-                                value={newPart.sku || ''}
-                                onChange={e => setNewPart({...newPart, sku: e.target.value})}
-                                className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm font-mono tracking-tight uppercase transition-all font-bold shadow-sm"
-                                placeholder="e.g., SKU-9022-X..."
-                              />
-                            </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                            Category Tag
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-3 text-workshop-muted/60 select-none">
+                              <Layers className="w-4 h-4" />
+                            </span>
+                            <input 
+                              type="text" 
+                              value={newPart.category || ''}
+                              onChange={e => setNewPart({...newPart, category: e.target.value})}
+                              className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
+                              placeholder="e.g., Engine, Brakes..."
+                            />
                           </div>
                         </div>
                       </div>

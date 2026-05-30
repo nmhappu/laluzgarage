@@ -9,7 +9,7 @@ import { useUI } from '../contexts/UIContext';
 import { Portal } from './Portal';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/vehicles', icon: History, label: 'Vehicle' },
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/services', icon: ClipboardList, label: 'Services' },
@@ -91,7 +91,12 @@ export function Navigation() {
                     {isActive && (
                       <motion.div
                         layoutId="desktopActiveTabBackdrop"
-                        className="absolute inset-0 bg-workshop-accent shadow-lg shadow-workshop-accent/20 z-[-1]"
+                        className={cn(
+                          "absolute inset-0 shadow-lg z-[-1]",
+                          item.to === '/vehicles'
+                            ? "bg-blue-600 shadow-blue-500/30"
+                            : "bg-workshop-accent shadow-workshop-accent/20"
+                        )}
                         transition={{ type: "spring", stiffness: 350, damping: 28 }}
                       />
                     )}
@@ -180,7 +185,11 @@ export function Navigation() {
               to={item.to}
               className={({ isActive }) => cn(
                 "flex flex-col items-center gap-0 transition-all duration-300 flex-1 min-w-[56px] active:scale-90",
-                isActive ? "text-workshop-accent" : "text-workshop-muted"
+                isActive 
+                  ? item.to === '/vehicles'
+                    ? "text-blue-500"
+                    : "text-workshop-accent"
+                  : "text-workshop-muted"
               )}
             >
               {({ isActive }) => (
@@ -189,11 +198,19 @@ export function Navigation() {
                     {isActive && (
                       <motion.div
                         layoutId="mobileActivePill"
-                        className="absolute inset-0 bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)] rounded-full z-0"
+                        className={cn(
+                          "absolute inset-0 rounded-full z-0",
+                          item.to === '/vehicles'
+                            ? "bg-blue-500/10 shadow-[0_4px_12px_rgba(59,130,246,0.15)]"
+                            : "bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)]"
+                        )}
                         transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
                       />
                     )}
-                    <item.icon className={cn("w-6 h-6 relative z-10 transition-all duration-300", isActive ? "scale-110" : "scale-100")} />
+                    <item.icon className={cn(
+                      "w-6 h-6 relative z-10 transition-all duration-300", 
+                      isActive ? "scale-110" : "scale-100"
+                    )} />
                   </div>
                   <span className={cn(
                     "text-[10px] uppercase tracking-widest font-bold transition-all mt-1",

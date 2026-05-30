@@ -39,7 +39,6 @@ export const inventoryService = {
   addPart: async (part: Partial<Part>) => {
     return addDoc(collection(db, 'parts'), {
       ...part,
-      sku: part.sku || '',
       stockQuantity: Number(part.stockQuantity || 0),
       price: Number(part.price || 0),
       minStockLevel: Number(part.minStockLevel || 5),

@@ -8,6 +8,15 @@ import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { Portal } from './Portal';
 
+const capitalizeName = (name?: string) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export function VehicleHistory() {
   // --- State: Data ---
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -193,7 +202,7 @@ export function VehicleHistory() {
 
       return {
         ...v,
-        ownerName: owner?.name || 'Unknown Owner',
+        ownerName: capitalizeName(owner?.name) || 'Unknown Owner',
         ownerPhone: owner?.phone || '',
         servicesCount: vehicleServices.length,
         cumulativeSpent,
@@ -308,97 +317,111 @@ export function VehicleHistory() {
                   exit: { opacity: 0, y: -8 }
                 }}
                 transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="bg-workshop-surface/20 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative min-h-[140px] flex flex-col sm:flex-row sm:items-center justify-between gap-6 overflow-hidden bg-clip-padding font-sans"
+                className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/10 active:scale-[0.995]"
+                onClick={() => setSelectedVehicleForLedger(vehicle)}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center text-[#3B82F6] shrink-0 border-0">
-                    <Car className="w-6 h-6" />
-                  </div>
-                  <div className="font-sans">
-                    <h3 className="font-black text-workshop-text text-base uppercase tracking-tight group-hover:text-[#3B82F6] transition-colors leading-tight font-sans">
+                {/* Row 1: Vehicle Identity with Plate opposite */}
+                <div className="flex items-center justify-between gap-4 w-full">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center text-[#3B82F6] shrink-0 border-0">
+                      <Car className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-black text-workshop-text text-lg sm:text-2xl uppercase tracking-tight group-hover:text-[#3B82F6] transition-colors leading-tight font-sans truncate">
                       {vehicle.make} {vehicle.model}
                     </h3>
-                    <span className="text-xs text-[#3B82F6] font-sans font-black uppercase tracking-normal leading-none mt-1.5 block">
+                  </div>
+                  {vehicle.plateNumber && (
+                    <span className="text-base sm:text-lg text-[#3B82F6] font-sans font-black uppercase tracking-wider shrink-0 text-right">
                       {vehicle.plateNumber}
                     </span>
-                  </div>
+                  )}
                 </div>
 
-                {/* Owner Relationship and Security */}
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs font-sans">
-                  <div>
-                    <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1 font-sans">Owner</p>
-                    <p className="font-black text-workshop-text truncate max-w-[140px] font-sans">{vehicle.ownerName}</p>
-                    {vehicle.ownerPhone && (
-                      <a 
-                        href={`tel:${vehicle.ownerPhone}`}
-                        className="flex items-center gap-1 text-[10px] text-[#3B82F6] hover:underline font-black uppercase tracking-widest mt-0.5 font-sans"
-                      >
-                        <Phone className="w-2.5 h-2.5 shrink-0" />
-                        <span>Call Owner</span>
-                      </a>
-                    )}
+                {/* Row 2: Owner Relationship and Security */}
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-sans bg-workshop-surface/10 p-4 rounded-xl border border-workshop-border/10 w-full animate-fade-in">
+                  {/* Item 1: Owner */}
+                  <div className="flex flex-col items-start">
+                    <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Owner</p>
+                    <p className="font-black text-workshop-text truncate max-w-[140px] font-sans uppercase">{capitalizeName(vehicle.ownerName)}</p>
                   </div>
 
-                  <div>
-                    <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1 font-sans">Security Pin</p>
-                    <div className="flex items-center gap-1 text-workshop-text font-extrabold uppercase font-sans">
-                      {vehicle.passwordOrPin === 'Key' ? (
-                        <>
-                          <Key className="w-3 h-3 text-status-success" />
-                          <span className="text-[10px] font-sans">Physical Key</span>
-                        </>
-                      ) : vehicle.passwordOrPin ? (
-                        <>
-                          <Key className="w-3 h-3 text-[#3B82F6]" />
-                          <span className="text-[10px] font-mono tracking-wider font-sans">{vehicle.passwordOrPin}</span>
-                        </>
-                      ) : (
-                        <span className="text-workshop-muted opacity-45 font-sans">No PIN Setup</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-right flex flex-col items-start sm:items-end">
-                    <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1 font-sans">Finished Jobs</p>
+                  {/* Item 2: Services Done */}
+                  <div className="flex flex-col items-start">
+                    <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Services Done</p>
                     <div className="flex items-center gap-1 text-[#3B82F6] font-sans">
                       <History className="w-3.5 h-3.5 shrink-0" />
                       <span className="text-xs font-black uppercase tracking-wider font-sans">
-                        {vehicle.servicesCount} {vehicle.servicesCount === 1 ? 'Job' : 'Jobs'} Done
+                        {vehicle.servicesCount} {vehicle.servicesCount === 1 ? 'Service' : 'Services'}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Item 3: Security - Key or Pin in Google Sans font-sans */}
+                  <div className="flex flex-col items-start justify-center">
+                    <div className="flex items-center gap-1 text-workshop-text font-extrabold uppercase font-sans mt-3.5">
+                      {vehicle.passwordOrPin === 'Key' ? (
+                        <>
+                          <Key className="w-3.5 h-3.5 text-status-success shrink-0" />
+                          <span className="text-xs font-sans font-black text-workshop-text uppercase tracking-wider">Key</span>
+                        </>
+                      ) : vehicle.passwordOrPin ? (
+                        <>
+                          <Key className="w-3.5 h-3.5 text-status-success shrink-0" />
+                          <span className="text-xs font-sans font-black tracking-widest text-white">#{vehicle.passwordOrPin}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Key className="w-3.5 h-3.5 text-workshop-muted/30 shrink-0" />
+                          <span className="text-xs text-workshop-muted/60 font-sans font-black tracking-wider uppercase leading-none">No Security</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 self-end sm:self-auto shrink-0 relative z-20 font-sans">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingVehicle(vehicle);
-                      setShowEditModal(true);
-                    }}
-                    className="p-2 text-workshop-muted hover:text-[#3B82F6] hover:bg-workshop-surface/40 rounded-lg transition-all"
-                    title="Edit Vehicle"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setVehicleToDelete(vehicle);
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="p-2 text-workshop-muted hover:text-status-urgent hover:bg-workshop-surface/40 rounded-lg transition-all"
-                    title="Delete Vehicle Schema"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setSelectedVehicleForLedger(vehicle)}
-                    className="text-[11px] font-black uppercase tracking-widest text-[#3B82F6] hover:brightness-110 active:scale-95 transition-all bg-[#3B82F6]/5 hover:bg-[#3B82F6]/10 px-5 py-2.5 rounded-xl border border-[#3B82F6]/15 hover:border-[#3B82F6]/30 font-sans shadow-sm"
-                  >
-                    View History
-                  </button>
+                {/* Row 3: Call Option on bottom-left, Actions on bottom-right */}
+                <div className="flex items-center justify-between w-full relative z-20 font-sans">
+                  {/* Left: Call option button */}
+                  <div className="flex-1 text-left">
+                    {vehicle.ownerPhone ? (
+                      <a 
+                        href={`tel:${vehicle.ownerPhone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1.5 bg-status-success/15 hover:bg-status-success/25 text-status-success px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-status-success/10 active:scale-95"
+                      >
+                        <Phone className="w-3 h-3 shrink-0" />
+                        <span>Call {capitalizeName(vehicle.ownerName).toUpperCase()}</span>
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-workshop-muted/40 uppercase tracking-widest font-black font-sans">No Phone Number</span>
+                    )}
+                  </div>
+
+                  {/* Right: yellow edit, red delete */}
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingVehicle(vehicle);
+                        setShowEditModal(true);
+                      }}
+                      className="p-2 text-yellow-500 hover:text-yellow-400 hover:scale-110 active:scale-90 transition-all font-sans"
+                      title="Edit Vehicle"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVehicleToDelete(vehicle);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="p-2 text-status-urgent hover:text-red-400 hover:scale-110 active:scale-90 transition-all font-sans"
+                      title="Delete Vehicle Schema"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -586,7 +609,7 @@ export function VehicleHistory() {
                           <option value="">-- Choose Client File --</option>
                           {customers.map(c => (
                             <option key={c.id} value={c.id}>
-                              {c.name} ({c.phone})
+                              {capitalizeName(c.name)} ({c.phone})
                             </option>
                           ))}
                         </select>
@@ -759,7 +782,7 @@ export function VehicleHistory() {
                     >
                       {customers.map(c => (
                         <option key={c.id} value={c.id}>
-                          {c.name} ({c.phone})
+                          {capitalizeName(c.name)} ({c.phone})
                         </option>
                       ))}
                     </select>
@@ -811,12 +834,27 @@ export function VehicleHistory() {
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                   <Trash2 className="w-7 h-7" />
                 </div>
-                <h2 className="text-lg font-black text-workshop-text mb-2 tracking-tight uppercase font-sans">Delete Vehicle File?</h2>
-                <p className="text-workshop-muted text-sm mb-8 leading-relaxed font-sans">
-                  Are you sure you want to remove <span className="font-extrabold text-workshop-text underline">{vehicleToDelete.make} {vehicleToDelete.model}</span> (Reg. plate <span className="font-mono text-xs font-bold text-[#3B82F6] px-1.5 py-0.5 bg-workshop-surface rounded border border-workshop-border">{vehicleToDelete.plateNumber}</span>)?
-                  <br />
-                  <span className="text-[10px] font-bold text-status-urgent mt-3 block uppercase tracking-widest leading-none">This operation is destructive and cannot be undone</span>
+                <h2 className="text-lg font-black text-workshop-text mb-2 tracking-tight uppercase font-sans">Delete Vehicle?</h2>
+                <p className="text-workshop-muted text-sm mb-5 leading-relaxed font-sans">
+                  Are you sure you want to delete this vehicle?
                 </p>
+                
+                {/* Visually appealing vehicle profile card */}
+                <div className="bg-workshop-surface/40 p-4 rounded-xl mb-6 flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center text-[#3B82F6]">
+                    <Car className="w-5 h-5" />
+                  </div>
+                  <div className="font-sans">
+                    <h4 className="font-black text-workshop-text text-base uppercase tracking-tight">
+                      {vehicleToDelete.make} {vehicleToDelete.model}
+                    </h4>
+                    {vehicleToDelete.plateNumber && (
+                      <span className="block mt-1 text-sm text-[#3B82F6] font-black uppercase tracking-widest font-sans">
+                        {vehicleToDelete.plateNumber}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-4 pt-2">
                   <button 
                     onClick={() => setShowDeleteConfirm(false)}
@@ -828,7 +866,7 @@ export function VehicleHistory() {
                     onClick={handleDeleteVehicle}
                     className="flex-grow px-4 py-3 bg-status-urgent text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-status-urgent/25 hover:brightness-110 transition-all active:scale-[0.98]"
                   >
-                    Confirm Delete
+                    Delete
                   </button>
                 </div>
               </motion.div>
@@ -849,7 +887,7 @@ export function VehicleHistory() {
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Header of the Ledger (Top Bar) */}
-              <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+              <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg shrink-0 select-none">
                 <button
                   type="button"
                   onClick={() => setSelectedVehicleForLedger(null)}
@@ -859,16 +897,19 @@ export function VehicleHistory() {
                 </button>
 
                 <div className="flex-grow pl-2">
-                  <h2 className="text-base font-black text-[#3B82F6] tracking-tight uppercase leading-none font-sans">
-                    Service History Ledger
+                  <h2 
+                    style={{ fontFamily: "'Google Sans', 'Inter', sans-serif" }}
+                    className="text-lg sm:text-2xl font-black text-[#10B981] tracking-tight uppercase leading-none"
+                  >
+                    {selectedVehicleForLedger.make} {selectedVehicleForLedger.model}
                   </h2>
                 </div>
 
-                <div className="flex flex-col items-end gap-1 select-none text-right">
-                  <span className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-widest font-sans">
-                    {selectedVehicleForLedger.make} {selectedVehicleForLedger.model}
-                  </span>
-                  <span className="font-mono text-[10px] text-white font-black px-2 py-0.5 bg-workshop-surface/60 rounded border border-workshop-border/30 uppercase tracking-widest">
+                <div className="flex flex-col items-end select-none text-right">
+                  <span 
+                    style={{ fontFamily: "'Google Sans', 'Inter', sans-serif" }}
+                    className="text-lg sm:text-2xl font-black text-[#3B82F6] uppercase tracking-tight leading-none"
+                  >
                     {selectedVehicleForLedger.plateNumber}
                   </span>
                 </div>
@@ -900,41 +941,40 @@ export function VehicleHistory() {
               <div className="flex-1 overflow-y-auto px-6 py-8 bg-workshop-bg scrollbar-thin">
                 <div className="max-w-4xl mx-auto w-full space-y-10">
                   {serviceRecords.filter(r => r.vehicleId === selectedVehicleForLedger.id).length > 0 ? (
-                    <div className="divide-y divide-workshop-border/20 space-y-10">
+                    <div className="space-y-8">
                       {serviceRecords
                         .filter(r => r.vehicleId === selectedVehicleForLedger.id)
                         .map((record, index) => (
-                          <motion.div 
-                            key={record.id}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.04 }}
-                            className="pt-10 first:pt-0 space-y-6"
-                          >
+                          <div key={record.id} className="space-y-8">
+                            {index > 0 && (
+                              <div className="h-px bg-workshop-border/40 w-full" />
+                            )}
+                            <motion.div 
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.04 }}
+                              className="space-y-6"
+                            >
                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                               <div className="space-y-1.5">
                                 <div className="flex items-center gap-3">
-                                  <span className="text-[10px] font-black text-[#3B82F6] uppercase tracking-widest leading-none">
+                                  <span className="text-base font-black text-[#3B82F6] uppercase tracking-widest leading-none">
                                     {format(new Date(record.date), 'dd MMM yyyy')}
                                   </span>
                                   <span className={cn(
-                                    "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
-                                    record.status === 'completed' ? "bg-status-success/15 text-status-success border-status-success/30" :
-                                    record.status === 'in-progress' ? "bg-status-pending/15 text-status-pending border-status-pending/30" :
-                                    record.status === 'pending' ? "bg-status-urgent/15 text-status-urgent border-status-urgent/30" :
-                                    "bg-workshop-muted/15 text-workshop-muted border-workshop-border/30"
+                                    "text-[10px] font-black uppercase tracking-widest",
+                                    record.status === 'completed' ? "text-status-success" :
+                                    record.status === 'in-progress' ? "text-status-pending" :
+                                    record.status === 'pending' ? "text-status-urgent" :
+                                    "text-workshop-muted"
                                   )}>
                                     {record.status}
                                   </span>
                                 </div>
 
                                 <div>
-                                  <h4 className="text-xs font-black text-white uppercase tracking-wider leading-none mb-1.5 flex items-center gap-2">
-                                    <span>Job Card Code:</span>
-                                    <span className="font-mono text-[10px] text-workshop-muted font-bold">#{record.id.slice(-6).toUpperCase()}</span>
-                                  </h4>
                                   <p className="text-[10px] font-bold text-workshop-muted uppercase tracking-widest leading-none font-sans">
-                                    Registered under: <span className="text-workshop-text font-semibold">{customers.find(c => c.id === record.customerId)?.name || "Unknown Owner"}</span>
+                                    Owned By <span className="text-workshop-text font-black uppercase">{capitalizeName(customers.find(c => c.id === record.customerId)?.name) || "Unknown Owner"}</span>
                                   </p>
                                 </div>
                               </div>
@@ -1016,7 +1056,8 @@ export function VehicleHistory() {
                               )}
                             </div>
                           </motion.div>
-                        ))}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-24 select-none">

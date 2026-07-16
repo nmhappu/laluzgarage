@@ -13,11 +13,19 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import type { Customer, Vehicle } from '../types';
+import type { Customer, Vehicle, WorkshopUser } from '../types';
 
 import { Portal } from './Portal';
 import { MaterialCalendar } from './ui/MaterialCalendar';
 import { WavyProgress } from './WavyProgress';
+
+const capitalizeName = (name: string) => {
+  return name
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 interface ServiceIntakeProps {
   onClose: () => void;
@@ -27,10 +35,51 @@ interface ServiceIntakeProps {
 export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [createdJob, setCreatedJob] = useState<{
+    customerName: string;
+    vehicleName: string;
+    vehiclePlate: string;
+    description: string;
+    waUrl: string;
+  } | null>(null);
   
   // Data for lookup
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [users, setUsers] = useState<WorkshopUser[]>([]);
+  
+  // PIN authentication states
+  const [authenticatedAdvisor, setAuthenticatedAdvisor] = useState<WorkshopUser | null>(null);
+  const [pinCode, setPinCode] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const pinInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Auto focus input when advisor verification opens
+  useEffect(() => {
+    if (!authenticatedAdvisor) {
+      const t = setTimeout(() => {
+        pinInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [authenticatedAdvisor]);
+
+  const handleClear = () => {
+    setPinCode('');
+    setPinError(null);
+  };
+
+  useEffect(() => {
+    if (!authenticatedAdvisor) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [authenticatedAdvisor]);
   
   // Search states
   const [searchType, setSearchType] = useState<'plate' | 'phone'>('plate');
@@ -89,8 +138,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     const fetchBasics = async () => {
       const vSnap = await getDocs(collection(db, 'vehicles'));
       const cSnap = await getDocs(collection(db, 'customers'));
+      const uSnap = await getDocs(collection(db, 'users'));
       setVehicles(vSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle)));
       setCustomers(cSnap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
+      setUsers(uSnap.docs.map(d => ({ id: d.id, ...d.data() } as WorkshopUser)));
     };
     fetchBasics();
   }, []);
@@ -173,11 +224,16 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
       let customerId = selectedCustomer?.id;
       let vehicleId = selectedVehicle?.id;
 
-      // 1. Create Customer if needed
+                      // 1. Create Customer if needed
       if (!selectedCustomer) {
+        const formattedPhone = customerForm.phone.trim().startsWith('+91')
+          ? customerForm.phone.trim()
+          : `+91 ${customerForm.phone.trim()}`;
+
         const cDoc = await addDoc(collection(db, 'customers'), {
-          ...customerForm,
-          technicianId: auth.currentUser?.uid,
+          name: customerForm.name,
+          phone: formattedPhone,
+          technicianId: authenticatedAdvisor?.id || auth.currentUser?.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -190,7 +246,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
           ...vehicleForm,
           passwordOrPin: useKey ? 'Key' : vehicleForm.passwordOrPin,
           customerId,
-          technicianId: auth.currentUser?.uid,
+          technicianId: authenticatedAdvisor?.id || auth.currentUser?.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -201,8 +257,8 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
       await addDoc(collection(db, 'serviceRecords'), {
         vehicleId,
         customerId,
-        technicianId: auth.currentUser?.uid,
-        technicianName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown Advisor',
+        technicianId: authenticatedAdvisor?.id || auth.currentUser?.uid,
+        technicianName: authenticatedAdvisor?.name || authenticatedAdvisor?.email || auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown Advisor',
         date: jobForm.serviceDate + "T" + new Date().toISOString().split('T')[1],
         expectedDeliveryDate: jobForm.expectedDeliveryDate,
         mileage: (jobForm.isDeadVehicle || jobForm.isUnknownMileage) ? 0 : Number(jobForm.mileage || 0),
@@ -219,8 +275,32 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
         updatedAt: serverTimestamp()
       });
 
+      // Automated WhatsApp dispatch upon successful registration
+      const customerPhone = selectedCustomer ? selectedCustomer.phone : (customerForm.phone.trim().startsWith('+91') ? customerForm.phone.trim() : `+91 ${customerForm.phone.trim()}`);
+      const customerName = selectedCustomer ? selectedCustomer.name : customerForm.name;
+      const vehicleMake = selectedVehicle ? selectedVehicle.make : vehicleForm.make;
+      const vehicleModel = selectedVehicle ? selectedVehicle.model : vehicleForm.model;
+      const vehiclePlate = selectedVehicle ? selectedVehicle.plateNumber : vehicleForm.plateNumber;
+
+      let waUrl = '';
+      if (customerPhone) {
+        const cleanPhone = customerPhone.replace(/[^0-9]/g, "");
+        const greeting = `Hello ${customerName ? capitalizeName(customerName) : 'Customer'},\n\nWe have successfully registered your vehicle *${vehicleMake || ''} ${vehicleModel || ''}* [${vehiclePlate?.toUpperCase() || 'No Plate'}] at our service center.\n\n`;
+        const details = `*Job Details:* ${jobForm.description || 'Service Maintenance'}\n*Status:* Pending 🛠\n`;
+        const signOff = `\nWe will keep you updated on the progress. Thank you!`;
+        const fullText = `${greeting}${details}${signOff}`;
+        waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(fullText)}`;
+      }
+
+      setCreatedJob({
+        customerName: customerName || 'Customer',
+        vehicleName: `${vehicleMake || ''} ${vehicleModel || ''}`.trim() || 'Vehicle',
+        vehiclePlate: vehiclePlate || '',
+        description: jobForm.description || 'Service Maintenance',
+        waUrl
+      });
+      
       onSuccess();
-      onClose();
     } catch (e: unknown) {
       console.error(e);
       handleFirestoreError(e, 'create', 'intake_flow');
@@ -229,24 +309,217 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     }
   };
 
+  if (createdJob) {
+    return (
+      <Portal>
+        <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="max-w-md w-full bg-workshop-surface rounded-2xl p-8 border border-workshop-border shadow-2xl space-y-6"
+          >
+            <div className="w-16 h-16 bg-status-success/10 text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-workshop-text uppercase tracking-tight">Job Card Issued!</h3>
+              <p className="text-xs text-workshop-muted">
+                The digital job card was successfully created and logged into our secure systems.
+              </p>
+            </div>
+
+            <div className="bg-workshop-bg/50 border border-workshop-border/40 rounded-xl p-5 text-left space-y-3">
+              <div>
+                <span className="text-[9px] uppercase font-black text-workshop-muted tracking-wider">Owner / Customer</span>
+                <p className="text-sm font-bold text-workshop-text">{createdJob.customerName}</p>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-black text-workshop-muted tracking-wider">Vehicle Details</span>
+                <p className="text-sm font-bold text-workshop-text">
+                  {createdJob.vehicleName} {createdJob.vehiclePlate && `[${createdJob.vehiclePlate.toUpperCase()}]`}
+                </p>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-black text-workshop-muted tracking-wider">Job Details</span>
+                <p className="text-xs font-semibold text-workshop-text line-clamp-2">{createdJob.description}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              {createdJob.waUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open(createdJob.waUrl, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="w-full py-4 bg-[#128C7E] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:bg-[#0e7065] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.182 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.852.002-2.63-1.023-5.101-2.887-6.968C16.586 1.916 14.112.893 11.48.893 6.046.893 1.622 5.31 1.618 10.74c-.001 1.745.462 3.447 1.341 4.966L1.9 20.311l4.747-1.157zm12.081-4.706c-.329-.165-1.947-.961-2.246-1.069-.299-.109-.517-.165-.736.165-.218.329-.844 1.069-1.033 1.288-.19.218-.379.245-.708.082-.329-.165-1.389-.512-2.645-1.633-.977-.872-1.637-1.95-1.829-2.28-.192-.329-.02-.507.145-.671.148-.147.329-.384.494-.577.165-.19.22-.329.329-.55.109-.218.055-.41-.027-.577-.082-.165-.736-1.774-1.009-2.433-.266-.639-.536-.55-.736-.56-.19-.01-.409-.012-.628-.012-.218 0-.573.082-.872.41-.299.329-1.144 1.118-1.144 2.726 0 1.609 1.171 3.161 1.334 3.379.163.218 2.302 3.515 5.577 4.926.779.336 1.388.537 1.862.688.784.249 1.497.214 2.061.13.629-.094 1.948-.797 2.222-1.567.274-.769.274-1.43.192-1.567-.082-.136-.299-.218-.628-.383z" />
+                  </svg>
+                  Share via WhatsApp
+                </button>
+              )}
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedJob(null);
+                  onClose();
+                }}
+                className="w-full py-4 bg-workshop-surface text-workshop-text hover:bg-workshop-border/30 rounded-xl text-xs font-black uppercase tracking-wider border border-workshop-border/60 hover:border-workshop-text/20 transition-all flex items-center justify-center gap-2"
+              >
+                Dismiss & Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </Portal>
+    );
+  }
+
+  if (!authenticatedAdvisor) {
+    return (
+      <Portal>
+        <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-center px-6 py-8 shrink-0"
+          >
+            {/* PIN Header */}
+            <div className="flex items-center justify-between pb-6 border-b border-workshop-border/40 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black tracking-tight uppercase leading-none">Advisor Verification</h2>
+                  <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-60">Authentication Required</p>
+                </div>
+              </div>
+              <button 
+                onClick={onClose}
+                className="p-2 hover:bg-workshop-surface rounded-full transition-colors text-workshop-muted hover:text-workshop-text"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* PIN Content */}
+            <div className="py-8 space-y-6 flex flex-col items-center justify-center text-center">
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-workshop-text">Enter Security PIN</p>
+                <p className="text-xs text-workshop-muted px-4 leading-relaxed font-medium">
+                  Enter your assigned 4-digit advisor/technician PIN to unlock the intake workbook.
+                </p>
+              </div>
+
+              {/* Dots representation */}
+              <div className="flex justify-center gap-4 py-2">
+                {[0, 1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "w-4 h-4 rounded-full border-2 border-workshop-border transition-all duration-150",
+                      pinCode.length > index 
+                        ? "bg-blue-500 border-blue-500 scale-110 shadow-lg shadow-blue-500/30" 
+                        : "bg-transparent"
+                    )}
+                  />
+                ))}
+              </div>
+
+              {/* Error Display */}
+              <div className="h-4">
+                <AnimatePresence mode="wait">
+                  {pinError && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      className="text-xs font-bold text-status-urgent"
+                    >
+                      {pinError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Hidden text input to capture key strokes and trigger system numeric keyboard */}
+              <input
+                ref={pinInputRef}
+                type="text"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').substring(0, 4);
+                  setPinCode(val);
+                  setPinError(null);
+                  if (val.length === 4) {
+                    const matched = users.find(u => u.pin === val);
+                    if (matched) {
+                      setAuthenticatedAdvisor(matched);
+                      setPinCode('');
+                    } else {
+                      setPinError('Invalid advisor PIN. Please try again.');
+                      setTimeout(() => {
+                        setPinCode('');
+                      }, 600);
+                    }
+                  }
+                }}
+                className="opacity-0 absolute w-1 h-1 pointer-events-none"
+              />
+
+              {/* Keyboard trigger and instructions */}
+              <div className="w-full max-w-[280px] mx-auto space-y-4 pt-2">
+                <button
+                  type="button"
+                  onClick={() => pinInputRef.current?.focus()}
+                  className="w-full bg-workshop-surface hover:bg-workshop-surface/80 border border-workshop-border/30 rounded-xl py-5 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shadow-md cursor-pointer group"
+                >
+                  <span className="text-xs font-black text-workshop-accent uppercase tracking-wider group-hover:brightness-110 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
+                    Open System Keyboard
+                  </span>
+                  <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
+                    Only Digits Permitted
+                  </span>
+                </button>
+                
+                {pinCode.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="w-full py-2.5 text-xs font-bold text-workshop-muted hover:text-workshop-text uppercase tracking-widest transition-colors cursor-pointer"
+                  >
+                    Clear Input
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </Portal>
+    );
+  }
+
   return (
     <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-          onClick={onClose}
-          className="absolute inset-0 bg-workshop-bg/60 backdrop-blur-[2px]"
-        />
-        
+      <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-hidden">
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 10 }}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          className="relative bg-workshop-card w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-workshop-border bg-clip-padding"
+          className="w-full flex-1 flex flex-col h-full bg-workshop-bg text-workshop-text relative overflow-hidden"
         >
           {/* Header */}
           <div className="bg-workshop-bg p-6 md:p-8 text-workshop-text relative border-b border-workshop-border shrink-0">
@@ -256,15 +529,15 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     <ClipboardCheck className="w-5 h-5 text-workshop-bg" />
                  </div>
                  <div>
-                   <h2 className="text-lg md:text-xl font-black tracking-tight uppercase leading-none">Vehicle Intake</h2>
-                   <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-60">Step {Math.floor(step)} of 3</p>
+                    <h2 className="text-lg md:text-xl font-black tracking-tight uppercase leading-none">Vehicle Intake</h2>
+                    <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-60">Step {Math.floor(step)} of 3 • Active Advisor: <span className="text-workshop-accent font-black">{authenticatedAdvisor?.name || authenticatedAdvisor?.email}</span></p>
                  </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-workshop-surface rounded-full transition-colors"
+                className="p-2 hover:bg-workshop-surface rounded-full transition-colors text-workshop-muted hover:text-workshop-text"
               >
-                <X className="w-5 h-5 text-workshop-muted hover:text-workshop-text" />
+                <X className="w-5 h-5" />
               </button>
             </div>
   
@@ -513,23 +786,43 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                             placeholder="e.g. John Doe"
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
-                            Contact Number
-                          </label>
-                          <input
-                            type="tel"
-                            inputMode="tel"
-                            value={customerForm.phone}
-                            onChange={(e) =>
-                              setCustomerForm({
-                                ...customerForm,
-                                phone: e.target.value,
-                              })
-                            }
-                            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                            placeholder="+1 234 567 890"
-                          />
+                        <div className="relative pt-2.5">
+                          <div className="flex items-center w-full bg-workshop-surface border-2 border-[#3B82F6] rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-[#3B82F6]/30 transition-all">
+                            {/* Floating notched label */}
+                            <span className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-black uppercase tracking-wider text-[#3B82F6] select-none">
+                              Phone number
+                            </span>
+                            
+                            {/* Prefix */}
+                            <span className="text-workshop-text font-mono font-bold text-base select-none pr-3 shrink-0">
+                              +91
+                            </span>
+                            
+                            {/* Separator / Divider Line */}
+                            <div className="h-6 w-px bg-workshop-border/40 mr-3.5 shrink-0" />
+                            
+                            {/* Actual Input */}
+                            <input
+                              type="tel"
+                              inputMode="tel"
+                              value={customerForm.phone}
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                // If +91 or 91 was entered, strip it out cleanly
+                                if (val.startsWith("+91")) {
+                                  val = val.substring(3);
+                                } else if (val.startsWith("91") && val.length > 10) {
+                                  val = val.substring(2);
+                                }
+                                setCustomerForm({
+                                  ...customerForm,
+                                  phone: val,
+                                });
+                              }}
+                              className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-mono font-bold text-base tracking-wide placeholder-workshop-muted/40"
+                              placeholder="85471 87345"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -604,11 +897,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         onChange={(e) =>
                           setVehicleForm({
                             ...vehicleForm,
-                            plateNumber: e.target.value.toUpperCase(),
+                            plateNumber: e.target.value.replace(/\s+/g, "").toUpperCase(),
                           })
                         }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold text-workshop-accent uppercase"
-                        placeholder="MH 12 AB 1234"
+                        placeholder="MH12AB1234"
                       />
                     </div>
                     <div className="space-y-1.5">

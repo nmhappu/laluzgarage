@@ -69,6 +69,7 @@ export interface WorkshopUser {
   name: string;
   email: string;
   status: 'online' | 'offline';
+  pin?: string;
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
 }

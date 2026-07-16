@@ -1,34 +1,46 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle, History } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle, History, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import { Portal } from './Portal';
+import { SettingsModal } from './SettingsModal';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/vehicles', icon: History, label: 'Vehicle' },
-  { to: '/inventory', icon: Package, label: 'Inventory' },
-  { to: '/services', icon: ClipboardList, label: 'Services' },
+  { to: '/', icon: LayoutDashboard, m3Icon: 'grid_view', label: 'Dashboard' },
+  { to: '/vehicles', icon: History, m3Icon: 'directions_car', label: 'Vehicle' },
+  { to: '/inventory', icon: Package, m3Icon: 'inventory_2', label: 'Inventory' },
+  { to: '/services', icon: ClipboardList, m3Icon: 'build', label: 'Services' },
 ];
 
 export function Navigation() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
 
   const getPageTitle = () => {
-    if (location.pathname === '/') {
-      return 'LaluZ Garage';
-    }
-    return 'LZG';
+    return 'LaluZ Garage';
   };
 
   const pageTitle = getPageTitle();
+
+  const getActiveTabM3Icon = (pathname: string) => {
+    if (pathname === '/') return 'grid_view';
+    if (pathname.startsWith('/vehicles')) return 'directions_car';
+    if (pathname.startsWith('/inventory')) return 'inventory_2';
+    if (pathname.startsWith('/services')) return 'build';
+    return 'grid_view';
+  };
+
+  const getActiveTabColor = (pathname: string) => {
+    if (pathname.startsWith('/vehicles')) return 'text-blue-500';
+    return 'text-workshop-accent';
+  };
 
   return (
     <>
@@ -38,20 +50,47 @@ export function Navigation() {
         isModalOpen && "bg-workshop-surface/95"
       )}>
         <div className="p-8 h-32 font-sans">
-          <NavLink to="/" className="flex items-center justify-between group hover:no-underline font-sans">
-            <AnimatePresence mode="wait">
-              <motion.h1 
-                key={pageTitle}
-                initial={{ opacity: 0, x: 15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
-                transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-                className="text-workshop-text text-xl font-sans font-semibold tracking-tight transition-colors group-hover:text-workshop-accent"
-              >
-                {pageTitle}
-              </motion.h1>
-            </AnimatePresence>
-          </NavLink>
+          <div className="flex items-center justify-between">
+            <NavLink to="/" className="flex items-center gap-3 group hover:no-underline font-sans flex-1 min-w-0">
+              <AnimatePresence mode="wait">
+                <motion.h1 
+                  key={pageTitle}
+                  initial={{ opacity: 0, x: -15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 15 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
+                  className="text-workshop-text text-xl font-sans font-semibold tracking-tight transition-colors group-hover:text-workshop-accent truncate"
+                >
+                  {pageTitle}
+                </motion.h1>
+              </AnimatePresence>
+              <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.span 
+                    key={getActiveTabM3Icon(location.pathname)}
+                    initial={{ opacity: 0, scale: 0.5, rotate: -30 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, rotate: 30 }}
+                    transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                    className={cn(
+                      "material-symbols-outlined text-2xl absolute select-none",
+                      getActiveTabColor(location.pathname)
+                    )}
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    {getActiveTabM3Icon(location.pathname)}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            </NavLink>
+            <button 
+              onClick={() => setShowSettings(true)} 
+              className="p-2 text-workshop-muted hover:text-workshop-text hover:bg-workshop-card/50 rounded-lg transition-colors ml-2"
+              title="Security Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
         </div>
 
@@ -100,7 +139,12 @@ export function Navigation() {
                         transition={{ type: "spring", stiffness: 350, damping: 28 }}
                       />
                     )}
-                    <item.icon className="w-4 h-4 transition-transform group-active:scale-90 relative z-10" />
+                    <span 
+                      className="material-symbols-outlined transition-transform group-active:scale-90 relative z-10 text-[20px] select-none"
+                      style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                    >
+                      {item.m3Icon}
+                    </span>
                     <span className="relative z-10 font-sans">{item.label}</span>
                   </>
                 )}
@@ -113,55 +157,80 @@ export function Navigation() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded bg-workshop-accent flex items-center justify-center text-[10px] font-bold text-workshop-bg uppercase overflow-hidden">
                {user?.photoURL ? (
-                 <img src={user.photoURL} alt={user.displayName || ''} referrerPolicy="no-referrer" />
+                 <img src={user.photoURL} alt={profile?.name || user.displayName || ''} referrerPolicy="no-referrer" />
                ) : (
-                 user?.displayName?.[0] || user?.email?.[0]
+                 profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0]
                )}
             </div>
             <div className="space-y-0.5 overflow-hidden">
-              <p className="text-xs text-workshop-text font-bold truncate max-w-[120px]">{user?.displayName || user?.email}</p>
+              <p className="text-xs text-workshop-text font-bold truncate max-w-[120px]">{profile?.name || user?.displayName || user?.email}</p>
               <p className="text-[10px] uppercase text-workshop-muted font-black tracking-widest opacity-60">Active session</p>
             </div>
           </div>
           
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
+            {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
+            
             <button 
               onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-status-urgent transition-colors uppercase tracking-widest"
+              className="flex items-center gap-2 text-[10px] font-bold text-workshop-muted hover:text-status-urgent transition-colors uppercase tracking-widest ml-auto"
             >
               <LogOut className="w-3 h-3" />
               End session
             </button>
-
-            {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
           </div>
         </div>
       </aside>
 
       {/* Mobile Top Bar */}
       <nav className={cn(
-        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-surface border-b border-workshop-border shadow-lg flex flex-col transition-all duration-300 ease-in-out",
-        isModalOpen && "bg-workshop-surface/95"
+        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-bg flex flex-col transition-all duration-300 ease-in-out",
+        isModalOpen && "bg-workshop-bg/95"
       )}>
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-6">
-          <NavLink to="/" className="flex items-center gap-2 h-full items-center">
+          <NavLink to="/" className="flex items-center gap-2.5 h-full">
             <AnimatePresence mode="wait">
               <motion.span 
                 key={pageTitle}
-                initial={{ opacity: 0, x: 15 }}
+                initial={{ opacity: 0, x: -15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
+                exit={{ opacity: 0, x: 15 }}
                 transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
                 className="text-workshop-text text-lg font-logo font-semibold tracking-tight"
               >
                 {pageTitle}
               </motion.span>
             </AnimatePresence>
+              <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.span 
+                    key={getActiveTabM3Icon(location.pathname)}
+                    initial={{ opacity: 0, scale: 0.5, rotate: -30 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, rotate: 30 }}
+                    transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                    className={cn(
+                      "material-symbols-outlined text-2xl absolute select-none",
+                      getActiveTabColor(location.pathname)
+                    )}
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    {getActiveTabM3Icon(location.pathname)}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
           </NavLink>
           
           <div className="flex items-center gap-2">
             {location.pathname === '/' && <ThemeToggle className="w-9 h-9 rounded-lg" />}
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
+              title="Security Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
             <button 
               onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
@@ -207,10 +276,15 @@ export function Navigation() {
                         transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
                       />
                     )}
-                    <item.icon className={cn(
-                      "w-6 h-6 relative z-10 transition-all duration-300", 
-                      isActive ? "scale-110" : "scale-100"
-                    )} />
+                    <span 
+                      className={cn(
+                        "material-symbols-outlined relative z-10 transition-all duration-300 text-[24px] select-none", 
+                        isActive ? "scale-110" : "scale-100"
+                      )}
+                      style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                    >
+                      {item.m3Icon}
+                    </span>
                   </div>
                   <span className={cn(
                     "text-[10px] uppercase tracking-widest font-bold transition-all mt-1",
@@ -275,6 +349,12 @@ export function Navigation() {
               </motion.div>
             </div>
           </Portal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
     </>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from "react";
+import React, { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import {
   collection,
@@ -24,6 +24,7 @@ import {
   ArrowUp,
   RefreshCw,
   Phone,
+  MessageSquare,
   Key,
   X,
   AlertTriangle,
@@ -40,6 +41,7 @@ import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
 import { formatCurrency, cn } from "../lib/utils";
 import { Portal } from "./Portal";
+import { WhatsAppPopup } from "./WhatsAppPopup";
 import { MaterialCalendar } from "./ui/MaterialCalendar";
 import {
   format,
@@ -70,22 +72,23 @@ interface ServiceRecordCardProps {
   record: ServiceRecord;
   v?: Vehicle;
   customer?: Customer;
-  onClick: () => void;
+  onClick: (r: ServiceRecord) => void;
   onUpdateDetails: (r: ServiceRecord) => void;
   onDelete: (r: ServiceRecord) => void;
+  onWhatsAppClick: (name: string, phone: string) => void;
 }
 
-const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails, onDelete }: ServiceRecordCardProps) => {
+const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails, onDelete, onWhatsAppClick }: ServiceRecordCardProps) => {
   return (
     <motion.div
-      onClick={onClick}
+      onClick={() => onClick(record)}
       className={cn(
-        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-workshop-border shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
+        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-transparent shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
         record.status === "completed"
-          ? "hover:border-workshop-accent/50"
+          ? "hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/5"
           : record.status === "in-progress"
-            ? "hover:border-status-pending/50"
-            : "hover:border-status-urgent/50",
+            ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
+            : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5",
       )}
     >
       {/* Status Accent (Top Mid Fading) */}
@@ -113,7 +116,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
         </div>
       )}
       <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
-        <div className="flex items-center gap-4 mb-1">
+        <div className="flex items-center gap-4 mb-2">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest">
               {format(new Date(record.date), "MMM")}
@@ -122,16 +125,16 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
               {format(new Date(record.date), "dd")}
             </span>
           </div>
-          <div className="flex-1 h-px bg-workshop-border" />
+          <div className="flex-1 h-px bg-workshop-border/20" />
           <span
             className={cn(
-              "px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border",
+              "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border",
               record.status === "completed"
                 ? "bg-status-success/10 text-status-success border-status-success/20"
                 : record.status === "in-progress"
                   ? "bg-status-pending/10 text-status-pending border-status-pending/20"
                   : record.status === "cancelled"
-                    ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border"
+                    ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border/30"
                     : "bg-status-urgent/10 text-status-urgent border-status-urgent/20",
             )}
           >
@@ -139,33 +142,40 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
           </span>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex-1 space-y-3">
-            <div className="flex flex-col gap-1">
-              <div className="text-workshop-text text-sm md:text-[15px] font-black uppercase tracking-tight">
-                {capitalizeName(customer?.name) || "Unknown"}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs md:text-sm font-bold uppercase tracking-tight opacity-70">
-                <span className="text-workshop-text">
+        <div className="flex flex-col gap-3.5">
+          <div className="flex-1 space-y-3.5">
+            <div className="flex flex-col gap-3 bg-workshop-surface/20 p-3.5 rounded-xl border border-workshop-border/10">
+              
+              {/* ROW 1: Plate and Vehicle Model only */}
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
+                {/* Plate Number in prominent Blue */}
+                <span 
+                  style={{ fontFamily: "'Google Sans', sans-serif" }}
+                  className="text-[#3B82F6] font-sans font-black text-base md:text-lg tracking-widest uppercase shrink-0 select-all"
+                >
+                  {v?.plateNumber || "NO PLATE"}
+                </span>
+
+                <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+
+                {/* Make & Model */}
+                <span className="text-workshop-text font-black text-sm md:text-base uppercase tracking-tight">
                   {v?.make} {v?.model}
                 </span>
-                <span className="text-workshop-muted opacity-30">
-                  |
-                </span>
-                <span className="text-workshop-secondary">
-                  {v?.plateNumber}
-                </span>
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
-                <div className="flex items-center gap-1.5 min-w-0">
+
+              {/* ROW 2: Mileage & Password / Key PIN on different lines/section */}
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
+                {/* Mileage Badge */}
+                <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "font-mono whitespace-nowrap shrink-0",
+                      "whitespace-nowrap shrink-0 font-black",
                       record.isDeadVehicle
-                        ? "text-white bg-status-urgent px-1.5 py-0.5 rounded border border-status-urgent select-none text-[9px] font-black tracking-widest leading-none font-sans"
+                        ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
                         : record.isUnknownMileage
-                          ? "text-black bg-white px-1.5 py-0.5 rounded border border-white select-none text-[9px] font-black tracking-widest leading-none font-sans"
-                          : "text-status-pending pr-1",
+                          ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : "font-mono text-status-pending",
                     )}
                   >
                     {record.isDeadVehicle
@@ -176,8 +186,8 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                   </span>
                   {!!record.completionMileage && (
                     <>
-                      <ArrowRight className="w-2 h-2 text-workshop-muted opacity-30 shrink-0" />
-                      <span className="text-status-success font-mono whitespace-nowrap shrink-0">
+                      <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
+                      <span className="text-status-success font-mono font-black whitespace-nowrap shrink-0">
                         {record.completionMileage.toLocaleString()} KM
                       </span>
                     </>
@@ -185,33 +195,45 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                 </div>
 
                 {v?.passwordOrPin && (
-                  <div className="flex items-center gap-1.5 text-status-success bg-status-success/5 px-2 py-0.5 rounded border border-status-success/10 shrink-0">
-                    {v.passwordOrPin.toLowerCase() === "key" ? (
-                      <>
-                        <Key className="w-3 h-3" />
-                        <span className="text-[10px] font-black tracking-[0.15em]">
-                          KEY
+                  <>
+                    <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+                    <div className="flex items-center gap-1 text-status-success shrink-0">
+                      {v.passwordOrPin.toLowerCase() === "key" ? (
+                        <>
+                          <Key className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-black tracking-[0.1em] font-sans">
+                            KEY
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-mono font-black text-xs md:text-sm tracking-wider">
+                          # {v.passwordOrPin}
                         </span>
-                      </>
-                    ) : (
-                      <span className="font-mono font-black text-xs tracking-wider">
-                        # {v.passwordOrPin}
-                      </span>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
+
+              {/* ROW 3: Owner Client Info */}
+              <div className="text-xs md:text-sm font-bold text-workshop-muted uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                <span>Client:</span>
+                <span className="text-workshop-text font-black text-sm md:text-base">
+                  {capitalizeName(customer?.name) || "Unknown Client"}
+                </span>
+              </div>
+
             </div>
           </div>
 
-          <div className="w-full bg-workshop-surface/30 rounded-lg p-2.5 border border-workshop-border/20">
-            <div className="text-workshop-text/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic leading-relaxed">
+          <div className="w-full bg-workshop-surface/30 rounded-xl p-3.5 border border-workshop-border/10">
+            <div className="text-workshop-text/90 whitespace-pre-wrap italic leading-relaxed space-y-1.5">
               {record.description.split("\n").map((line, i) => {
                 const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
                 return cleanLine ? (
-                  <div key={i} className="flex items-start gap-1">
-                    <span className="opacity-40">•</span>
-                    <span>{cleanLine}</span>
+                  <div key={i} className="flex items-start gap-2 text-xs md:text-sm font-semibold">
+                    <span className="opacity-60 text-workshop-accent shrink-0 mt-0.5">•</span>
+                    <span className="flex-1">{cleanLine}</span>
                   </div>
                 ) : null;
               })}
@@ -219,18 +241,18 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
           </div>
 
           {record.personalItems && (
-            <div className="w-full bg-status-success/5 rounded-lg p-2 border border-status-success/10 flex items-center gap-2">
-               <Package className="w-3 h-3 text-status-success shrink-0" />
-               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                 <span className="text-[8px] font-black uppercase text-status-success/70 tracking-widest shrink-0">Personal Items:</span>
-                 <p className="text-[10px] text-workshop-text/80 font-bold leading-tight whitespace-pre-line">{record.personalItems}</p>
+            <div className="w-full bg-status-success/5 rounded-xl p-3 border border-status-success/10 flex items-center gap-2.5">
+               <Package className="w-4 h-4 text-status-success shrink-0" />
+               <div className="flex items-center gap-2 flex-1 min-w-0">
+                 <span className="text-[10px] font-black uppercase text-status-success/70 tracking-widest shrink-0">Personal Items:</span>
+                 <p className="text-xs md:text-sm text-workshop-text/80 font-bold leading-normal whitespace-pre-line">{record.personalItems}</p>
                </div>
             </div>
           )}
 
           {record.finalRemarks && (
-            <div className="w-full bg-status-pending/10 rounded-lg p-2.5 border border-status-pending/20">
-              <p className="text-status-pending/90 text-[10px] md:text-xs font-bold tracking-tight whitespace-pre-wrap italic">
+            <div className="w-full bg-status-pending/15 rounded-xl p-3 border border-status-pending/15">
+              <p className="text-status-pending text-xs md:text-sm font-bold tracking-tight whitespace-pre-wrap italic">
                 "{record.finalRemarks}"
               </p>
             </div>
@@ -250,20 +272,20 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
             );
 
             return (
-              <div className="flex items-center gap-4 px-1 -mb-1">
+              <div className="flex items-center gap-4 px-1">
                 <div className="flex items-center gap-1.5 text-workshop-muted/90">
-                  <ScanHeart className="w-2.5 h-2.5 opacity-60 text-workshop-accent" />
-                  <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                  <ScanHeart className="w-3.5 h-3.5 opacity-60 text-workshop-accent" />
+                  <span className="text-xs font-black uppercase tracking-widest leading-none">
                     Due: {format(dueDate, "dd MMM")}
                   </span>
                 </div>
                 <div
                   className={cn(
-                    "text-[10px] font-black uppercase tracking-widest leading-none",
+                    "text-xs font-black uppercase tracking-widest leading-none",
                     isToday
                       ? "text-workshop-warning"
                       : isPast
-                    ? "text-status-urgent"
+                        ? "text-status-urgent"
                         : "text-workshop-accent",
                   )}
                 >
@@ -277,49 +299,58 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
             );
           })()}
 
-        <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
-          {record.technicianName && (
+        {record.technicianName && (
+          <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
             <div className="flex items-center gap-2 text-workshop-muted/60">
-              <User className="w-2.5 h-2.5 opacity-40" />
-              <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                Advisor: {record.technicianName}
+              <User className="w-3 h-3 opacity-40 shrink-0" />
+              <span className="text-xs font-black uppercase tracking-widest leading-none">
+                Advisor: <span className="text-orange-500 font-black">{record.technicianName}</span>
               </span>
             </div>
-          )}
+          </div>
+        )}
 
-          {customer?.phone && (
-            <a
-              href={`tel:${customer.phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 text-status-success hover:brightness-110 active:scale-95 transition-all outline-none"
-            >
-              <Phone className="w-3.5 h-3.5 fill-status-success/10" />
-              <p className="text-sm font-black tracking-tight uppercase leading-none">
-                {customer.phone}
-              </p>
-            </a>
-          )}
-        </div>
-
-        <div className="h-px bg-workshop-border/30 w-full" />
+        <div className="h-px bg-workshop-border/15 w-full" />
 
         <div className="flex items-center justify-between gap-4 pt-1 px-1">
           <div className="flex flex-col translate-x-1">
-            <p className="text-[9px] font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
+            <p className="text-xs font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
               Job Total
             </p>
-            <p className="text-xl font-black text-workshop-text tracking-tighter leading-none">
+            <p className="text-2xl font-black text-workshop-text tracking-tighter leading-none">
               {formatCurrency(record.totalCost)}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+             {customer?.phone && (
+              <a
+                href={`tel:${customer.phone}`}
+                onClick={(e) => e.stopPropagation()}
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-status-success hover:border-status-success/40 hover:bg-status-success/5 transition-all active:scale-95 shadow-sm shrink-0"
+                title={`Call Client (${customer.phone})`}
+              >
+                <Phone className="w-4 h-4 fill-status-success/10" />
+              </a>
+            )}
+            {customer?.phone && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onWhatsAppClick(customer.name ? capitalizeName(customer.name) : 'Customer', customer.phone);
+                }}
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-[#128C7E] hover:border-[#128C7E]/40 hover:bg-[#128C7E]/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
+                title={`WhatsApp Message Client (${customer.phone})`}
+              >
+                <MessageSquare className="w-4 h-4 fill-[#128C7E]/10" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onUpdateDetails(record);
               }}
-              className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
+              className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
               title="Edit Details"
             >
               <Edit2 className="w-4 h-4" />
@@ -329,7 +360,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                 e.stopPropagation();
                 onDelete(record);
               }}
-              className="p-2 bg-workshop-surface border border-workshop-border/30 rounded-lg text-status-urgent/60 hover:text-status-urgent hover:border-status-urgent/20 transition-all active:scale-95 shadow-sm"
+              className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-status-urgent/60 hover:text-status-urgent hover:border-status-urgent/20 transition-all active:scale-95 shadow-sm"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
@@ -435,6 +466,19 @@ export function ServiceHistory() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
+
+  const handleCardClick = useCallback((record: ServiceRecord) => {
+    setEditingRecord({ ...record });
+  }, []);
+
+  const handleCardUpdateDetails = useCallback((record: ServiceRecord) => {
+    setDetailsRecord({ ...record });
+  }, []);
+
+  const handleCardDelete = useCallback((record: ServiceRecord) => {
+    setRecordToDelete(record);
+  }, []);
 
   // --- State: Search & Lookup Flow ---
   const [lookupStep, setLookupStep] = useState<"search" | "form">("search");
@@ -751,10 +795,6 @@ export function ServiceHistory() {
       alert(`Job Card creation failed: ${errorMessage}`);
       handleFirestoreError(e, "create", "serviceRecords");
     }
-  };
-
-  const handleDeleteRecord = (record: ServiceRecord) => {
-    setRecordToDelete(record);
   };
 
   const confirmDelete = async () => {
@@ -1266,9 +1306,17 @@ export function ServiceHistory() {
                     record={record}
                     v={v}
                     customer={customer}
-                    onClick={() => setEditingRecord({ ...record })}
-                    onUpdateDetails={(r) => setDetailsRecord({ ...r })}
-                    onDelete={handleDeleteRecord}
+                    onClick={handleCardClick}
+                    onUpdateDetails={handleCardUpdateDetails}
+                    onDelete={handleCardDelete}
+                    onWhatsAppClick={(name, phone) => {
+                      const cleanPhone = phone.replace(/[^0-9]/g, "");
+                      setWhatsAppRedirect({
+                        name,
+                        phone,
+                        url: `https://wa.me/${cleanPhone}`
+                      });
+                    }}
                   />
                 );
               })}
@@ -1418,7 +1466,10 @@ export function ServiceHistory() {
                                   <span className="text-workshop-muted font-normal opacity-40">
                                     |
                                   </span>
-                                  <span className="font-mono text-sm text-workshop-secondary uppercase tracking-tighter">
+                                  <span 
+                                    style={{ fontFamily: "'Google Sans', sans-serif" }}
+                                    className="font-sans font-bold text-sm text-workshop-secondary uppercase tracking-tighter"
+                                  >
                                     {res.vehicle.plateNumber}
                                   </span>
                                 </>
@@ -1985,11 +2036,10 @@ export function ServiceHistory() {
         {editingRecord && (
           <Portal>
             <motion.div
-              initial={{ x: "100%", opacity: 0.95 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "100%", opacity: 0.95 }}
-              transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-              style={{ willChange: "transform, opacity" }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
               className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
             >
               {/* Redesigned Premium Clean Top Bar Header */}
@@ -2224,6 +2274,25 @@ export function ServiceHistory() {
                                       >
                                         <User className="w-4 h-4 text-workshop-secondary shrink-0" />
                                         <span>Add {capitalizeName(customer.name).split(" ")[0]} to Contacts</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setContactMenuOpen(false);
+                                          if (customer?.phone) {
+                                            const cleanPhone = customer.phone.replace(/[^0-9]/g, "");
+                                            setWhatsAppRedirect({
+                                              name: customer.name ? capitalizeName(customer.name) : 'Customer',
+                                              phone: customer.phone,
+                                              url: `https://wa.me/${cleanPhone}`
+                                            });
+                                          }
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans outline-none border-0"
+                                        id="whatsapp-update-option"
+                                      >
+                                        <MessageSquare className="w-4 h-4 text-[#128C7E] shrink-0" />
+                                        <span>Send WhatsApp Update</span>
                                       </button>
                                     </motion.div>
                                   </>
@@ -2724,12 +2793,11 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/85"
               />
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                style={{ willChange: "transform, opacity" }}
-                className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] will-change-transform"
+                className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
               >
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase px-1">
@@ -2836,12 +2904,11 @@ export function ServiceHistory() {
                 className="absolute inset-0 bg-workshop-bg/95"
               />
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                style={{ willChange: "transform, opacity" }}
-                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center transition-all"
+                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center"
               >
                 <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
                   <AlertTriangle className="w-8 h-8" />
@@ -2871,6 +2938,14 @@ export function ServiceHistory() {
           </Portal>
         )}
       </AnimatePresence>
+
+      <WhatsAppPopup
+        isOpen={whatsAppRedirect !== null}
+        onClose={() => setWhatsAppRedirect(null)}
+        customerName={whatsAppRedirect?.name || ''}
+        customerPhone={whatsAppRedirect?.phone || ''}
+        url={whatsAppRedirect?.url || ''}
+      />
     </div>
   );
 }

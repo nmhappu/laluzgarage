@@ -54,7 +54,7 @@ function AnimatedRoutes() {
 }
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   if (!user) {
     return (
@@ -81,7 +81,7 @@ function AppContent() {
             <div className="flex items-center gap-8 h-full">
               <div className="flex items-center gap-3">
                 <span className="opacity-40 uppercase tracking-[0.2em] font-bold">Advisor:</span>
-                <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">{user.displayName || user.email}</span>
+                <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">{profile?.name || user.displayName || user.email}</span>
               </div>
             </div>
           </footer>

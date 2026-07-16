@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
-import { Search, Phone, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck, Car, Key, PlusCircle, Check, ArrowLeft } from 'lucide-react';
+import { Search, Phone, MessageSquare, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck, Car, Key, PlusCircle, Check, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { Portal } from './Portal';
+import { WhatsAppPopup } from './WhatsAppPopup';
 
 const capitalizeName = (name?: string) => {
   if (!name) return "";
@@ -30,6 +31,7 @@ export function VehicleHistory() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedVehicleForLedger, setSelectedVehicleForLedger] = useState<Vehicle | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
 
   // --- State: Active Models for Add/Edit ---
   const [newVehicle, setNewVehicle] = useState({
@@ -112,9 +114,12 @@ export function VehicleHistory() {
       // 1. Create a customer if registering a new owner along the way
       if (newVehicle.createNewOwner) {
         if (!newVehicle.ownerName || !newVehicle.ownerPhone) return;
+        const formattedPhone = newVehicle.ownerPhone.trim().startsWith('+91')
+          ? newVehicle.ownerPhone.trim()
+          : `+91 ${newVehicle.ownerPhone.trim()}`;
         const customerRef = await addDoc(collection(db, 'customers'), {
           name: newVehicle.ownerName,
-          phone: newVehicle.ownerPhone,
+          phone: formattedPhone,
           technicianId: auth.currentUser?.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -123,6 +128,15 @@ export function VehicleHistory() {
       }
 
       if (!finalCustomerId) return;
+
+      const owner = newVehicle.createNewOwner
+        ? {
+            name: newVehicle.ownerName || '',
+            phone: newVehicle.ownerPhone.trim().startsWith('+91')
+              ? newVehicle.ownerPhone.trim()
+              : `+91 ${newVehicle.ownerPhone.trim()}`
+          }
+        : customers.find(c => c.id === finalCustomerId);
 
       // 2. Add the vehicle itself
       await addDoc(collection(db, 'vehicles'), {
@@ -136,6 +150,16 @@ export function VehicleHistory() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      // Automated WhatsApp dispatch upon successful vehicle submission
+      if (owner && owner.phone) {
+        const cleanPhone = owner.phone.replace(/[^0-9]/g, "");
+        const greeting = `Hello ${owner.name ? capitalizeName(owner.name) : 'Customer'},\n\nWe have successfully registered your vehicle *${newVehicle.make} ${newVehicle.model}* [${newVehicle.plateNumber.toUpperCase() || 'No Plate'}] in our system.\n\n`;
+        const signOff = `If you have any questions or would like to request general maintenance, please let us know. Thank you!`;
+        const fullText = `${greeting}${signOff}`;
+        const waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(fullText)}`;
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
 
       setShowAddModal(false);
       setNewVehicle({
@@ -331,7 +355,10 @@ export function VehicleHistory() {
                     </h3>
                   </div>
                   {vehicle.plateNumber && (
-                    <span className="text-base sm:text-lg text-[#3B82F6] font-sans font-black uppercase tracking-wider shrink-0 text-right">
+                    <span 
+                      style={{ fontFamily: "'Google Sans', sans-serif" }}
+                      className="text-base sm:text-lg text-[#3B82F6] font-black uppercase tracking-wider shrink-0 text-right"
+                    >
                       {vehicle.plateNumber}
                     </span>
                   )}
@@ -379,19 +406,40 @@ export function VehicleHistory() {
                   </div>
                 </div>
 
-                {/* Row 3: Call Option on bottom-left, Actions on bottom-right */}
+                 {/* Row 3: Call Option on bottom-left, Actions on bottom-right */}
                 <div className="flex items-center justify-between w-full relative z-20 font-sans">
-                  {/* Left: Call option button */}
-                  <div className="flex-1 text-left">
+                  {/* Left: Call & WhatsApp option buttons */}
+                  <div className="flex-1 flex flex-wrap items-center gap-2 text-left">
                     {vehicle.ownerPhone ? (
-                      <a 
-                        href={`tel:${vehicle.ownerPhone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 bg-status-success/15 hover:bg-status-success/25 text-status-success px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-status-success/10 active:scale-95"
-                      >
-                        <Phone className="w-3 h-3 shrink-0" />
-                        <span>Call {capitalizeName(vehicle.ownerName).toUpperCase()}</span>
-                      </a>
+                      <>
+                        <a 
+                          href={`tel:${vehicle.ownerPhone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 bg-status-success/15 hover:bg-status-success/25 text-status-success px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-status-success/10 active:scale-95"
+                          title={`Call ${capitalizeName(vehicle.ownerName)}`}
+                        >
+                          <Phone className="w-3 h-3 shrink-0" />
+                          <span>Call</span>
+                        </a>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (vehicle.ownerPhone) {
+                              const cleanPhone = vehicle.ownerPhone.replace(/[^0-9]/g, "");
+                              setWhatsAppRedirect({
+                                name: vehicle.ownerName ? capitalizeName(vehicle.ownerName) : 'Customer',
+                                phone: vehicle.ownerPhone,
+                                url: `https://wa.me/${cleanPhone}`
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 bg-[#128C7E]/15 hover:bg-[#128C7E]/25 text-[#128C7E] px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-[#128C7E]/10 active:scale-95 border-0 outline-none"
+                          title={`Send WhatsApp Message to ${capitalizeName(vehicle.ownerName)}`}
+                        >
+                          <MessageSquare className="w-3 h-3 shrink-0 fill-[#128C7E]/10" />
+                          <span>WhatsApp</span>
+                        </button>
+                      </>
                     ) : (
                       <span className="text-[10px] text-workshop-muted/40 uppercase tracking-widest font-black font-sans">No Phone Number</span>
                     )}
@@ -627,17 +675,40 @@ export function VehicleHistory() {
                             placeholder="e.g. David Miller"
                           />
                         </div>
-                        <div className="space-y-1.5 col-span-2 md:col-span-1">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">Contact Phone</label>
-                          <input 
-                            required={newVehicle.createNewOwner}
-                            type="tel" 
-                            inputMode="tel"
-                            value={newVehicle.ownerPhone}
-                            onChange={e => setNewVehicle({...newVehicle, ownerPhone: e.target.value})}
-                            className="w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text font-bold"
-                            placeholder="+91 88888 88888"
-                          />
+                        <div className="relative pt-2 py-0.5 col-span-2 md:col-span-1">
+                          <div className="flex items-center w-full bg-workshop-surface border-2 border-[#3B82F6] rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-[#3B82F6]/30 transition-all">
+                            {/* Floating notched label */}
+                            <span className="absolute left-4 top-0 bg-workshop-card px-2 text-[10px] font-black uppercase tracking-wider text-[#3B82F6] select-none">
+                              Phone number
+                            </span>
+                            
+                            {/* Prefix */}
+                            <span className="text-workshop-text font-mono font-bold text-sm select-none pr-3 shrink-0">
+                              +91
+                            </span>
+                            
+                            {/* Separator / Divider Line */}
+                            <div className="h-5 w-px bg-workshop-border/40 mr-3 shrink-0" />
+                            
+                            {/* Actual Input */}
+                            <input 
+                              required={newVehicle.createNewOwner}
+                              type="tel" 
+                              inputMode="tel"
+                              value={newVehicle.ownerPhone}
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.startsWith("+91")) {
+                                  val = val.substring(3);
+                                } else if (val.startsWith("91") && val.length > 10) {
+                                  val = val.substring(2);
+                                }
+                                setNewVehicle({...newVehicle, ownerPhone: val});
+                              }}
+                              className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-mono font-bold text-sm tracking-wide placeholder-workshop-muted/40"
+                              placeholder="85471 87345"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1072,7 +1143,7 @@ export function VehicleHistory() {
               </div>
 
               {/* Bottom Sticky Action Header */}
-              <div className="p-6 bg-workshop-bg border-t border-workshop-border/30 flex justify-end shrink-0">
+              <div className="pt-6 px-6 pb-14 sm:pb-6 bg-workshop-bg border-t border-workshop-border/30 flex justify-end shrink-0">
                 <button 
                   onClick={() => setSelectedVehicleForLedger(null)}
                   className="px-8 py-3.5 bg-[#3B82F6] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:brightness-110 shadow-lg shadow-[#3B82F6]/20 active:scale-95 transition-all outline-none"
@@ -1084,6 +1155,14 @@ export function VehicleHistory() {
           </Portal>
         )}
       </AnimatePresence>
+
+      <WhatsAppPopup
+        isOpen={whatsAppRedirect !== null}
+        onClose={() => setWhatsAppRedirect(null)}
+        customerName={whatsAppRedirect?.name || ''}
+        customerPhone={whatsAppRedirect?.phone || ''}
+        url={whatsAppRedirect?.url || ''}
+      />
     </div>
   );
 }

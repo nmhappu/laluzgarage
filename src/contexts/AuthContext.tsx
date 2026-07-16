@@ -9,10 +9,12 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { WorkshopUser } from '../types';
 
 interface AuthContextType {
   user: User | null;
+  profile: WorkshopUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
@@ -26,14 +28,86 @@ const MdCircularProgress = 'md-circular-progress' as any;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<WorkshopUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    let unsubscribeProfile: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (authUser) {
+        try {
+          const userRef = doc(db, 'users', authUser.uid);
+          const userSnap = await getDoc(userRef);
+          if (!userSnap.exists() && authUser.email) {
+            // Check if there is an existing user profile document in the database with this email
+            const q = query(collection(db, 'users'), where('email', '==', authUser.email.toLowerCase()));
+            const qSnap = await getDocs(q);
+            
+            if (!qSnap.empty) {
+              // Found pre-existing profile document(s) with matching email
+              const oldDoc = qSnap.docs[0];
+              const oldData = oldDoc.data();
+              
+              // Migrate/copy old data to a new document keyed by the actual Auth UID
+              await setDoc(userRef, {
+                ...oldData,
+                id: authUser.uid,
+                email: authUser.email, // Ensure email matches
+                updatedAt: serverTimestamp()
+              });
+              
+              // If the old document had a different ID, delete the old document
+              if (oldDoc.id !== authUser.uid) {
+                await deleteDoc(doc(db, 'users', oldDoc.id));
+                console.log(`Migrated user profile for ${authUser.email} from temp document ${oldDoc.id} to UID ${authUser.uid}`);
+              }
+            } else {
+              // No existing profile found, create a new one
+              await setDoc(userRef, {
+                id: authUser.uid,
+                name: authUser.displayName || authUser.email.split('@')[0] || 'Unnamed Advisor',
+                email: authUser.email,
+                status: 'offline',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+              console.log(`Created new profile document for ${authUser.email} with UID ${authUser.uid}`);
+            }
+          }
+        } catch (e) {
+          console.error('Error auto-syncing user profile:', e);
+        }
+
+        // Setup real-time listener for the active user profile
+        unsubscribeProfile = onSnapshot(doc(db, 'users', authUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as WorkshopUser);
+          } else {
+            setProfile(null);
+          }
+        }, (err) => {
+          console.error('Real-time profile listener error:', err);
+        });
+      } else {
+        setProfile(null);
+      }
+
+      setUser(authUser);
       setLoading(false);
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribe();
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+      }
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -86,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

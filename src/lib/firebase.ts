@@ -2,17 +2,17 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDOKnWPCvAAujHhxz6r2HOcvpi_cFsvnIQ",
+  authDomain: "gen-lang-client-0601889915.firebaseapp.com",
+  projectId: "gen-lang-client-0601889915",
+  storageBucket: "gen-lang-client-0601889915.firebasestorage.app",
+  messagingSenderId: "70866316727",
+  appId: "1:70866316727:web:8da6fe030884ed85b08c32",
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID);
+export const db = getFirestore(app, "ai-studio-68b1ba2c-7611-4e4f-b6eb-ac12f212fa4e");
 
 export interface FirestoreErrorInfo {
   error: string;

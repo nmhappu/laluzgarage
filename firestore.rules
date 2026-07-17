@@ -78,7 +78,8 @@ service cloud.firestore {
       return data.keys().hasAll(['name', 'email', 'status', 'createdAt', 'updatedAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
-             data.status in ['online', 'offline'];
+             data.status in ['online', 'offline'] &&
+             (!('tags' in data.keys()) || (data.tags is list && (data.tags.size() == 0 || (data.tags.size() > 0 && data.tags[0] is string))));
     }
 
     // --- Collection Rules ---

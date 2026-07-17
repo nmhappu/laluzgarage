@@ -35,6 +35,48 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [formEmail, setFormEmail] = useState('');
   const [formStatus, setFormStatus] = useState<'online' | 'offline'>('offline');
   const [formPin, setFormPin] = useState('');
+  const [formTags, setFormTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>(['tech']);
+  const [newTagInput, setNewTagInput] = useState('');
+
+  // Dynamically calculate all tags in database + 'tech' as default
+  useEffect(() => {
+    const tagsSet = new Set<string>(['tech']);
+    users.forEach(u => {
+      if (u.tags && Array.isArray(u.tags)) {
+        u.tags.forEach(t => {
+          if (t && typeof t === 'string') {
+            tagsSet.add(t.trim().toLowerCase());
+          }
+        });
+      }
+    });
+    setAvailableTags(Array.from(tagsSet));
+  }, [users]);
+
+  const handleCreateTag = () => {
+    const trimmed = newTagInput.trim().toLowerCase();
+    if (!trimmed) return;
+    if (trimmed.length > 20) {
+      setError('Tag name must be 20 characters or less.');
+      return;
+    }
+    if (!availableTags.includes(trimmed)) {
+      setAvailableTags(prev => [...prev, trimmed]);
+    }
+    if (!formTags.includes(trimmed)) {
+      setFormTags(prev => [...prev, trimmed]);
+    }
+    setNewTagInput('');
+  };
+
+  const handleToggleTag = (tag: string) => {
+    setFormTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  };
 
   // Secret Accounts easter egg state
   const [accountsRevealed, setAccountsRevealed] = useState(false);
@@ -116,6 +158,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setFormEmail(user.email || '');
     setFormStatus(user.status || 'offline');
     setFormPin(user.pin || '');
+    setFormTags(user.tags || []);
     setIsCreating(false);
   };
 
@@ -125,6 +168,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setFormEmail('');
     setFormStatus('offline');
     setFormPin('');
+    setFormTags([]);
     setIsCreating(true);
   };
 
@@ -150,6 +194,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           email: formEmail.trim().toLowerCase(),
           status: formStatus,
           pin: formPin || null,
+          tags: formTags,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -166,6 +211,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           email: formEmail.trim().toLowerCase(),
           status: formStatus,
           pin: formPin || null,
+          tags: formTags,
           updatedAt: serverTimestamp()
         });
 
@@ -457,9 +503,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           className="w-full text-left py-4 flex items-center justify-between hover:bg-workshop-surface/10 transition-all rounded-none px-0 group"
                         >
                           <div className="min-w-0 flex-1 pr-4">
-                            <p className="text-sm font-bold text-workshop-text group-hover:text-status-success transition-colors">
-                              {u.name || 'Unnamed Advisor'}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-bold text-workshop-text group-hover:text-status-success transition-colors">
+                                {u.name || 'Unnamed Advisor'}
+                              </p>
+                              {u.tags && u.tags.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {u.tags.map(t => (
+                                    <span key={t} className="px-1.5 py-0.5 bg-workshop-surface border border-workshop-border/40 text-[9px] font-mono font-black uppercase tracking-wider text-workshop-muted rounded">
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <p className="text-xs font-mono text-workshop-muted mt-0.5 truncate">{u.email}</p>
                           </div>
                           <div className="flex items-center gap-4 shrink-0">
@@ -549,6 +606,81 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             placeholder="4-Digit Security PIN"
                             className="w-full bg-workshop-surface border border-workshop-border/60 pl-10 pr-4 py-2.5 rounded-lg text-sm font-mono tracking-widest font-bold text-workshop-text focus:border-status-success focus:ring-1 focus:ring-status-success/20 outline-none transition-all"
                           />
+                        </div>
+                      </div>
+
+                      {/* Tags Section */}
+                      <div className="space-y-3 pt-2">
+                        <label className="text-xs font-bold text-workshop-muted uppercase tracking-wider block">Advisor Tags</label>
+                        
+                        {/* Currently Selected Tags */}
+                        <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-workshop-surface border border-workshop-border/40 rounded-lg">
+                          {formTags.length === 0 ? (
+                            <span className="text-xs text-workshop-muted italic px-1 self-center">No tags selected. Click from available tags below to assign.</span>
+                          ) : (
+                            formTags.map(tag => (
+                              <button
+                                type="button"
+                                key={tag}
+                                onClick={() => handleToggleTag(tag)}
+                                className="group flex items-center gap-1 px-2 py-0.5 bg-status-success/10 border border-status-success/30 hover:border-status-urgent/40 hover:bg-status-urgent/5 text-[10px] font-mono font-bold text-status-success hover:text-status-urgent rounded transition-all"
+                                title="Click to remove tag"
+                              >
+                                <span>{tag}</span>
+                                <span className="opacity-60 group-hover:opacity-100 font-sans text-xs">×</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Available Tags list to select from */}
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold text-workshop-muted uppercase tracking-wider">Available Tags (Tap to toggle)</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableTags.map(tag => {
+                              const isSelected = formTags.includes(tag);
+                              return (
+                                <button
+                                  type="button"
+                                  key={tag}
+                                  onClick={() => handleToggleTag(tag)}
+                                  className={cn(
+                                    "px-2 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider rounded border transition-all active:scale-95",
+                                    isSelected 
+                                      ? "bg-status-success text-workshop-bg border-status-success" 
+                                      : "bg-workshop-surface text-workshop-muted border-workshop-border/60 hover:text-workshop-text hover:border-workshop-muted"
+                                  )}
+                                >
+                                  {tag}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Create Tag Input & Button */}
+                        <div className="flex gap-2 pt-1">
+                          <input 
+                            type="text"
+                            value={newTagInput}
+                            onChange={(e) => setNewTagInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '').substring(0, 15))}
+                            placeholder="New tag name (e.g. admin)"
+                            className="flex-1 bg-workshop-surface border border-workshop-border/60 px-3 py-2 rounded-lg text-xs font-semibold text-workshop-text focus:border-status-success focus:ring-1 focus:ring-status-success/20 outline-none transition-all"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleCreateTag();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCreateTag}
+                            className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-workshop-surface border border-workshop-border/60 text-workshop-text hover:bg-workshop-surface/80 hover:text-status-success transition-all active:scale-95 flex items-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Create Tag</span>
+                          </button>
                         </div>
                       </div>
                     </div>

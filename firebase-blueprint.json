@@ -94,6 +94,7 @@
         "name": { "type": "string", "description": "Full name of the staff member." },
         "email": { "type": "string", "format": "email", "description": "Work email address." },
         "status": { "type": "string", "enum": ["online", "offline"], "description": "Current availability status." },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags assigned to this user." },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },

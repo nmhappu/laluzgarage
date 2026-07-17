@@ -70,6 +70,7 @@ export interface WorkshopUser {
   email: string;
   status: 'online' | 'offline';
   pin?: string;
+  tags?: string[];
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
 }

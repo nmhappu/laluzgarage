@@ -1036,13 +1036,50 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                   >
                     <ArrowLeft className="w-4 h-4" /> {selectedVehicle ? "Back to Search" : "Vehicle Info"}
                   </button>
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
-                      Job Specification
-                    </h3>
-                    <p className="text-workshop-muted text-sm">
-                      Define the reason for intake and current vehicle status.
-                    </p>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+                        Job Specification
+                      </h3>
+                      <p className="text-workshop-muted text-sm">
+                        Define the reason for intake and current vehicle status.
+                      </p>
+                    </div>
+                    {(() => {
+                      const pinOrKey = selectedVehicle 
+                        ? selectedVehicle.passwordOrPin 
+                        : (useKey ? 'Key' : vehicleForm.passwordOrPin);
+                      
+                      if (!pinOrKey) return null;
+
+                      const isKey = pinOrKey.toLowerCase() === 'key';
+
+                      return (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-workshop-surface border border-workshop-border rounded-xl shadow-sm self-start shrink-0">
+                          {isKey ? (
+                            <>
+                              <Key className="w-3.5 h-3.5 text-workshop-accent animate-pulse" />
+                              <span className="text-[10px] font-mono font-black uppercase tracking-wider text-workshop-text">
+                                Key
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-workshop-accent opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-workshop-accent"></span>
+                              </span>
+                              <span className="text-[10px] font-mono font-black uppercase tracking-wider text-workshop-muted">
+                                PIN:
+                              </span>
+                              <span className="text-[11px] font-mono font-black tracking-wider text-workshop-text">
+                                {pinOrKey}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="space-y-4">

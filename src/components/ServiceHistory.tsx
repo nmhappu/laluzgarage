@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -424,11 +424,62 @@ export function ServiceHistory() {
   
   // --- State: UI Control ---
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "all" | "pending" | "in-progress" | "completed" | "cancelled"
-  >("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get("status") as "all" | "pending" | "in-progress" | "completed" | "cancelled") || "all";
+  const setActiveTab = (val: "all" | "pending" | "in-progress" | "completed" | "cancelled") => {
+    setSearchParams(prev => {
+      if (val === "all") {
+        prev.delete("status");
+      } else {
+        prev.set("status", val);
+      }
+      return prev;
+    }, { replace: true });
+  };
 
   // Sync activeTab from location state
+  const [scrollTop, setScrollTop] = useState(0);
+
+  useEffect(() => {
+    let scrollContainer: Element | null = null;
+    
+    const handleScroll = () => {
+      if (scrollContainer) {
+        setScrollTop(scrollContainer.scrollTop);
+      }
+    };
+
+    const bindScroll = () => {
+      scrollContainer = document.querySelector('.overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        setScrollTop(scrollContainer.scrollTop);
+        return true;
+      }
+      return false;
+    };
+
+    if (!bindScroll()) {
+      const interval = setInterval(() => {
+        if (bindScroll()) {
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => {
+        clearInterval(interval);
+        if (scrollContainer) {
+          scrollContainer.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (location.state && typeof location.state === "object" && "activeTab" in location.state) {
       const stateObj = location.state as Record<string, unknown>;
@@ -487,7 +538,26 @@ export function ServiceHistory() {
   const [searchResults, setSearchResults] = useState<
     { customer: Customer; vehicle?: Vehicle }[]
   >([]);
-  const [searchLogs, setSearchLogs] = useState("");
+  const stickySearchLogs = searchParams.get("q") || "";
+  const [localSearchInput, setLocalSearchInput] = useState(() => searchParams.get("service_q") || "");
+  const [appliedSearchLogs, setAppliedSearchLogs] = useState(() => searchParams.get("service_q") || "");
+
+  // Debounce search input to avoid lag and run searches independently
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setAppliedSearchLogs(localSearchInput);
+      setSearchParams(prev => {
+        if (!localSearchInput) {
+          prev.delete("service_q");
+        } else {
+          prev.set("service_q", localSearchInput);
+        }
+        return prev;
+      }, { replace: true });
+    }, 250);
+
+    return () => clearTimeout(handler);
+  }, [localSearchInput, setSearchParams]);
 
   const tabCounts = useMemo(() => {
     const counts = { all: records.length, pending: 0, "in-progress": 0, completed: 0, cancelled: 0 };
@@ -1045,7 +1115,8 @@ export function ServiceHistory() {
       // Status Tab Filter
       const matchesTab =
         activeTab === "all" ||
-        searchLogs.trim() !== "" ||
+        appliedSearchLogs.trim() !== "" ||
+        stickySearchLogs.trim() !== "" ||
         (activeTab === "pending" && r.status === "pending") ||
         (activeTab === "in-progress" && r.status === "in-progress") ||
         (activeTab === "completed" && r.status === "completed") ||
@@ -1053,26 +1124,49 @@ export function ServiceHistory() {
 
       if (!matchesTab) return false;
 
-      // Search Filter
-      if (!searchLogs.trim()) return true;
+      // Local Body Search Filter
+      if (appliedSearchLogs.trim()) {
+        const query = appliedSearchLogs.toLowerCase();
+        const vehicle = vehicleMap.get(r.vehicleId);
+        const customer = customerMap.get(r.customerId);
 
-      const query = searchLogs.toLowerCase();
-      const vehicle = vehicleMap.get(r.vehicleId);
-      const customer = customerMap.get(r.customerId);
+        const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
+        const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
+        const customerName = customer?.name?.toLowerCase() || "";
+        const vehicleColor = vehicle?.color?.toLowerCase() || "";
 
-      const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
-      const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
-      const customerName = customer?.name?.toLowerCase() || "";
-      const vehicleColor = vehicle?.color?.toLowerCase() || "";
+        const matchesLocal = (
+          vehicleName.includes(query) ||
+          plateNumber.includes(query) ||
+          customerName.includes(query) ||
+          vehicleColor.includes(query)
+        );
+        if (!matchesLocal) return false;
+      }
 
-      return (
-        vehicleName.includes(query) ||
-        plateNumber.includes(query) ||
-        customerName.includes(query) ||
-        vehicleColor.includes(query)
-      );
+      // Sticky Header Search Filter
+      if (stickySearchLogs.trim()) {
+        const query = stickySearchLogs.toLowerCase();
+        const vehicle = vehicleMap.get(r.vehicleId);
+        const customer = customerMap.get(r.customerId);
+
+        const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
+        const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
+        const customerName = customer?.name?.toLowerCase() || "";
+        const vehicleColor = vehicle?.color?.toLowerCase() || "";
+
+        const matchesSticky = (
+          vehicleName.includes(query) ||
+          plateNumber.includes(query) ||
+          customerName.includes(query) ||
+          vehicleColor.includes(query)
+        );
+        if (!matchesSticky) return false;
+      }
+
+      return true;
     });
-  }, [records, activeTab, searchLogs, vehicleMap, customerMap]);
+  }, [records, activeTab, appliedSearchLogs, stickySearchLogs, vehicleMap, customerMap]);
 
   const addPartToRecord = (partId: string) => {
     const part = parts.find((p) => p.id === partId);
@@ -1104,7 +1198,10 @@ export function ServiceHistory() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header 
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-opacity duration-75"
+        style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
+      >
         <div>
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase">
             Service History
@@ -1201,16 +1298,16 @@ export function ServiceHistory() {
           <input
             type="text"
             placeholder="Search vehicle, owner or plate..."
-            value={searchLogs}
-            onChange={(e) => setSearchLogs(e.target.value)}
+            value={localSearchInput}
+            onChange={(e) => setLocalSearchInput(e.target.value)}
             className={cn(
-              "w-full bg-workshop-surface border border-workshop-border pl-11 pr-10 py-3 rounded-xl text-xs font-bold text-workshop-text focus:border-workshop-accent focus:ring-4 focus:ring-workshop-accent/10 outline-none transition-all placeholder:text-workshop-muted/50 uppercase tracking-tight",
-              searchLogs && "bg-workshop-accent/5 border-workshop-accent/20",
+              "w-full bg-workshop-surface border border-workshop-border pl-11 pr-10 py-3 rounded-xl text-xs font-bold text-workshop-text focus:border-workshop-accent focus:ring-4 focus:ring-workshop-accent/10 outline-none transition-all placeholder:text-workshop-muted/50 uppercase tracking-tight h-[46px]",
+              localSearchInput && "bg-workshop-accent/5 border-workshop-accent/20",
             )}
           />
-          {searchLogs && (
+          {localSearchInput && (
             <button
-              onClick={() => setSearchLogs("")}
+              onClick={() => setLocalSearchInput("")}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-workshop-muted hover:text-status-urgent transition-colors"
             >
               <X className="w-3 h-3" />
@@ -1228,7 +1325,7 @@ export function ServiceHistory() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
-              className="space-y-4 font-sans"
+              className="space-y-4 font-sans accelerate-gpu will-change-transform-opacity"
             >
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
@@ -1283,7 +1380,7 @@ export function ServiceHistory() {
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               className="text-center py-20 text-workshop-muted text-sm italic"
             >
-              {searchLogs
+              {(appliedSearchLogs || stickySearchLogs)
                 ? "No records match your search criteria."
                 : `No ${activeTab === "all" ? "" : activeTab} records found in the logbook.`}
             </motion.div>
@@ -1295,7 +1392,7 @@ export function ServiceHistory() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-              className="space-y-4"
+              className="space-y-4 accelerate-gpu will-change-transform-opacity"
             >
               {filteredRecords.map((record) => {
                 const v = vehicleMap.get(record.vehicleId);
@@ -1562,7 +1659,7 @@ export function ServiceHistory() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted">
-                        Current KM Reading
+                        Odometer
                       </label>
                       <div className="relative">
                         <input
@@ -1584,9 +1681,9 @@ export function ServiceHistory() {
                           )}
                           placeholder={
                             newRecord.isDeadVehicle 
-                              ? "N/A - DEAD VEHICLE" 
+                              ? "DEAD VEHICLE" 
                               : newRecord.isUnknownMileage 
-                                ? "N/A - VEHICLE LOCKED" 
+                                ? "VEHICLE LOCKED" 
                                 : "0"
                           }
                         />
@@ -1646,7 +1743,7 @@ export function ServiceHistory() {
                               : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-white/50 hover:text-white"
                           )}
                         >
-                          Unknown (Locked/Alive)
+                          Vehicle Locked
                           <div
                             className={cn(
                               "w-1.5 h-1.5 rounded-full",
@@ -1660,7 +1757,7 @@ export function ServiceHistory() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted flex items-center gap-1.5">
-                        Expected Delivery Date
+                        Estimated Delivery Date
                         <span className="text-status-urgent">*</span>
                       </label>
                       <MaterialCalendar

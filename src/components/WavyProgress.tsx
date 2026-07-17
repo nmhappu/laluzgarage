@@ -27,7 +27,7 @@ export function WavyProgress({
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
 
   return (
-    <div className={cn("w-full select-none relative flex items-center", className)} style={{ height }}>
+    <div className={cn(!className?.includes('absolute') && "w-full", "select-none relative flex items-center", className)} style={{ height }}>
       <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern 
@@ -71,7 +71,7 @@ export function WavyProgress({
         />
 
         {/* 2. Active Track: clipped dynamically inside parent matching progress % */}
-        <svg width={`${percentage}%`} height="100%" className="transition-[width] duration-500 ease-out overflow-visible">
+        <svg width={`${percentage}%`} height="100%" className="transition-[width] duration-500 ease-out overflow-hidden">
           <rect
             width="100%"
             height="100%"

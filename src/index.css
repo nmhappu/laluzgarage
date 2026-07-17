@@ -122,6 +122,27 @@
 }
 
 /* Utilities for mobile optimization */
+@utility google-sans {
+  font-family: "Google Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0;
+}
+
+.google-sans {
+  font-family: "Google Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0;
+}
+@utility accelerate-gpu {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@utility will-change-transform-opacity {
+  will-change: transform, opacity;
+}
+
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }

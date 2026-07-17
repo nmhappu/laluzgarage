@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Portal } from './Portal';
 import { cn } from '../lib/utils';
 import type { WorkshopUser } from '../types';
+import { useUI } from '../contexts/UIContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -68,6 +69,36 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setLoading(false);
     }
   };
+
+  const { registerModal } = useUI();
+
+  // Register with UIContext so BackButtonHandler knows a modal is active
+  useEffect(() => {
+    if (isOpen) {
+      const unregister = registerModal();
+      return () => unregister();
+    }
+  }, [isOpen, registerModal]);
+
+  // Listen for the appBackButton event dispatched by BackButtonHandler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBackButton = (e: Event) => {
+      e.preventDefault(); // Prevent default exit
+      setError(null);
+      if (viewState === 'categories') {
+        onClose();
+      } else if (viewState === 'edit_account') {
+        setViewState('accounts');
+      } else {
+        setViewState('categories');
+      }
+    };
+
+    window.addEventListener('appBackButton', handleBackButton);
+    return () => window.removeEventListener('appBackButton', handleBackButton);
+  }, [isOpen, viewState, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -208,10 +239,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.26, ease: [0.2, 0, 0, 1.0] }}
-        className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col overflow-hidden text-workshop-text font-sans"
+        className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col overflow-hidden text-workshop-text font-sans accelerate-gpu will-change-transform-opacity"
       >
         {/* Dynamic Navigation Header based on ViewState */}
-        <div className="border-b border-workshop-border/30 bg-workshop-surface/20">
+        <div className="bg-workshop-bg safe-top">
           <div className="max-w-4xl mx-auto w-full px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-4 min-w-0">
               <button
@@ -331,7 +362,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Page Content Panel Container */}
         <div className="flex-1 overflow-y-auto bg-workshop-bg">
-          <div className="max-w-4xl mx-auto w-full px-6 py-8 md:py-12">
+          <div className="max-w-4xl mx-auto w-full px-6 pt-0 pb-8 md:pb-12">
             <AnimatePresence mode="wait">
               {viewState === 'categories' && (
                 <motion.div
@@ -342,23 +373,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   exit="exit"
                   className="space-y-6"
                 >
-                  <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-workshop-muted">Settings Categories</h3>
-                  </div>
-
                   {/* Cardless Flat Categories List */}
-                  <div className="divide-y divide-workshop-border/30 border-t border-b border-workshop-border/30">
+                  <div className="divide-y divide-workshop-border/30 border-b border-workshop-border/30">
                     {/* Accounts Category */}
                     {accountsRevealed && (
                       <button
                         id="settings-category-accounts"
                         onClick={() => setViewState('accounts')}
-                        className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors px-4 -mx-4 rounded-xl group animate-fade-in"
+                        className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group animate-fade-in px-0"
                       >
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 bg-status-success/10 rounded-xl flex items-center justify-center text-status-success border border-status-success/20 shrink-0">
-                            <User className="w-5 h-5 text-status-success" />
-                          </div>
+                          <User className="w-5 h-5 text-status-success shrink-0" />
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-status-success transition-colors">Accounts</p>
                           </div>
@@ -371,12 +396,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <button
                       id="settings-category-general"
                       onClick={() => setViewState('general')}
-                      className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors px-4 -mx-4 rounded-xl group"
+                      className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0"
                     >
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 bg-workshop-secondary/10 rounded-xl flex items-center justify-center text-workshop-secondary border border-workshop-secondary/20 shrink-0">
-                          <Sliders className="w-5 h-5 text-workshop-secondary" />
-                        </div>
+                        <Sliders className="w-5 h-5 text-workshop-secondary shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-workshop-secondary transition-colors">General</p>
                         </div>
@@ -388,12 +411,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <button
                       id="settings-category-system"
                       onClick={() => setViewState('system')}
-                      className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors px-4 -mx-4 rounded-xl group"
+                      className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0"
                     >
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0">
-                          <Info className="w-5 h-5 text-amber-500" />
-                        </div>
+                        <Info className="w-5 h-5 text-amber-500 shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-amber-400 transition-colors">System</p>
                         </div>
@@ -413,10 +434,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   exit="exit"
                   className="space-y-6"
                 >
-                  <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-workshop-muted">Authorized Advisors ({users.length})</h3>
-                  </div>
-
                   {loading && users.length === 0 ? (
                     <div className="py-16 text-center text-workshop-muted text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-2">
                       <Loader2 className="w-6 h-6 animate-spin text-status-success" />
@@ -428,7 +445,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   ) : (
                     /* Flat List, Clean Cardless Style with Thin Dividers */
-                    <div className="divide-y divide-workshop-border/20 border-t border-b border-workshop-border/20">
+                    <div className="divide-y divide-workshop-border/20 border-b border-workshop-border/20">
                       {users.map((u) => (
                         <button
                           key={u.id}
@@ -437,7 +454,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             handleSelectUser(u);
                             setViewState('edit_account');
                           }}
-                          className="w-full text-left py-4 flex items-center justify-between hover:bg-workshop-surface/20 transition-all rounded-lg px-3 -mx-3 group"
+                          className="w-full text-left py-4 flex items-center justify-between hover:bg-workshop-surface/10 transition-all rounded-none px-0 group"
                         >
                           <div className="min-w-0 flex-1 pr-4">
                             <p className="text-sm font-bold text-workshop-text group-hover:text-status-success transition-colors">
@@ -597,12 +614,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   exit="exit"
                   className="space-y-6"
                 >
-                  <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-workshop-muted">General Workshop Preferences</h3>
-                  </div>
-
                   {/* General Settings Options List - Flat, clean, cardless style */}
-                  <div className="divide-y divide-workshop-border/30 border-t border-b border-workshop-border/20">
+                  <div className="divide-y divide-workshop-border/30 border-b border-workshop-border/20">
                     <div className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-bold text-workshop-text">Workshop Identifier</p>
@@ -644,12 +657,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   exit="exit"
                   className="space-y-6"
                 >
-                  <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-workshop-muted">Cloud & Database Services</h3>
-                  </div>
-
                   {/* System Diagnostics List - Flat, clean, cardless style */}
-                  <div className="divide-y divide-workshop-border/30 border-t border-b border-workshop-border/20">
+                  <div className="divide-y divide-workshop-border/30 border-b border-workshop-border/20">
                     <div className="py-5 flex items-center justify-between">
                       <div>
                         <p className="text-sm font-bold text-workshop-text">Firestore Database</p>

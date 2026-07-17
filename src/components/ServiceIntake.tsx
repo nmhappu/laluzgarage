@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '@material/web/progress/circular-progress.js';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { 
@@ -18,6 +19,9 @@ import type { Customer, Vehicle, WorkshopUser } from '../types';
 import { Portal } from './Portal';
 import { MaterialCalendar } from './ui/MaterialCalendar';
 import { WavyProgress } from './WavyProgress';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MdCircularProgress = 'md-circular-progress' as any;
 
 const capitalizeName = (name: string) => {
   return name
@@ -384,23 +388,19 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     return (
       <Portal>
         <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-y-auto">
+          <div className="safe-top" />
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-center px-6 py-8 shrink-0"
+            className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-start pt-12 md:pt-16 px-6 py-8 shrink-0"
           >
             {/* PIN Header */}
             <div className="flex items-center justify-between pb-6 border-b border-workshop-border/40 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-lg shadow-blue-500/5">
-                  <Key className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-black tracking-tight uppercase leading-none">Advisor Verification</h2>
-                  <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-60">Authentication Required</p>
-                </div>
+                <Key className="w-5 h-5 text-blue-500 shrink-0" />
+                <h2 className="text-base font-black tracking-tight uppercase leading-none">Advisor Verification</h2>
               </div>
               <button 
                 onClick={onClose}
@@ -412,15 +412,19 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
             {/* PIN Content */}
             <div className="py-8 space-y-6 flex flex-col items-center justify-center text-center">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-sm font-bold text-workshop-text">Enter Security PIN</p>
                 <p className="text-xs text-workshop-muted px-4 leading-relaxed font-medium">
-                  Enter your assigned 4-digit advisor/technician PIN to unlock the intake workbook.
+                  Tap the digit indicator below to open your keyboard and enter your assigned 4-digit PIN.
                 </p>
               </div>
 
-              {/* Dots representation */}
-              <div className="flex justify-center gap-4 py-2">
+              {/* Clickable digit indicator/dots representation to trigger keyboard */}
+              <button
+                type="button"
+                onClick={() => pinInputRef.current?.focus()}
+                className="flex justify-center gap-4 py-4 px-6 cursor-pointer transition-all active:scale-95 group select-none outline-none"
+              >
                 {[0, 1, 2, 3].map((index) => (
                   <div
                     key={index}
@@ -428,11 +432,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       "w-4 h-4 rounded-full border-2 border-workshop-border transition-all duration-150",
                       pinCode.length > index 
                         ? "bg-blue-500 border-blue-500 scale-110 shadow-lg shadow-blue-500/30" 
-                        : "bg-transparent"
+                        : "bg-transparent group-hover:border-workshop-muted/50"
                     )}
                   />
                 ))}
-              </div>
+              </button>
 
               {/* Error Display */}
               <div className="h-4">
@@ -478,32 +482,18 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                 className="opacity-0 absolute w-1 h-1 pointer-events-none"
               />
 
-              {/* Keyboard trigger and instructions */}
-              <div className="w-full max-w-[280px] mx-auto space-y-4 pt-2">
-                <button
-                  type="button"
-                  onClick={() => pinInputRef.current?.focus()}
-                  className="w-full bg-workshop-surface hover:bg-workshop-surface/80 border border-workshop-border/30 rounded-xl py-5 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shadow-md cursor-pointer group"
-                >
-                  <span className="text-xs font-black text-workshop-accent uppercase tracking-wider group-hover:brightness-110 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
-                    Open System Keyboard
-                  </span>
-                  <span className="text-[10px] text-workshop-muted font-bold uppercase tracking-widest opacity-60">
-                    Only Digits Permitted
-                  </span>
-                </button>
-                
-                {pinCode.length > 0 && (
+              {/* Clear Input */}
+              {pinCode.length > 0 && (
+                <div className="pt-2 w-full">
                   <button
                     type="button"
                     onClick={handleClear}
-                    className="w-full py-2.5 text-xs font-bold text-workshop-muted hover:text-workshop-text uppercase tracking-widest transition-colors cursor-pointer"
+                    className="py-2 px-4 text-xs font-bold text-workshop-muted hover:text-workshop-text uppercase tracking-widest transition-colors cursor-pointer"
                   >
                     Clear Input
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
@@ -522,83 +512,99 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
           className="w-full flex-1 flex flex-col h-full bg-workshop-bg text-workshop-text relative overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-workshop-bg p-6 md:p-8 text-workshop-text relative border-b border-workshop-border shrink-0">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                 <div className="w-10 h-10 bg-workshop-accent rounded-xl flex items-center justify-center shadow-lg shadow-workshop-accent/20">
-                    <ClipboardCheck className="w-5 h-5 text-workshop-bg" />
-                 </div>
-                 <div>
-                    <h2 className="text-lg md:text-xl font-black tracking-tight uppercase leading-none">Vehicle Intake</h2>
-                    <p className="text-workshop-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-60">Step {Math.floor(step)} of 3 • Active Advisor: <span className="text-workshop-accent font-black">{authenticatedAdvisor?.name || authenticatedAdvisor?.email}</span></p>
-                 </div>
-              </div>
-              <button 
-                onClick={onClose}
-                className="p-2 hover:bg-workshop-surface rounded-full transition-colors text-workshop-muted hover:text-workshop-text"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-  
-            {/* Progress Bar */}
-            <div className="relative w-full py-2 px-1 select-none">
-              {/* Progress Track and Wavy Line Container */}
-              <div className="relative w-full h-8 flex items-center mb-1">
-                {/* Wavy active line using Material Web Component spec */}
-                <WavyProgress 
-                  value={(() => {
-                    if (step === 1) return 0;
-                    if (step === 1.5) return 25;
-                    if (step === 2) return 50;
-                    if (step === 2.5) return 75;
-                    return 100;
-                  })()}
-                  max={100}
-                  height={24}
-                  waveLength={32}
-                  amplitude={5.5}
-                  strokeWidth={5}
-                  className="absolute inset-x-0 z-10"
-                />
-
-                {/* Step Nodes Row */}
-                <div className="absolute inset-x-0 flex justify-between items-center z-20">
-                  {[1, 2, 3].map((s) => {
-                    const isCompleted = step > s && Math.floor(step) !== s;
-                    const isActive = Math.floor(step) === s;
-                    
-                    return (
-                      <div key={s} className="relative flex flex-col items-center">
-                        <div 
-                          className={cn(
-                            "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 border font-bold text-xs select-none",
-                            isCompleted 
-                              ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-md shadow-workshop-accent/20"
-                              : isActive
-                                ? "bg-workshop-bg border-workshop-accent text-workshop-accent scale-110 shadow-lg shadow-workshop-accent/30"
-                                : "bg-workshop-bg border-workshop-border text-workshop-muted"
-                          )}
-                        >
-                          {isCompleted ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            s
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="bg-workshop-bg text-workshop-text relative border-b border-workshop-border shrink-0">
+            <div className="safe-top" />
+            <div className="p-6 md:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                   <ClipboardCheck className="w-6 h-6 text-workshop-accent shrink-0" />
+                   <div>
+                      <h2 className="text-lg md:text-xl font-black tracking-tight uppercase leading-none">Vehicle Intake</h2>
+                      <p className="text-orange-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+                        {authenticatedAdvisor?.name || authenticatedAdvisor?.email}
+                      </p>
+                   </div>
                 </div>
+                <button 
+                  onClick={onClose}
+                  className="p-2 hover:bg-workshop-surface rounded-full transition-colors text-workshop-muted hover:text-workshop-text"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-
-              {/* Labels for Steps */}
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-workshop-muted opacity-80 mt-1 select-none">
-                <span className={cn(Math.floor(step) >= 1 ? "text-workshop-accent" : "")}>Customer</span>
-                <span className={cn(Math.floor(step) >= 2 ? "text-workshop-accent" : "")}>Vehicle</span>
-                <span className={cn(Math.floor(step) >= 3 ? "text-workshop-accent" : "")}>Job Info</span>
+    
+              {/* Progress Bar */}
+              <div className="relative w-full py-2 px-1 select-none">
+                {/* Progress Track and Wavy Line Container */}
+                <div className="relative w-full h-8 flex items-center mb-1">
+                  {/* Wavy active line using Material Web Component spec */}
+                  <WavyProgress 
+                    value={(() => {
+                      if (step === 1) return 0;
+                      if (step === 1.5) return 25;
+                      if (step === 2) return 50;
+                      if (step === 2.5) return 75;
+                      return 100;
+                    })()}
+                    max={100}
+                    height={24}
+                    waveLength={32}
+                    amplitude={5.5}
+                    strokeWidth={5}
+                    className="absolute left-[18px] right-[18px] z-10"
+                  />
+  
+                  {/* Step Nodes Row */}
+                  <div className="absolute inset-x-0 flex justify-between items-center z-20">
+                    {[1, 2, 3].map((s) => {
+                      const isCompleted = step > s && Math.floor(step) !== s;
+                      const isActive = Math.floor(step) === s;
+                      
+                      return (
+                        <div key={s} className="relative flex items-center justify-center w-9 h-9">
+                          {isActive && (
+                            <MdCircularProgress
+                              indeterminate
+                              style={{
+                                position: 'absolute',
+                                '--md-circular-progress-size': '38px',
+                                '--md-circular-progress-active-indicator-color': 'var(--color-workshop-accent)',
+                                '--md-circular-progress-active-indicator-width': '2.5px',
+                                zIndex: 20,
+                                pointerEvents: 'none'
+                              }}
+                            />
+                          )}
+                          <div 
+                            className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 border font-bold text-xs select-none z-10",
+                              isCompleted 
+                                ? "bg-workshop-accent border-workshop-accent text-workshop-bg shadow-md shadow-workshop-accent/20"
+                                : isActive
+                                  ? "bg-workshop-bg border-workshop-accent text-workshop-accent scale-110 shadow-lg shadow-workshop-accent/30"
+                                  : "bg-workshop-bg border-workshop-border text-workshop-muted"
+                            )}
+                          >
+                            {isCompleted ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              s
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+  
+                {/* Labels for Steps */}
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-workshop-muted opacity-80 mt-1 select-none">
+                  <span className={cn(Math.floor(step) >= 1 ? "text-workshop-accent" : "")}>Customer</span>
+                  <span className={cn(Math.floor(step) >= 2 ? "text-workshop-accent" : "")}>Vehicle</span>
+                  <span className={cn(Math.floor(step) >= 3 ? "text-workshop-accent" : "")}>Job Info</span>
+                </div>
               </div>
             </div>
           </div>
@@ -771,7 +777,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                          <label
+                            style={{ fontFamily: "'Google Sans', sans-serif" }}
+                            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                          >
                             Full Name
                           </label>
                           <input
@@ -789,7 +798,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         <div className="relative pt-2.5">
                           <div className="flex items-center w-full bg-workshop-surface border-2 border-[#3B82F6] rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-[#3B82F6]/30 transition-all">
                             {/* Floating notched label */}
-                            <span className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-black uppercase tracking-wider text-[#3B82F6] select-none">
+                            <span
+                              style={{ fontFamily: "'Google Sans', sans-serif" }}
+                              className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-black uppercase tracking-wider text-[#3B82F6] select-none"
+                            >
                               Phone number
                             </span>
                             
@@ -860,9 +872,12 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
                         Manufacturer
                       </label>
                       <input
@@ -871,11 +886,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           setVehicleForm({ ...vehicleForm, make: e.target.value })
                         }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                        placeholder="e.g. Toyota"
+                        placeholder="e.g. Ola"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
+                      >
                         Model
                         <span className="text-status-urgent">*</span>
                       </label>
@@ -885,11 +903,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           setVehicleForm({ ...vehicleForm, model: e.target.value })
                         }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                        placeholder="e.g. Camry"
+                        placeholder="e.g. S1 +"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
                         Registration Plate
                       </label>
                       <input
@@ -901,11 +922,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           })
                         }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold text-workshop-accent uppercase"
-                        placeholder="MH12AB1234"
+                        placeholder="KL01X1234"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
                         Vehicle Colour
                       </label>
                       <input
@@ -914,12 +938,15 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           setVehicleForm({ ...vehicleForm, color: e.target.value })
                         }
                         className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                        placeholder="e.g. Red, Black"
+                        placeholder="e.g. Red"
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
-                        Security: Password / PIN
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
+                      >
+                        Security
                         <span className="text-status-urgent">*</span>
                       </label>
                       <div className="relative">
@@ -943,10 +970,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                             }
                           }}
                           className={cn(
-                            "w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono text-workshop-text uppercase transition-all",
+                            "w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-sans text-workshop-text uppercase transition-all",
                             useKey && "opacity-50 font-bold"
                           )}
-                          placeholder={useKey ? "" : "Enter numeric PIN..."}
+                          placeholder={useKey ? "" : "••••••"}
                         />
                         <button
                           type="button"
@@ -1020,8 +1047,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
-                        Vehicle Mileage (Odometer)
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
+                        Odometer
                       </label>
                       <div className="relative">
                         <input
@@ -1041,9 +1071,9 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           )}
                           placeholder={
                             jobForm.isDeadVehicle 
-                              ? "N/A - DEAD VEHICLE" 
+                              ? "DEAD VEHICLE" 
                               : jobForm.isUnknownMileage 
-                                ? "N/A - VEHICLE LOCKED" 
+                                ? "VEHICLE LOCKED" 
                                 : "000000"
                           }
                         />
@@ -1108,7 +1138,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                               : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-white/50 hover:text-white"
                           )}
                         >
-                          Unknown (Locked/Alive)
+                          Vehicle Locked
                           <div
                             className={cn(
                               "w-1.5 h-1.5 rounded-full",
@@ -1122,8 +1152,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
-                        Complaint / Work description
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
+                        Complaints / Works
                       </label>
                       <textarea
                         value={jobForm.description}
@@ -1136,8 +1169,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted">
-                        Personal Items / Valuables in Vehicle
+                      <label
+                        style={{ fontFamily: "'Google Sans', sans-serif" }}
+                        className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
+                      >
+                        Items inside vehicle
                       </label>
                       <textarea
                         value={jobForm.personalItems}
@@ -1151,7 +1187,10 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
+                        <label
+                          style={{ fontFamily: "'Google Sans', sans-serif" }}
+                          className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
+                        >
                           Service Date
                           <span className="text-status-urgent">*</span>
                         </label>
@@ -1171,8 +1210,11 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
-                          Expected Delivery Date
+                        <label
+                          style={{ fontFamily: "'Google Sans', sans-serif" }}
+                          className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
+                        >
+                          Estimated Delivery Date
                           <span className="text-status-urgent">*</span>
                         </label>
                         <MaterialCalendar
@@ -1187,22 +1229,6 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                           className="py-4 text-workshop-text"
                         />
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-workshop-accent/10 rounded-xl border border-workshop-accent/20 flex items-start gap-4">
-                    <div className="p-2 bg-workshop-bg rounded-lg text-workshop-accent shadow-sm border border-workshop-border">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-workshop-accent uppercase tracking-[0.2em]">
-                        Review Entry
-                      </p>
-                      <p className="text-[10px] text-workshop-muted leading-relaxed font-bold opacity-80">
-                        Confirming this intake will create a permanent Service
-                        Record for {selectedCustomer?.name || customerForm.name}.
-                        A digital job card will be assigned.
-                      </p>
                     </div>
                   </div>
 
@@ -1222,13 +1248,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                     ) : (
                       <>
                         <ClipboardCheck className="w-5 h-5" />
-                        Issue Digital Job Card
+                        Issue Job Card
                       </>
                     )}
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
+            <div className="safe-bottom h-4" />
           </div>
         </motion.div>
       </div>

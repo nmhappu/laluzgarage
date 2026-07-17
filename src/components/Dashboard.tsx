@@ -159,6 +159,48 @@ export function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
+  const [scrollTop, setScrollTop] = useState(0);
+
+  useEffect(() => {
+    let scrollContainer: Element | null = null;
+    
+    const handleScroll = () => {
+      if (scrollContainer) {
+        setScrollTop(scrollContainer.scrollTop);
+      }
+    };
+
+    const bindScroll = () => {
+      scrollContainer = document.querySelector('.overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        setScrollTop(scrollContainer.scrollTop);
+        return true;
+      }
+      return false;
+    };
+
+    if (!bindScroll()) {
+      const interval = setInterval(() => {
+        if (bindScroll()) {
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => {
+        clearInterval(interval);
+        if (scrollContainer) {
+          scrollContainer.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
   const stats = [
     { label: 'Registered Vehicles', value: metrics.totalVehicles, icon: Car, color: 'text-secondary', trend: metrics.history.vehicles, target: '/services', state: { activeTab: 'all' } },
     { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending, target: '/services', state: { activeTab: 'pending' } },
@@ -195,6 +237,8 @@ export function Dashboard() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
+          style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
+          className="transition-opacity duration-75"
         >
           <h1 className="text-2xl md:text-4xl font-black text-workshop-text tracking-tighter uppercase">Dashboard</h1>
         </motion.div>
@@ -228,7 +272,7 @@ export function Dashboard() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10"
+        className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10 accelerate-gpu will-change-transform-opacity"
       >
         {stats.map((stat) => (
           <motion.div 
@@ -240,7 +284,7 @@ export function Dashboard() {
               }
             }}
             className={cn(
-              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30",
+              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30 accelerate-gpu will-change-transform-opacity",
               stat.target && "cursor-pointer active:scale-[0.99] select-none"
             )}
           >

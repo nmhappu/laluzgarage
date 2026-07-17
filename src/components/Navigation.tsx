@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle, History, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { LayoutDashboard, Package, ClipboardList, LogOut, AlertTriangle, History, Settings, Search, SlidersHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
@@ -23,11 +23,94 @@ export function Navigation() {
   const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showStickySearch, setShowStickySearch] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+
+  const stickyQuery = searchParams.get('q') || '';
+  const setStickyQuery = (val: string) => {
+    setSearchParams(prev => {
+      if (!val) {
+        prev.delete('q');
+      } else {
+        prev.set('q', val);
+      }
+      return prev;
+    }, { replace: true });
+  };
+
+  const stickyStatus = searchParams.get('status') || 'all';
+  const setStickyStatus = (val: string) => {
+    setSearchParams(prev => {
+      if (val === 'all') {
+        prev.delete('status');
+      } else {
+        prev.set('status', val);
+      }
+      return prev;
+    }, { replace: true });
+  };
+
+  useEffect(() => {
+    setShowStickySearch(false);
+    setFilterMenuOpen(false);
+  }, [location.pathname]);
+
   const getPageTitle = () => {
     return 'LaluZ Garage';
   };
 
   const pageTitle = getPageTitle();
+
+  const [scrollTop, setScrollTop] = useState(0);
+
+  useEffect(() => {
+    let scrollContainer: Element | null = null;
+    
+    const handleScroll = () => {
+      if (scrollContainer) {
+        setScrollTop(scrollContainer.scrollTop);
+      }
+    };
+
+    const bindScroll = () => {
+      scrollContainer = document.querySelector('.overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        setScrollTop(scrollContainer.scrollTop);
+        return true;
+      }
+      return false;
+    };
+
+    if (!bindScroll()) {
+      const interval = setInterval(() => {
+        if (bindScroll()) {
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => {
+        clearInterval(interval);
+        if (scrollContainer) {
+          scrollContainer.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  const getActiveTabLabel = (pathname: string) => {
+    if (pathname === '/') return 'Dashboard';
+    if (pathname.startsWith('/vehicles')) return 'Vehicle Registry';
+    if (pathname.startsWith('/inventory')) return 'Parts Inventory';
+    if (pathname.startsWith('/services')) return 'Service History';
+    return 'Dashboard';
+  };
 
   const getActiveTabM3Icon = (pathname: string) => {
     if (pathname === '/') return 'grid_view';
@@ -184,61 +267,198 @@ export function Navigation() {
 
       {/* Mobile Top Bar */}
       <nav className={cn(
-        "md:hidden fixed top-0 left-0 right-0 z-50 bg-workshop-bg flex flex-col transition-all duration-300 ease-in-out",
+        "md:hidden fixed top-0 left-0 right-0 z-50 flex flex-col transition-all duration-75 ease-out accelerate-gpu",
+        scrollTop > 10 
+          ? "bg-workshop-bg/90 backdrop-blur-md border-b border-workshop-border/30 shadow-md shadow-black/5" 
+          : "bg-workshop-bg border-b border-transparent",
         isModalOpen && "bg-workshop-bg/95"
       )}>
         <div className="safe-top" />
-        <div className="h-16 flex items-center justify-between px-6">
-          <NavLink to="/" className="flex items-center gap-2.5 h-full">
-            <AnimatePresence mode="wait">
-              <motion.span 
-                key={pageTitle}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 15 }}
-                transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-                className="text-workshop-text text-lg font-logo font-semibold tracking-tight"
-              >
-                {pageTitle}
-              </motion.span>
-            </AnimatePresence>
-              <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                  <motion.span 
-                    key={getActiveTabM3Icon(location.pathname)}
-                    initial={{ opacity: 0, scale: 0.5, rotate: -30 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                    exit={{ opacity: 0, scale: 0.5, rotate: 30 }}
-                    transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
-                    className={cn(
-                      "material-symbols-outlined text-2xl absolute select-none",
-                      getActiveTabColor(location.pathname)
-                    )}
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {getActiveTabM3Icon(location.pathname)}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-          </NavLink>
+        <div className="h-16 relative flex items-center justify-between px-6">
           
-          <div className="flex items-center gap-2">
-            {location.pathname === '/' && <ThemeToggle className="w-9 h-9 rounded-lg" />}
-            <button 
-              onClick={() => setShowSettings(true)}
-              className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
-              title="Security Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5 pointer-events-none" />
-            </button>
+          {/* 1. ORIGINAL SCROLLABLE HEADER CONTENT (LaluZ Garage, theme, settings, logout) */}
+          <div 
+            className={cn(
+              "absolute inset-x-6 top-0 bottom-0 flex items-center justify-between transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
+              scrollTop > 25 
+                ? "opacity-0 -translate-y-4 pointer-events-none" 
+                : "opacity-100 translate-y-0 pointer-events-auto"
+            )}
+          >
+            <NavLink to="/" className="flex items-center gap-2.5 h-full">
+              <span className="text-workshop-text text-lg font-logo font-semibold tracking-tight">
+                LaluZ Garage
+              </span>
+              <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+                <span 
+                  className={cn(
+                    "material-symbols-outlined text-2xl absolute select-none",
+                    getActiveTabColor(location.pathname)
+                  )}
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  {getActiveTabM3Icon(location.pathname)}
+                </span>
+              </div>
+            </NavLink>
+ 
+            <div className="flex items-center gap-2">
+              {location.pathname === '/' && <ThemeToggle className="w-9 h-9 rounded-lg" />}
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
+                title="Security Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setShowLogoutConfirm(true)}
+                className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+ 
+          {/* 2. PINNED STICKY TITLE (Fades and slides up into place of LaluZ Garage) */}
+          <div 
+            className={cn(
+              "absolute left-6 top-0 bottom-0 flex items-center gap-2.5 transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
+              scrollTop > 25 
+                ? "opacity-100 translate-y-0 pointer-events-auto" 
+                : "opacity-0 translate-y-4 pointer-events-none"
+            )}
+          >
+            <span className="text-workshop-text text-lg font-black uppercase tracking-tighter">
+              {getActiveTabLabel(location.pathname)}
+            </span>
+            <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+              <span 
+                className={cn(
+                  "material-symbols-outlined text-2xl absolute select-none",
+                  getActiveTabColor(location.pathname)
+                )}
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                {getActiveTabM3Icon(location.pathname)}
+              </span>
+            </div>
+          </div>
+ 
+          {/* 3. PINNED STICKY ACTIONS (Search, Filter) */}
+          <div 
+            className={cn(
+              "absolute right-6 top-0 bottom-0 flex items-center gap-1 transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
+              scrollTop > 25 
+                ? "opacity-100 translate-y-0 pointer-events-auto" 
+                : "opacity-0 translate-y-4 pointer-events-none"
+            )}
+          >
+            {['/vehicles', '/inventory', '/services'].some(path => location.pathname.startsWith(path)) && (
+              <button
+                onClick={() => setShowStickySearch(true)}
+                className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
+                title="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
+            {location.pathname.startsWith('/services') && (
+              <button
+                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                className={cn(
+                  "flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors",
+                  filterMenuOpen && "text-workshop-accent"
+                )}
+                title="Filter Logs"
+              >
+                <SlidersHorizontal className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* 4. EXPANDED STICKY SEARCH BAR */}
+          <AnimatePresence>
+            {showStickySearch && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="absolute inset-0 bg-workshop-surface flex items-center justify-between px-6 z-50 border-b border-workshop-border"
+              >
+                <div className="flex items-center gap-2 flex-1 mr-4">
+                  <Search className="w-5 h-5 text-workshop-muted shrink-0" />
+                  <input
+                    type="text"
+                    value={stickyQuery}
+                    onChange={(e) => setStickyQuery(e.target.value)}
+                    placeholder={`Search ${getActiveTabLabel(location.pathname).toLowerCase()}...`}
+                    className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2 uppercase"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setStickyQuery('');
+                    setShowStickySearch(false);
+                  }}
+                  className="p-2 text-workshop-muted hover:text-workshop-text transition-colors shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 5. FLOATING FILTER DROPDOWN */}
+          <AnimatePresence>
+            {filterMenuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 bg-transparent z-40" 
+                  onClick={() => setFilterMenuOpen(false)} 
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-6 top-[68px] bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[160px]"
+                >
+                  {[
+                    { id: 'all', label: 'All Logs', color: 'bg-workshop-secondary' },
+                    { id: 'pending', label: 'Pending', color: 'bg-status-urgent' },
+                    { id: 'in-progress', label: 'In-Progress', color: 'bg-status-pending' },
+                    { id: 'completed', label: 'Completed', color: 'bg-workshop-accent' },
+                    { id: 'cancelled', label: 'Cancelled', color: 'bg-workshop-muted' },
+                  ].map((status) => {
+                    const isActive = stickyStatus === status.id;
+                    return (
+                      <button
+                        key={status.id}
+                        onClick={() => {
+                          setStickyStatus(status.id);
+                          setFilterMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-left transition-colors",
+                          isActive
+                            ? "text-workshop-accent bg-workshop-surface/80"
+                            : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/40"
+                        )}
+                      >
+                        <span className={cn("w-2 h-2 rounded-full shrink-0", status.color)} />
+                        <span className="truncate">{status.label}</span>
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
         </div>
       </nav>
 

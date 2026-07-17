@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { Search, Phone, MessageSquare, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck, Car, Key, PlusCircle, Check, ArrowLeft } from 'lucide-react';
@@ -30,7 +31,26 @@ export function VehicleHistory() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedVehicleForLedger, setSelectedVehicleForLedger] = useState<Vehicle | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [localSearchInput, setLocalSearchInput] = useState(() => searchParams.get('q') || '');
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+
+  // Debounce search input to avoid lag
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(localSearchInput);
+      setSearchParams(prev => {
+        if (!localSearchInput) {
+          prev.delete('q');
+        } else {
+          prev.set('q', localSearchInput);
+        }
+        return prev;
+      }, { replace: true });
+    }, 250);
+
+    return () => clearTimeout(handler);
+  }, [localSearchInput, setSearchParams]);
   const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
 
   // --- State: Active Models for Add/Edit ---
@@ -51,6 +71,48 @@ export function VehicleHistory() {
   const [useKey, setUseKey] = useState(false);
 
   // --- Effects: Handlers ---
+  const [scrollTop, setScrollTop] = useState(0);
+
+  useEffect(() => {
+    let scrollContainer: Element | null = null;
+    
+    const handleScroll = () => {
+      if (scrollContainer) {
+        setScrollTop(scrollContainer.scrollTop);
+      }
+    };
+
+    const bindScroll = () => {
+      scrollContainer = document.querySelector('.overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        setScrollTop(scrollContainer.scrollTop);
+        return true;
+      }
+      return false;
+    };
+
+    if (!bindScroll()) {
+      const interval = setInterval(() => {
+        if (bindScroll()) {
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => {
+        clearInterval(interval);
+        if (scrollContainer) {
+          scrollContainer.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -250,10 +312,13 @@ export function VehicleHistory() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0 font-sans">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header 
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-opacity duration-75"
+        style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
+      >
         <div>
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase font-sans">Vehicle Registry</h1>
-          <p className="text-workshop-muted text-sm font-medium font-sans">Manage workshop vehicles and explore maintenance histories.</p>
+          <p className="text-workshop-muted text-sm font-medium font-sans">Manage workshop vehicles.</p>
         </div>
       </header>
 
@@ -263,8 +328,8 @@ export function VehicleHistory() {
         <input 
           type="text" 
           placeholder="Search by registration plate, manufacturer, model, or owner..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={localSearchInput}
+          onChange={(e) => setLocalSearchInput(e.target.value)}
           className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] text-sm text-workshop-text font-sans font-medium"
         />
       </div>
@@ -277,7 +342,7 @@ export function VehicleHistory() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
-            className="space-y-4"
+            className="space-y-4 accelerate-gpu will-change-transform-opacity"
           >
             {Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -330,7 +395,7 @@ export function VehicleHistory() {
               center: { opacity: 1, transition: { staggerChildren: 0.03 } },
               exit: { opacity: 0 }
             }}
-            className="space-y-4 font-sans"
+            className="space-y-4 font-sans accelerate-gpu will-change-transform-opacity"
           >
             {filteredVehicles.map((vehicle) => (
               <motion.div
@@ -341,7 +406,7 @@ export function VehicleHistory() {
                   exit: { opacity: 0, y: -8 }
                 }}
                 transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/10 active:scale-[0.995]"
+                className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/10 active:scale-[0.995] accelerate-gpu will-change-transform-opacity"
                 onClick={() => setSelectedVehicleForLedger(vehicle)}
               >
                 {/* Row 1: Vehicle Identity with Plate opposite */}

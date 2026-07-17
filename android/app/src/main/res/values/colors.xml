@@ -24,9 +24,9 @@
     <color name="urgent">#F43F5E</color>
 
     <!-- Generic Theme-Aware Colours -->
-    <color name="app_background">@color/bg_light</color>
-    <color name="app_surface">@color/surface_bg_light</color>
-    <color name="app_card">@color/card_bg_light</color>
+    <color name="app_background">@color/bg_dark</color>
+    <color name="app_surface">@color/surface_bg_dark</color>
+    <color name="app_card">@color/card_bg_dark</color>
 
     <!-- Standard Aliases for Previews -->
     <color name="colorPrimary">@color/primary</color>

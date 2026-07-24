@@ -1,7 +1,7 @@
 # LaluZ Garage
 A workshop management application built for service technicians. This app streamlines vehicle service tracking, and inventory control.
 
-[Made purely with Google AI Studio (Gemini Flash 3.1), except design and logic.]
+[Made purely with Google AI Studio (Gemini Flash 3.5 as of 24/07/26), except design and logic.]
 
 - **Frontend**: React 18
 - **Runtime/Build**: Vite & TypeScript

@@ -1,5 +1,5 @@
 # LaluZ Garage
-A workshop management application built for service technicians. This app streamlines vehicle service tracking, and inventory control.
+A workshop management application built for technicians. This app streamlines vehicle service tracking, and inventory control.
 
 [Made purely with Google AI Studio (Gemini Flash 3.5 as of 24/07/26), except design and logic.]
 
@@ -24,7 +24,7 @@ src/
 └── main.tsx
 ```
 
-## Android Development
+## Android
 
 This project is fully compatible with native Android Studio via **Capacitor**.
 

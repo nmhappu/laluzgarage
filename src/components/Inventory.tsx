@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, Tag, Trash2, MapPin, AlertCircle, ArrowLeft, Package, Layers, DollarSign, Info } from 'lucide-react';
+import { Plus, Tag, Trash2, MapPin, AlertCircle, ArrowLeft, Package, Layers, DollarSign, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
@@ -15,26 +15,8 @@ export function Inventory() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [localSearchInput, setLocalSearchInput] = useState(() => searchParams.get('q') || '');
-  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
-
-  // Debounce search input to avoid lag
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearchTerm(localSearchInput);
-      setSearchParams(prev => {
-        if (!localSearchInput) {
-          prev.delete('q');
-        } else {
-          prev.set('q', localSearchInput);
-        }
-        return prev;
-      }, { replace: true });
-    }, 250);
-
-    return () => clearTimeout(handler);
-  }, [localSearchInput, setSearchParams]);
+  const [searchParams] = useSearchParams();
+  const searchTerm = searchParams.get('q') || '';
   
   const [newPart, setNewPart] = useState<Partial<Part>>({
     name: '',
@@ -49,47 +31,6 @@ export function Inventory() {
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
 
   // --- Data Subscription ---
-  const [scrollTop, setScrollTop] = useState(0);
-
-  useEffect(() => {
-    let scrollContainer: Element | null = null;
-    
-    const handleScroll = () => {
-      if (scrollContainer) {
-        setScrollTop(scrollContainer.scrollTop);
-      }
-    };
-
-    const bindScroll = () => {
-      scrollContainer = document.querySelector('.overflow-y-auto');
-      if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-        setScrollTop(scrollContainer.scrollTop);
-        return true;
-      }
-      return false;
-    };
-
-    if (!bindScroll()) {
-      const interval = setInterval(() => {
-        if (bindScroll()) {
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => {
-        clearInterval(interval);
-        if (scrollContainer) {
-          scrollContainer.removeEventListener('scroll', handleScroll);
-        }
-      };
-    }
-
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -181,10 +122,7 @@ export function Inventory() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
-      <header 
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-opacity duration-75"
-        style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
-      >
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase">Parts Inventory</h1>
           <p className="text-workshop-muted text-sm">Track and manage shop supplies and spare parts.</p>
@@ -198,16 +136,7 @@ export function Inventory() {
         </button>
       </header>
 
-      <div className="relative flex items-center">
-        <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
-        <input 
-          type="text" 
-          placeholder="Search by name or category..."
-          value={localSearchInput}
-          onChange={(e) => setLocalSearchInput(e.target.value)}
-          className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-workshop-accent focus:border-workshop-accent text-sm text-workshop-text"
-        />
-      </div>
+
 
       <div className="-mx-4 md:-mx-8 lg:-mx-10 overflow-hidden">
         <motion.div 

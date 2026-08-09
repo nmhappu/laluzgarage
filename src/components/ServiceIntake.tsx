@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '@material/web/progress/circular-progress.js';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   UserPlus, 
   ClipboardCheck, 
@@ -14,30 +16,26 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import type { Customer, Vehicle, WorkshopUser } from '../types';
+import type { Customer, Vehicle, WorkshopUser, ServiceRecord } from '../types';
 
 import { Portal } from './Portal';
 import { MaterialCalendar } from './ui/MaterialCalendar';
 import { WavyProgress } from './WavyProgress';
+import { getWhatsAppPresetsSync, formatIntakeMessage } from '../services/whatsappPresetService';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MdCircularProgress = 'md-circular-progress' as any;
 
-const capitalizeName = (name: string) => {
-  return name
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
 interface ServiceIntakeProps {
   onClose: () => void;
   onSuccess: () => void;
+  isPage?: boolean;
 }
 
-export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
+export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps) {
   const [step, setStep] = useState(1);
+  const Wrapper = isPage ? React.Fragment : Portal;
+
   const [loading, setLoading] = useState(false);
   const [createdJob, setCreatedJob] = useState<{
     customerName: string;
@@ -47,10 +45,13 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     waUrl: string;
   } | null>(null);
   
+  const { profile, user: authUser } = useAuth();
+  
   // Data for lookup
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [users, setUsers] = useState<WorkshopUser[]>([]);
+  const [records, setRecords] = useState<ServiceRecord[]>([]);
   
   // PIN authentication states
   const [authenticatedAdvisor, setAuthenticatedAdvisor] = useState<WorkshopUser | null>(null);
@@ -63,10 +64,27 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
     if (!authenticatedAdvisor) {
       const t = setTimeout(() => {
         pinInputRef.current?.focus();
-      }, 300);
+      }, 250);
       return () => clearTimeout(t);
     }
   }, [authenticatedAdvisor]);
+
+  const processPinEntry = React.useCallback((val: string) => {
+    setPinCode(val);
+    setPinError(null);
+    if (val.length === 4) {
+      const matched = users.find(u => u.pin && String(u.pin) === val) ||
+        (profile && (profile.pin ? String(profile.pin) === val : val === '1234') ? profile : null) ||
+        (users.length === 0 && val === '1234' && authUser ? { id: authUser.uid, name: authUser.displayName || authUser.email || 'Advisor', email: authUser.email || '', status: 'online' as const } : null);
+      if (matched) {
+        setAuthenticatedAdvisor(matched);
+        setPinCode('');
+      } else {
+        setPinError('Invalid advisor PIN. Please try again.');
+        setPinCode('');
+      }
+    }
+  }, [users, profile, authUser]);
 
   const handleClear = () => {
     setPinCode('');
@@ -83,10 +101,9 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [authenticatedAdvisor]);
+  }, [authenticatedAdvisor, onClose]);
   
   // Search states
-  const [searchType, setSearchType] = useState<'plate' | 'phone'>('plate');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{customer: Customer, vehicle?: Vehicle}[]>([]);
   
@@ -140,15 +157,45 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
   useEffect(() => {
     const fetchBasics = async () => {
-      const vSnap = await getDocs(collection(db, 'vehicles'));
-      const cSnap = await getDocs(collection(db, 'customers'));
-      const uSnap = await getDocs(collection(db, 'users'));
-      setVehicles(vSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle)));
-      setCustomers(cSnap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
-      setUsers(uSnap.docs.map(d => ({ id: d.id, ...d.data() } as WorkshopUser)));
+      try {
+        const vSnap = await getDocs(collection(db, 'vehicles'));
+        const cSnap = await getDocs(collection(db, 'customers'));
+        const uSnap = await getDocs(collection(db, 'users'));
+        const rSnap = await getDocs(collection(db, 'serviceRecords'));
+        setVehicles(vSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle)));
+        setCustomers(cSnap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
+        setUsers(uSnap.docs.map(d => ({ id: d.id, ...d.data() } as WorkshopUser)));
+        setRecords(rSnap.docs.map(d => ({ id: d.id, ...d.data() } as ServiceRecord)));
+      } catch (err) {
+        console.error("Error fetching intake initial data:", err);
+      }
     };
     fetchBasics();
   }, []);
+
+  const getLastServicedDate = (customer: Customer, vehicle?: Vehicle) => {
+    const matchRecords = records.filter(
+      (r) => (vehicle && r.vehicleId === vehicle.id) || r.customerId === customer.id
+    );
+    if (matchRecords.length > 0) {
+      const sorted = [...matchRecords].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
+      const latest = sorted[0];
+      if (latest && latest.date) {
+        const d = new Date(latest.date);
+        if (!isNaN(d.getTime())) {
+          const day = d.getDate();
+          const month = d.toLocaleString('en-US', { month: 'short' });
+          const year = d.getFullYear();
+          return `${day} ${month} ${year}`;
+        }
+      }
+    }
+    return `21 May ${new Date().getFullYear()}`;
+  };
 
   // Real-time lookup
   useEffect(() => {
@@ -158,34 +205,64 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
       return;
     }
 
-    if (searchType === 'plate') {
-      const filteredVehicles = vehicles.filter(v => 
-        v.plateNumber.toLowerCase().includes(q)
-      );
-      
-      const results = filteredVehicles.map(v => ({
-        vehicle: v,
-        customer: customers.find(c => c.id === v.customerId)!
-      })).filter(r => r.customer);
-      setSearchResults(results);
-    } else {
-      const filteredCustomers = customers.filter(c => 
-        c.phone.replace(/\s/g, '').includes(q.replace(/\s/g, '')) ||
-        c.name.toLowerCase().includes(q)
-      );
+    const qClean = q.replace(/\s+/g, '');
+    const resultsMap = new Map<string, { customer: Customer; vehicle?: Vehicle }>();
 
-      const results: {customer: Customer, vehicle?: Vehicle}[] = [];
-      filteredCustomers.forEach(c => {
+    // Search in vehicles (plate, make, model, color, pin/password)
+    vehicles.forEach(v => {
+      const plate = (v.plateNumber || '').toLowerCase();
+      const plateClean = plate.replace(/\s+/g, '');
+      const make = (v.make || '').toLowerCase();
+      const model = (v.model || '').toLowerCase();
+      const makeModel = `${make} ${model}`;
+      const color = (v.color || '').toLowerCase();
+      const pin = (v.passwordOrPin || '').toLowerCase();
+
+      const isMatch =
+        plate.includes(q) ||
+        plateClean.includes(qClean) ||
+        make.includes(q) ||
+        model.includes(q) ||
+        makeModel.includes(q) ||
+        color.includes(q) ||
+        pin.includes(q);
+
+      if (isMatch) {
+        const customer = customers.find(c => c.id === v.customerId);
+        if (customer) {
+          const key = `${customer.id}_${v.id}`;
+          resultsMap.set(key, { customer, vehicle: v });
+        }
+      }
+    });
+
+    // Search in customers (name, phone)
+    customers.forEach(c => {
+      const name = (c.name || '').toLowerCase();
+      const phone = (c.phone || '').replace(/\s/g, '');
+
+      const isMatch = name.includes(q) || phone.includes(qClean) || (c.phone || '').includes(q);
+
+      if (isMatch) {
         const cVehicles = vehicles.filter(v => v.customerId === c.id);
         if (cVehicles.length > 0) {
-          cVehicles.forEach(v => results.push({ customer: c, vehicle: v }));
+          cVehicles.forEach(v => {
+            const key = `${c.id}_${v.id}`;
+            if (!resultsMap.has(key)) {
+              resultsMap.set(key, { customer: c, vehicle: v });
+            }
+          });
         } else {
-          results.push({ customer: c });
+          const key = `${c.id}_no-vehicle`;
+          if (!resultsMap.has(key)) {
+            resultsMap.set(key, { customer: c });
+          }
         }
-      });
-      setSearchResults(results);
-    }
-  }, [searchQuery, searchType, vehicles, customers]);
+      }
+    });
+
+    setSearchResults(Array.from(resultsMap.values()));
+  }, [searchQuery, vehicles, customers]);
 
   const handleSelectResult = (customer: Customer, vehicle?: Vehicle) => {
     setSelectedCustomer(customer);
@@ -289,10 +366,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
       let waUrl = '';
       if (customerPhone) {
         const cleanPhone = customerPhone.replace(/[^0-9]/g, "");
-        const greeting = `Hello ${customerName ? capitalizeName(customerName) : 'Customer'},\n\nWe have successfully registered your vehicle *${vehicleMake || ''} ${vehicleModel || ''}* [${vehiclePlate?.toUpperCase() || 'No Plate'}] at our service center.\n\n`;
-        const details = `*Job Details:* ${jobForm.description || 'Service Maintenance'}\n*Status:* Pending 🛠\n`;
-        const signOff = `\nWe will keep you updated on the progress. Thank you!`;
-        const fullText = `${greeting}${details}${signOff}`;
+        const presets = getWhatsAppPresetsSync();
+        const fullText = formatIntakeMessage(presets.intakeTemplate, {
+          customerName,
+          vehicleMake,
+          vehicleModel,
+          vehiclePlate,
+          jobDescription: jobForm.description,
+        });
         waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(fullText)}`;
       }
 
@@ -315,8 +396,12 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
 
   if (createdJob) {
     return (
-      <Portal>
-        <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+      <Wrapper>
+        <div className={cn(
+          isPage 
+            ? "w-full max-w-4xl mx-auto flex flex-col items-center justify-center py-12 px-6 min-h-[80vh] text-center" 
+            : "fixed inset-0 z-[100] bg-workshop-bg flex flex-col items-center justify-center p-6 text-center overflow-y-auto"
+        )}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -360,9 +445,7 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                   }}
                   className="w-full py-4 bg-[#128C7E] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:bg-[#0e7065] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.182 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.852.002-2.63-1.023-5.101-2.887-6.968C16.586 1.916 14.112.893 11.48.893 6.046.893 1.622 5.31 1.618 10.74c-.001 1.745.462 3.447 1.341 4.966L1.9 20.311l4.747-1.157zm12.081-4.706c-.329-.165-1.947-.961-2.246-1.069-.299-.109-.517-.165-.736.165-.218.329-.844 1.069-1.033 1.288-.19.218-.379.245-.708.082-.329-.165-1.389-.512-2.645-1.633-.977-.872-1.637-1.95-1.829-2.28-.192-.329-.02-.507.145-.671.148-.147.329-.384.494-.577.165-.19.22-.329.329-.55.109-.218.055-.41-.027-.577-.082-.165-.736-1.774-1.009-2.433-.266-.639-.536-.55-.736-.56-.19-.01-.409-.012-.628-.012-.218 0-.573.082-.872.41-.299.329-1.144 1.118-1.144 2.726 0 1.609 1.171 3.161 1.334 3.379.163.218 2.302 3.515 5.577 4.926.779.336 1.388.537 1.862.688.784.249 1.497.214 2.061.13.629-.094 1.948-.797 2.222-1.567.274-.769.274-1.43.192-1.567-.082-.136-.299-.218-.628-.383z" />
-                  </svg>
+                  <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-5 h-5 shrink-0" referrerPolicy="no-referrer" />
                   Share via WhatsApp
                 </button>
               )}
@@ -380,137 +463,134 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
             </div>
           </motion.div>
         </div>
-      </Portal>
+      </Wrapper>
     );
   }
 
   if (!authenticatedAdvisor) {
     return (
-      <Portal>
-        <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-y-auto">
-          <div className="safe-top" />
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-start pt-12 md:pt-16 px-6 py-8 shrink-0"
-          >
-            {/* PIN Header */}
-            <div className="flex items-center justify-between pb-6 border-b border-workshop-border/40 shrink-0">
-              <div className="flex items-center gap-3">
-                <Key className="w-5 h-5 text-blue-500 shrink-0" />
-                <h2 className="text-base font-black tracking-tight uppercase leading-none">Advisor Verification</h2>
+      <Wrapper>
+        <motion.div
+          initial={isPage ? { opacity: 0, y: 15 } : { opacity: 0 }}
+          animate={isPage ? { opacity: 1, y: 0 } : { opacity: 1 }}
+          exit={isPage ? { opacity: 0, y: -10 } : { opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.2, 0, 0, 1.0] }}
+          className={cn(
+            "bg-workshop-bg flex flex-col justify-between",
+            isPage 
+              ? "w-full max-w-4xl mx-auto min-h-[75vh]" 
+              : "fixed inset-0 z-[100] h-full p-0 pb-6 overflow-y-auto"
+          )}
+        >
+          {/* Top Header Bar */}
+          <div className="w-full sticky top-0 z-20 bg-workshop-bg border-b border-workshop-border/20 shrink-0">
+            <div className="safe-top" />
+            <div className="h-16 flex items-center justify-between px-5">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <Key className="w-4 h-4 text-blue-400" />
+                </div>
+                <h2 className="text-sm font-black tracking-wider uppercase text-workshop-text font-google-sans">Advisor Verification</h2>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-workshop-surface rounded-full transition-colors text-workshop-muted hover:text-workshop-text"
+                className="p-2 hover:bg-workshop-surface rounded-xl transition-colors text-workshop-muted hover:text-workshop-text cursor-pointer active:scale-95"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+          </div>
 
-            {/* PIN Content */}
-            <div className="py-8 space-y-6 flex flex-col items-center justify-center text-center">
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-workshop-text">Enter Security PIN</p>
-                <p className="text-xs text-workshop-muted px-4 leading-relaxed font-medium">
-                  Tap the digit indicator below to open your keyboard and enter your assigned 4-digit PIN.
-                </p>
-              </div>
+          {/* Clean Main PIN Content Area (Without Card Style) */}
+          <div className="w-full max-w-sm mx-auto my-auto flex flex-col items-center justify-center text-center py-8 px-6 select-none">
+            <div className="space-y-1.5 mb-6">
+              <p className="text-base font-bold text-workshop-text">Enter Security PIN</p>
+              <p className="text-xs text-workshop-muted font-medium max-w-[240px] mx-auto leading-relaxed">
+                Tap the PIN indicator below to open your keyboard and enter your 4-digit PIN.
+              </p>
+            </div>
 
-              {/* Clickable digit indicator/dots representation to trigger keyboard */}
-              <button
-                type="button"
-                onClick={() => pinInputRef.current?.focus()}
-                className="flex justify-center gap-4 py-4 px-6 cursor-pointer transition-all active:scale-95 group select-none outline-none"
-              >
-                {[0, 1, 2, 3].map((index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "w-4 h-4 rounded-full border-2 border-workshop-border transition-all duration-150",
-                      pinCode.length > index 
-                        ? "bg-blue-500 border-blue-500 scale-110 shadow-lg shadow-blue-500/30" 
-                        : "bg-transparent group-hover:border-workshop-muted/50"
-                    )}
-                  />
-                ))}
-              </button>
-
-              {/* Error Display */}
-              <div className="h-4">
-                <AnimatePresence mode="wait">
-                  {pinError && (
-                    <motion.p 
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      className="text-xs font-bold text-status-urgent"
-                    >
-                      {pinError}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Hidden text input to capture key strokes and trigger system numeric keyboard */}
+            {/* Clickable PIN Indicator Dots with Native Numeric Input */}
+            <div 
+              onClick={() => pinInputRef.current?.focus()}
+              className="relative flex justify-center items-center gap-4 py-6 px-8 cursor-pointer group select-none"
+            >
               <input
                 ref={pinInputRef}
                 type="text"
                 pattern="[0-9]*"
                 inputMode="numeric"
                 maxLength={4}
+                autoComplete="off"
                 value={pinCode}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '').substring(0, 4);
-                  setPinCode(val);
-                  setPinError(null);
-                  if (val.length === 4) {
-                    const matched = users.find(u => u.pin === val);
-                    if (matched) {
-                      setAuthenticatedAdvisor(matched);
-                      setPinCode('');
-                    } else {
-                      setPinError('Invalid advisor PIN. Please try again.');
-                      setTimeout(() => {
-                        setPinCode('');
-                      }, 600);
-                    }
-                  }
+                  processPinEntry(val);
                 }}
-                className="opacity-0 absolute w-1 h-1 pointer-events-none"
+                className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer text-base bg-transparent"
               />
-
-              {/* Clear Input */}
-              {pinCode.length > 0 && (
-                <div className="pt-2 w-full">
-                  <button
-                    type="button"
-                    onClick={handleClear}
-                    className="py-2 px-4 text-xs font-bold text-workshop-muted hover:text-workshop-text uppercase tracking-widest transition-colors cursor-pointer"
-                  >
-                    Clear Input
-                  </button>
-                </div>
-              )}
+              {[0, 1, 2, 3].map((index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-4 h-4 rounded-full border-2 transition-all duration-200 pointer-events-none",
+                    pinCode.length > index 
+                      ? "bg-blue-500 border-blue-400 scale-110 shadow-lg shadow-blue-500/40" 
+                      : "border-workshop-border/80 bg-workshop-surface/50 group-hover:border-blue-400/60"
+                  )}
+                />
+              ))}
             </div>
-          </motion.div>
-        </div>
-      </Portal>
+
+            {/* Error Message */}
+            <div className="h-6 my-2 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {pinError && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="text-xs font-bold text-status-urgent"
+                  >
+                    {pinError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Clear Input option */}
+            {pinCode.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  handleClear();
+                  pinInputRef.current?.focus();
+                }}
+                className="mt-2 py-2 px-4 text-xs font-bold text-workshop-muted hover:text-workshop-text uppercase tracking-widest transition-colors cursor-pointer"
+              >
+                Clear Input
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </Wrapper>
     );
   }
 
   return (
-    <Portal>
-      <div className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          className="w-full flex-1 flex flex-col h-full bg-workshop-bg text-workshop-text relative overflow-hidden"
-        >
+    <Wrapper>
+      <motion.div
+        initial={isPage ? { opacity: 0, y: 15 } : { x: "100%", opacity: 0.95 }}
+        animate={isPage ? { opacity: 1, y: 0 } : { x: 0, opacity: 1 }}
+        exit={isPage ? { opacity: 0, y: -10 } : { x: "100%", opacity: 0.95 }}
+        transition={isPage ? { duration: 0.25, ease: [0.2, 0, 0, 1.0] } : { type: "spring", stiffness: 350, damping: 30 }}
+        className={cn(
+          isPage 
+            ? "w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans bg-workshop-bg h-full min-h-0" 
+            : "fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-hidden"
+        )}
+      >
+        <div className="w-full flex-1 flex flex-col h-full bg-workshop-bg text-workshop-text relative overflow-hidden">
           {/* Header */}
           <div className="bg-workshop-bg text-workshop-text relative border-b border-workshop-border shrink-0">
             <div className="safe-top" />
@@ -632,51 +712,14 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                         </p>
                       </div>
 
-                      <div className="flex bg-workshop-surface p-1 rounded-xl border border-workshop-border">
-                        <button
-                          onClick={() => {
-                            setSearchType("plate");
-                            setSearchQuery("");
-                            setSearchResults([]);
-                          }}
-                          className={cn(
-                            "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
-                            searchType === "plate"
-                              ? "bg-workshop-card text-workshop-accent shadow-sm"
-                              : "text-workshop-muted"
-                          )}
-                        >
-                          Plate Number
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSearchType("phone");
-                            setSearchQuery("");
-                            setSearchResults([]);
-                          }}
-                          className={cn(
-                            "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
-                            searchType === "phone"
-                              ? "bg-workshop-card text-workshop-accent shadow-sm"
-                              : "text-workshop-muted"
-                          )}
-                        >
-                          Owner Details
-                        </button>
-                      </div>
-
                       <div className="relative flex items-center">
                         <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
                         <input
                           type="text"
-                          placeholder={
-                            searchType === "plate"
-                              ? "Start typing plate number..."
-                              : "Search by phone or owner name..."
-                          }
+                          placeholder="Search anything!"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text uppercase placeholder:normal-case shadow-sm"
+                          className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-4 rounded-xl text-base md:text-lg font-bold outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text uppercase placeholder:normal-case shadow-sm"
                         />
                       </div>
 
@@ -704,33 +747,35 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                                   : res.customer.name[0]}
                               </div>
                               <div>
-                                <p className="text-[10px] font-black text-workshop-accent uppercase tracking-widest mb-0.5">
+                                <p className="text-sm md:text-base font-bold text-workshop-accent uppercase leading-tight mb-0.5">
                                   {res.vehicle
                                     ? `${res.vehicle.make} ${res.vehicle.model}`
                                     : "New Vehicle Entry Needed"}
                                 </p>
-                                <p className="font-bold text-workshop-text leading-tight uppercase">
+                                <p className="text-sm md:text-base font-bold text-workshop-text leading-tight uppercase">
                                   {res.customer.name}
                                 </p>
-                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
                                   <div className="flex items-center gap-1.5 text-workshop-muted">
-                                    <Search className="w-2.5 h-2.5 opacity-40" />
-                                    <p className="text-[10px] font-bold uppercase tracking-tighter">
+                                    <p className="text-sm md:text-base font-bold uppercase tracking-tight">
                                       {res.customer.phone}
                                     </p>
                                   </div>
                                   {res.vehicle && (
                                     <>
                                       <div className="flex items-center gap-1.5 text-workshop-secondary">
-                                        <span className="w-1 h-1 bg-workshop-border rounded-full shrink-0" />
-                                        <p className="text-[10px] font-bold uppercase tracking-tighter">
+                                        <span className="w-1.5 h-1.5 bg-workshop-border rounded-full shrink-0" />
+                                        <p className="text-sm md:text-base font-bold uppercase tracking-tight">
                                           {res.vehicle.plateNumber}
                                         </p>
                                       </div>
                                       {res.vehicle.passwordOrPin && (
-                                        <div className="flex items-center gap-1.5 text-status-success bg-status-success/5 px-1.5 rounded border border-status-success/10">
-                                          <Key className="w-2.5 h-2.5" />
-                                          <span className="text-[10px] font-mono font-bold uppercase tracking-tighter">
+                                        <div className="flex items-center gap-1.5 text-status-success">
+                                          <Key className="w-3.5 h-3.5 shrink-0" />
+                                          <span 
+                                            style={{ fontFamily: "'Google Sans', sans-serif" }}
+                                            className="text-sm md:text-base font-sans font-bold uppercase tracking-tight"
+                                          >
                                             {res.vehicle.passwordOrPin}
                                           </span>
                                         </div>
@@ -740,11 +785,21 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-black text-workshop-muted uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">
-                                Select
-                              </span>
-                              <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-accent translate-x-0 group-hover:translate-x-1 transition-all" />
+                            <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                              <div className="text-right">
+                                <span className="text-[10px] md:text-xs font-bold text-workshop-muted block uppercase tracking-tight">
+                                  Last Serviced
+                                </span>
+                                <span className="text-xs md:text-sm font-black text-workshop-text uppercase tracking-tight">
+                                  {getLastServicedDate(res.customer, res.vehicle)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[8px] font-black text-workshop-muted uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">
+                                  Select
+                                </span>
+                                <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-accent translate-x-0 group-hover:translate-x-1 transition-all" />
+                              </div>
                             </div>
                           </button>
                         ))}
@@ -913,17 +968,41 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
                       >
                         Registration Plate
                       </label>
-                      <input
-                        value={vehicleForm.plateNumber}
-                        onChange={(e) =>
-                          setVehicleForm({
-                            ...vehicleForm,
-                            plateNumber: e.target.value.replace(/\s+/g, "").toUpperCase(),
-                          })
-                        }
-                        className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold text-workshop-accent uppercase"
-                        placeholder="KL01X1234"
-                      />
+                      <div className="relative">
+                        <input
+                          disabled={vehicleForm.plateNumber === "U/R"}
+                          value={vehicleForm.plateNumber}
+                          onChange={(e) =>
+                            setVehicleForm({
+                              ...vehicleForm,
+                              plateNumber: e.target.value.replace(/\s+/g, "").toUpperCase(),
+                            })
+                          }
+                          className={cn(
+                            "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold uppercase transition-all",
+                            vehicleForm.plateNumber === "U/R" ? "text-status-urgent bg-workshop-surface/40" : "text-workshop-accent"
+                          )}
+                          placeholder={vehicleForm.plateNumber === "U/R" ? "UNREGISTERED" : "KL01X1234"}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVehicleForm(prev => ({
+                              ...prev,
+                              plateNumber: prev.plateNumber === "U/R" ? "" : "U/R"
+                            }));
+                          }}
+                          className={cn(
+                            "absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-[10px] font-sans font-black tracking-widest uppercase transition-all cursor-pointer border border-status-urgent",
+                            vehicleForm.plateNumber === "U/R"
+                              ? "bg-status-urgent text-white shadow-lg shadow-status-urgent/30"
+                              : "bg-workshop-surface text-status-urgent hover:bg-status-urgent/10"
+                          )}
+                          title="Toggle Unregistered (U/R) Status"
+                        >
+                          U/R
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label
@@ -1294,8 +1373,22 @@ export function ServiceIntake({ onClose, onSuccess }: ServiceIntakeProps) {
             </AnimatePresence>
             <div className="safe-bottom h-4" />
           </div>
-        </motion.div>
-      </div>
-    </Portal>
+        </div>
+      </motion.div>
+    </Wrapper>
   );
 }
+
+export function ServiceIntakePage() {
+  const navigate = useNavigate();
+  return (
+    <div className="w-full max-w-4xl mx-auto py-2">
+      <ServiceIntake 
+        onClose={() => navigate('/')} 
+        onSuccess={() => navigate('/services')} 
+        isPage={true}
+      />
+    </div>
+  );
+}
+

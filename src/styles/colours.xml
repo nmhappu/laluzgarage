@@ -4,8 +4,8 @@
     <color name="bg_dark">#0B0D11</color>
     <color name="fg_dark">#F8FAFC</color>
     <color name="card_bg_dark">#181B24</color>
-    <color name="surface_bg_dark">#12141C</color>
-    <color name="popover_bg_dark">#12141C</color>
+    <color name="surface_bg_dark">#0B0D11</color>
+    <color name="popover_bg_dark">#0B0D11</color>
     <color name="muted_bg_dark">#1E232E</color>
     <color name="muted_fg_dark">#94A3B8</color>
     <color name="border_color_dark">#1E232E</color>

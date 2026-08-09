@@ -7,7 +7,6 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import { Portal } from './Portal';
-import { SettingsModal } from './SettingsModal';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, m3Icon: 'grid_view', label: 'Dashboard' },
@@ -20,7 +19,6 @@ export function Navigation() {
   const { user, profile, logout } = useAuth();
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,12 +53,6 @@ export function Navigation() {
     setShowStickySearch(false);
     setFilterMenuOpen(false);
   }, [location.pathname]);
-
-  const getPageTitle = () => {
-    return 'LaluZ Garage';
-  };
-
-  const pageTitle = getPageTitle();
 
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -104,11 +96,23 @@ export function Navigation() {
     };
   }, []);
 
+  if (location.pathname === '/settings' || location.pathname === '/intake' || isModalOpen) {
+    return null;
+  }
+
+  const getPageTitle = () => {
+    return 'LaluZ Garage';
+  };
+
+  const pageTitle = getPageTitle();
+
   const getActiveTabLabel = (pathname: string) => {
     if (pathname === '/') return 'Dashboard';
     if (pathname.startsWith('/vehicles')) return 'Vehicle Registry';
     if (pathname.startsWith('/inventory')) return 'Parts Inventory';
     if (pathname.startsWith('/services')) return 'Service History';
+    if (pathname.startsWith('/settings')) return 'Settings';
+    if (pathname.startsWith('/intake')) return 'Vehicle Intake';
     return 'Dashboard';
   };
 
@@ -117,6 +121,8 @@ export function Navigation() {
     if (pathname.startsWith('/vehicles')) return 'directions_car';
     if (pathname.startsWith('/inventory')) return 'inventory_2';
     if (pathname.startsWith('/services')) return 'build';
+    if (pathname.startsWith('/settings')) return 'settings';
+    if (pathname.startsWith('/intake')) return 'assignment';
     return 'grid_view';
   };
 
@@ -166,16 +172,40 @@ export function Navigation() {
                 </AnimatePresence>
               </div>
             </NavLink>
-            <button 
-              onClick={() => setShowSettings(true)} 
-              className="p-2 text-workshop-muted hover:text-workshop-text hover:bg-workshop-card/50 rounded-lg transition-colors ml-2"
-              title="Security Settings"
+            <NavLink 
+              to="/settings" 
+              className="p-2 text-workshop-muted hover:text-workshop-text hover:bg-workshop-card/50 rounded-lg transition-colors ml-2 flex items-center justify-center"
+              title="Settings"
             >
               <Settings className="w-4 h-4" />
-            </button>
+            </NavLink>
           </div>
           <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
         </div>
+
+        {/* Search input in desktop sidebar */}
+        {['/vehicles', '/inventory', '/services'].some(path => location.pathname.startsWith(path)) && (
+          <div className="px-6 mb-2">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3 text-workshop-muted w-4 h-4" />
+              <input 
+                type="text"
+                value={stickyQuery}
+                onChange={(e) => setStickyQuery(e.target.value)}
+                placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
+                className="w-full bg-workshop-card border border-workshop-border pl-9 pr-8 py-2 rounded-xl text-xs font-semibold text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent/50 uppercase"
+              />
+              {stickyQuery && (
+                <button 
+                  onClick={() => setStickyQuery('')}
+                  className="absolute right-3 text-workshop-muted hover:text-workshop-text flex items-center justify-center"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <motion.nav 
           initial="hidden"
@@ -267,98 +297,46 @@ export function Navigation() {
 
       {/* Mobile Top Bar */}
       <nav className={cn(
-        "md:hidden fixed top-0 left-0 right-0 z-50 flex flex-col transition-all duration-75 ease-out accelerate-gpu",
+        "md:hidden fixed top-0 left-0 right-0 z-50 flex flex-col transition-all duration-200 ease-out",
         scrollTop > 10 
-          ? "bg-workshop-bg/90 backdrop-blur-md border-b border-workshop-border/30 shadow-md shadow-black/5" 
-          : "bg-workshop-bg border-b border-transparent",
+          ? "bg-workshop-bg/85 backdrop-blur-md border-b border-workshop-border/40 shadow-sm" 
+          : "bg-workshop-bg border-b border-workshop-border/20",
         isModalOpen && "bg-workshop-bg/95"
       )}>
         <div className="safe-top" />
-        <div className="h-16 relative flex items-center justify-between px-6">
+        <div className="h-16 flex items-center justify-between px-5">
           
-          {/* 1. ORIGINAL SCROLLABLE HEADER CONTENT (LaluZ Garage, theme, settings, logout) */}
-          <div 
-            className={cn(
-              "absolute inset-x-6 top-0 bottom-0 flex items-center justify-between transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
-              scrollTop > 25 
-                ? "opacity-0 -translate-y-4 pointer-events-none" 
-                : "opacity-100 translate-y-0 pointer-events-auto"
-            )}
-          >
-            <NavLink to="/" className="flex items-center gap-2.5 h-full">
-              <span className="text-workshop-text text-lg font-logo font-semibold tracking-tight">
-                LaluZ Garage
-              </span>
-              <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
-                <span 
+          {/* Logo & Current Page Icon */}
+          <NavLink to="/" className="flex items-center gap-2.5 h-full">
+            <span className="text-workshop-text text-base font-logo font-bold tracking-tight">
+              LaluZ Garage
+            </span>
+            <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.span 
+                  key={getActiveTabM3Icon(location.pathname)}
+                  initial={{ opacity: 0, scale: 0.5, rotate: -30 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0.5, rotate: 30 }}
+                  transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
                   className={cn(
-                    "material-symbols-outlined text-2xl absolute select-none",
+                    "material-symbols-outlined text-xl absolute select-none",
                     getActiveTabColor(location.pathname)
                   )}
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
                   {getActiveTabM3Icon(location.pathname)}
-                </span>
-              </div>
-            </NavLink>
- 
-            <div className="flex items-center gap-2">
-              {location.pathname === '/' && <ThemeToggle className="w-9 h-9 rounded-lg" />}
-              <button 
-                onClick={() => setShowSettings(true)}
-                className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
-                title="Security Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center justify-center p-2 text-workshop-muted hover:text-status-urgent transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+                </motion.span>
+              </AnimatePresence>
             </div>
-          </div>
- 
-          {/* 2. PINNED STICKY TITLE (Fades and slides up into place of LaluZ Garage) */}
-          <div 
-            className={cn(
-              "absolute left-6 top-0 bottom-0 flex items-center gap-2.5 transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
-              scrollTop > 25 
-                ? "opacity-100 translate-y-0 pointer-events-auto" 
-                : "opacity-0 translate-y-4 pointer-events-none"
-            )}
-          >
-            <span className="text-workshop-text text-lg font-black uppercase tracking-tighter">
-              {getActiveTabLabel(location.pathname)}
-            </span>
-            <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
-              <span 
-                className={cn(
-                  "material-symbols-outlined text-2xl absolute select-none",
-                  getActiveTabColor(location.pathname)
-                )}
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                {getActiveTabM3Icon(location.pathname)}
-              </span>
-            </div>
-          </div>
- 
-          {/* 3. PINNED STICKY ACTIONS (Search, Filter) */}
-          <div 
-            className={cn(
-              "absolute right-6 top-0 bottom-0 flex items-center gap-1 transition-all duration-75 ease-out accelerate-gpu will-change-transform-opacity",
-              scrollTop > 25 
-                ? "opacity-100 translate-y-0 pointer-events-auto" 
-                : "opacity-0 translate-y-4 pointer-events-none"
-            )}
-          >
+          </NavLink>
+
+          {/* Persistent Header Actions */}
+          <div className="flex items-center gap-1">
             {['/vehicles', '/inventory', '/services'].some(path => location.pathname.startsWith(path)) && (
               <button
                 onClick={() => setShowStickySearch(true)}
-                className="flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors"
+                className="p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg"
                 title="Search"
               >
                 <Search className="w-5 h-5" />
@@ -368,7 +346,7 @@ export function Navigation() {
               <button
                 onClick={() => setFilterMenuOpen(!filterMenuOpen)}
                 className={cn(
-                  "flex items-center justify-center p-2 text-workshop-muted hover:text-workshop-text transition-colors",
+                  "p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg",
                   filterMenuOpen && "text-workshop-accent"
                 )}
                 title="Filter Logs"
@@ -376,7 +354,23 @@ export function Navigation() {
                 <SlidersHorizontal className="w-5 h-5" />
               </button>
             )}
+            {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
+            <NavLink 
+              to="/settings"
+              className="p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </NavLink>
+            <button 
+              onClick={() => setShowLogoutConfirm(true)}
+              className="p-2 text-workshop-muted hover:text-status-urgent transition-colors rounded-lg"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
+        </div>
 
           {/* 4. EXPANDED STICKY SEARCH BAR */}
           <AnimatePresence>
@@ -394,7 +388,7 @@ export function Navigation() {
                     type="text"
                     value={stickyQuery}
                     onChange={(e) => setStickyQuery(e.target.value)}
-                    placeholder={`Search ${getActiveTabLabel(location.pathname).toLowerCase()}...`}
+                    placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
                     className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2 uppercase"
                     autoFocus
                   />
@@ -458,8 +452,6 @@ export function Navigation() {
               </>
             )}
           </AnimatePresence>
-
-        </div>
       </nav>
 
       {/* Mobile Bottom Navigation */}
@@ -569,12 +561,6 @@ export function Navigation() {
               </motion.div>
             </div>
           </Portal>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showSettings && (
-          <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
     </>

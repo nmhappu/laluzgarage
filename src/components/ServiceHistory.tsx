@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -58,6 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/CustomSelect";
+import { getWhatsAppPresetsSync, formatDeliveryMessage } from "../services/whatsappPresetService";
 
 const capitalizeName = (name?: string) => {
   if (!name) return "";
@@ -144,83 +145,96 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
 
         <div className="flex flex-col gap-3.5">
           <div className="flex-1 space-y-3.5">
-            <div className="flex flex-col gap-3 bg-workshop-surface/20 p-3.5 rounded-xl border border-workshop-border/10">
+            <div className="flex flex-col bg-workshop-surface/20 p-3.5 rounded-xl border border-workshop-border/10">
               
-              {/* ROW 1: Plate and Vehicle Model only */}
-              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
-                {/* Plate Number in prominent Blue */}
-                <span 
-                  style={{ fontFamily: "'Google Sans', sans-serif" }}
-                  className="text-[#3B82F6] font-sans font-black text-base md:text-lg tracking-widest uppercase shrink-0 select-all"
-                >
-                  {v?.plateNumber || "NO PLATE"}
-                </span>
-
-                <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
-
-                {/* Make & Model */}
-                <span className="text-workshop-text font-black text-sm md:text-base uppercase tracking-tight">
-                  {v?.make} {v?.model}
-                </span>
+              {/* Client Name at the top */}
+              <div className="pb-0.5 border-b border-workshop-border/10 text-workshop-text font-black text-base md:text-lg uppercase tracking-tight">
+                {capitalizeName(customer?.name) || "Unknown Client"}
               </div>
 
-              {/* ROW 2: Mileage & Password / Key PIN on different lines/section */}
-              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
-                {/* Mileage Badge */}
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "whitespace-nowrap shrink-0 font-black",
-                      record.isDeadVehicle
-                        ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                        : record.isUnknownMileage
-                          ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                          : "font-mono text-status-pending",
-                    )}
+              {/* Grouped Vehicle Details with even spacing */}
+              <div className="pt-0.5 space-y-2">
+                {/* ROW 1: Plate and Vehicle Model only */}
+                <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
+                  {/* Plate Number in prominent Blue */}
+                  <span 
+                    style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                    className="text-[#3B82F6] font-sans font-black tracking-widest uppercase shrink-0 select-all"
                   >
-                    {record.isDeadVehicle
-                      ? "DEAD"
-                      : record.isUnknownMileage
-                        ? "LOCKED"
-                        : `${record.mileage.toLocaleString()} KM`}
+                    {v?.plateNumber || "NO PLATE"}
                   </span>
-                  {!!record.completionMileage && (
+
+                  <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+
+                  {/* Make & Model */}
+                  <span 
+                    style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                    className="text-workshop-text font-black uppercase tracking-tight"
+                  >
+                    {v?.make} {v?.model}
+                  </span>
+                </div>
+
+                {/* ROW 2: Mileage & Password / Key PIN on different lines/section */}
+                <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
+                  {/* Mileage Badge */}
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                      className={cn(
+                        "whitespace-nowrap shrink-0 font-black",
+                        record.isDeadVehicle
+                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : record.isUnknownMileage
+                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                            : "text-status-pending font-sans",
+                      )}
+                    >
+                      {record.isDeadVehicle
+                        ? "DEAD"
+                        : record.isUnknownMileage
+                          ? "LOCKED"
+                          : `${record.mileage.toLocaleString()} KM`}
+                    </span>
+                    {!!record.completionMileage && (
+                      <>
+                        <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
+                        <span 
+                          style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                          className="text-status-success font-sans font-black whitespace-nowrap shrink-0"
+                        >
+                          {record.completionMileage.toLocaleString()} KM
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {v?.passwordOrPin && (
                     <>
-                      <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
-                      <span className="text-status-success font-mono font-black whitespace-nowrap shrink-0">
-                        {record.completionMileage.toLocaleString()} KM
-                      </span>
+                      <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+                      <div className="flex items-center gap-1 text-status-success shrink-0">
+                        {v.passwordOrPin.toLowerCase() === "key" ? (
+                          <>
+                            <Key className="w-4 h-4" />
+                            <span 
+                              style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                              className="font-black tracking-[0.1em] font-sans"
+                            >
+                              KEY
+                            </span>
+                          </>
+                        ) : (
+                          <span 
+                            style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
+                            className="font-sans font-black tracking-wider text-status-success"
+                          >
+                            # {v.passwordOrPin}
+                          </span>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
-
-                {v?.passwordOrPin && (
-                  <>
-                    <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
-                    <div className="flex items-center gap-1 text-status-success shrink-0">
-                      {v.passwordOrPin.toLowerCase() === "key" ? (
-                        <>
-                          <Key className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-black tracking-[0.1em] font-sans">
-                            KEY
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-mono font-black text-xs md:text-sm tracking-wider">
-                          # {v.passwordOrPin}
-                        </span>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* ROW 3: Owner Client Info */}
-              <div className="text-xs md:text-sm font-bold text-workshop-muted uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                <span>Client:</span>
-                <span className="text-workshop-text font-black text-sm md:text-base">
-                  {capitalizeName(customer?.name) || "Unknown Client"}
-                </span>
               </div>
 
             </div>
@@ -301,8 +315,8 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
 
         {record.technicianName && (
           <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
-            <div className="flex items-center gap-2 text-workshop-muted/60">
-              <User className="w-3 h-3 opacity-40 shrink-0" />
+            <div className="flex items-center gap-1.5 text-workshop-muted/90">
+              <User className="w-3.5 h-3.5 opacity-60 text-workshop-accent shrink-0" />
               <span className="text-xs font-black uppercase tracking-widest leading-none">
                 Advisor: <span className="text-orange-500 font-black">{record.technicianName}</span>
               </span>
@@ -342,7 +356,7 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                 className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-[#128C7E] hover:border-[#128C7E]/40 hover:bg-[#128C7E]/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
                 title={`WhatsApp Message Client (${customer.phone})`}
               >
-                <MessageSquare className="w-4 h-4 fill-[#128C7E]/10" />
+                <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
               </button>
             )}
             <button
@@ -389,6 +403,7 @@ const contentVariants = {
 
 export function ServiceHistory() {
   const location = useLocation();
+  const navigate = useNavigate();
   // --- State: Core Data ---
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -438,47 +453,6 @@ export function ServiceHistory() {
   };
 
   // Sync activeTab from location state
-  const [scrollTop, setScrollTop] = useState(0);
-
-  useEffect(() => {
-    let scrollContainer: Element | null = null;
-    
-    const handleScroll = () => {
-      if (scrollContainer) {
-        setScrollTop(scrollContainer.scrollTop);
-      }
-    };
-
-    const bindScroll = () => {
-      scrollContainer = document.querySelector('.overflow-y-auto');
-      if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-        setScrollTop(scrollContainer.scrollTop);
-        return true;
-      }
-      return false;
-    };
-
-    if (!bindScroll()) {
-      const interval = setInterval(() => {
-        if (bindScroll()) {
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => {
-        clearInterval(interval);
-        if (scrollContainer) {
-          scrollContainer.removeEventListener('scroll', handleScroll);
-        }
-      };
-    }
-
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (location.state && typeof location.state === "object" && "activeTab" in location.state) {
@@ -492,6 +466,28 @@ export function ServiceHistory() {
       }
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const stateObj = location.state as Record<string, unknown> | null;
+    const targetId = (stateObj?.openRecordId as string) || searchParams.get("recordId");
+    if (targetId && records.length > 0) {
+      const found = records.find(r => r.id === targetId);
+      if (found) {
+        setEditingRecord({ ...found });
+        // Clean router state immediately to prevent re-opening loop on updates/fetches
+        if (stateObj?.openRecordId) {
+          navigate(location.pathname + location.search, { replace: true, state: {} });
+        }
+        if (searchParams.has("recordId")) {
+          setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.delete("recordId");
+            return next;
+          }, { replace: true });
+        }
+      }
+    }
+  }, [records, location.state, searchParams, navigate, setSearchParams]);
   
   const tabOrder = ["all", "pending", "in-progress", "completed", "cancelled"];
   const [tabState, setTabState] = useState({
@@ -512,12 +508,31 @@ export function ServiceHistory() {
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(
     null,
   );
+  
+  const closeEditingRecord = useCallback(() => {
+    setEditingRecord(null);
+    if (location.state && typeof location.state === "object" && "openRecordId" in location.state) {
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+    if (searchParams.has("recordId")) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete("recordId");
+        return next;
+      }, { replace: true });
+    }
+  }, [location.state, location.pathname, location.search, searchParams, setSearchParams, navigate]);
   const [detailsRecord, setDetailsRecord] = useState<ServiceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<ServiceRecord | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
+  const [completedJobPopup, setCompletedJobPopup] = useState<{
+    record: ServiceRecord;
+    customer?: Customer;
+    vehicle?: Vehicle;
+  } | null>(null);
 
   const handleCardClick = useCallback((record: ServiceRecord) => {
     setEditingRecord({ ...record });
@@ -539,25 +554,6 @@ export function ServiceHistory() {
     { customer: Customer; vehicle?: Vehicle }[]
   >([]);
   const stickySearchLogs = searchParams.get("q") || "";
-  const [localSearchInput, setLocalSearchInput] = useState(() => searchParams.get("service_q") || "");
-  const [appliedSearchLogs, setAppliedSearchLogs] = useState(() => searchParams.get("service_q") || "");
-
-  // Debounce search input to avoid lag and run searches independently
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setAppliedSearchLogs(localSearchInput);
-      setSearchParams(prev => {
-        if (!localSearchInput) {
-          prev.delete("service_q");
-        } else {
-          prev.set("service_q", localSearchInput);
-        }
-        return prev;
-      }, { replace: true });
-    }, 250);
-
-    return () => clearTimeout(handler);
-  }, [localSearchInput, setSearchParams]);
 
   const tabCounts = useMemo(() => {
     const counts = { all: records.length, pending: 0, "in-progress": 0, completed: 0, cancelled: 0 };
@@ -639,7 +635,7 @@ export function ServiceHistory() {
   useEffect(() => {
     const handleBackButton = (e: Event) => {
       if (editingRecord) {
-        setEditingRecord(null);
+        closeEditingRecord();
         e.preventDefault();
       } else if (detailsRecord) {
         setDetailsRecord(null);
@@ -1004,8 +1000,25 @@ export function ServiceHistory() {
         });
       });
 
-      setEditingRecord(null);
+      const isCompleted = editingRecord.status === "completed";
+      const currentCust = customers.find((c) => c.id === editingRecord.customerId);
+      const currentVeh = vehicleMap.get(editingRecord.vehicleId);
+      const completedRecordData = {
+        ...editingRecord,
+        partsCost: partsTotal,
+        totalCost: totalCost,
+      };
+
+      closeEditingRecord();
       await fetchData();
+
+      if (isCompleted) {
+        setCompletedJobPopup({
+          record: completedRecordData,
+          customer: currentCust,
+          vehicle: currentVeh,
+        });
+      }
     } catch (e: unknown) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : String(e);
@@ -1115,7 +1128,6 @@ export function ServiceHistory() {
       // Status Tab Filter
       const matchesTab =
         activeTab === "all" ||
-        appliedSearchLogs.trim() !== "" ||
         stickySearchLogs.trim() !== "" ||
         (activeTab === "pending" && r.status === "pending") ||
         (activeTab === "in-progress" && r.status === "in-progress") ||
@@ -1123,26 +1135,6 @@ export function ServiceHistory() {
         (activeTab === "cancelled" && r.status === "cancelled");
 
       if (!matchesTab) return false;
-
-      // Local Body Search Filter
-      if (appliedSearchLogs.trim()) {
-        const query = appliedSearchLogs.toLowerCase();
-        const vehicle = vehicleMap.get(r.vehicleId);
-        const customer = customerMap.get(r.customerId);
-
-        const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
-        const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
-        const customerName = customer?.name?.toLowerCase() || "";
-        const vehicleColor = vehicle?.color?.toLowerCase() || "";
-
-        const matchesLocal = (
-          vehicleName.includes(query) ||
-          plateNumber.includes(query) ||
-          customerName.includes(query) ||
-          vehicleColor.includes(query)
-        );
-        if (!matchesLocal) return false;
-      }
 
       // Sticky Header Search Filter
       if (stickySearchLogs.trim()) {
@@ -1166,7 +1158,7 @@ export function ServiceHistory() {
 
       return true;
     });
-  }, [records, activeTab, appliedSearchLogs, stickySearchLogs, vehicleMap, customerMap]);
+  }, [records, activeTab, stickySearchLogs, vehicleMap, customerMap]);
 
   const addPartToRecord = (partId: string) => {
     const part = parts.find((p) => p.id === partId);
@@ -1198,10 +1190,7 @@ export function ServiceHistory() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
-      <header 
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-opacity duration-75"
-        style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
-      >
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase">
             Service History
@@ -1210,7 +1199,7 @@ export function ServiceHistory() {
             Track and manage vehicle maintenance history.
           </p>
         </div>
-      </header>      {/* Status Tabs & Search */}
+      </header>      {/* Status Tabs */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div className="w-full xl:w-72 relative min-w-0 z-30">
           {(() => {
@@ -1290,30 +1279,6 @@ export function ServiceHistory() {
             );
           })()}
         </div>
-
-        <div className="relative w-full xl:w-80 group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="w-4 h-4 text-workshop-muted transition-colors group-focus-within:text-workshop-accent" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search vehicle, owner or plate..."
-            value={localSearchInput}
-            onChange={(e) => setLocalSearchInput(e.target.value)}
-            className={cn(
-              "w-full bg-workshop-surface border border-workshop-border pl-11 pr-10 py-3 rounded-xl text-xs font-bold text-workshop-text focus:border-workshop-accent focus:ring-4 focus:ring-workshop-accent/10 outline-none transition-all placeholder:text-workshop-muted/50 uppercase tracking-tight h-[46px]",
-              localSearchInput && "bg-workshop-accent/5 border-workshop-accent/20",
-            )}
-          />
-          {localSearchInput && (
-            <button
-              onClick={() => setLocalSearchInput("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-workshop-muted hover:text-status-urgent transition-colors"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="space-y-4">
@@ -1380,7 +1345,7 @@ export function ServiceHistory() {
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               className="text-center py-20 text-workshop-muted text-sm italic"
             >
-              {(appliedSearchLogs || stickySearchLogs)
+              {stickySearchLogs
                 ? "No records match your search criteria."
                 : `No ${activeTab === "all" ? "" : activeTab} records found in the logbook.`}
             </motion.div>
@@ -1516,8 +1481,8 @@ export function ServiceHistory() {
                           type="text"
                           placeholder={
                             searchType === "plate"
-                              ? "Start typing plate..."
-                              : "Search by phone or name..."
+                              ? "Start typing plate"
+                              : "By phone or name"
                           }
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
@@ -2148,7 +2113,7 @@ export function ServiceHistory() {
 
                 <button
                   type="button"
-                  onClick={() => setEditingRecord(null)}
+                  onClick={() => closeEditingRecord()}
                   className="relative z-10 flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
                 >
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
@@ -2276,9 +2241,9 @@ export function ServiceHistory() {
                                   {vehicle.passwordOrPin.toUpperCase() === "KEY" ? (
                                     <Key className="w-4 h-4 text-status-success shrink-0" />
                                   ) : (
-                                    <span className="text-status-success font-bold font-sans text-sm select-none pr-0.5">#</span>
+                                    <span className="text-status-success font-bold font-sans text-base select-none pr-0.5">#</span>
                                   )}
-                                  <span className="font-sans">
+                                  <span className="font-sans text-base sm:text-lg">
                                     {vehicle.passwordOrPin.toUpperCase() === "KEY" 
                                       ? "Key" 
                                       : `PIN: ${vehicle.passwordOrPin}`}
@@ -2388,7 +2353,7 @@ export function ServiceHistory() {
                                         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans outline-none border-0"
                                         id="whatsapp-update-option"
                                       >
-                                        <MessageSquare className="w-4 h-4 text-[#128C7E] shrink-0" />
+                                        <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
                                         <span>Send WhatsApp Update</span>
                                       </button>
                                     </motion.div>
@@ -2488,7 +2453,7 @@ export function ServiceHistory() {
                             className="w-full h-11 px-4 bg-workshop-surface/40 hover:bg-workshop-surface/60 border border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent flex items-center justify-between group text-left"
                           >
                             <span className="text-workshop-muted/80 font-medium truncate">
-                              Search or select parts...
+                              Select parts...
                             </span>
                             <ChevronDown className={cn("w-4 h-4 text-workshop-muted transition-transform duration-300 shrink-0", editPartDropdownOpen && "rotate-180")} />
                           </button>
@@ -2850,7 +2815,7 @@ export function ServiceHistory() {
                 <div className="px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
                   <button
                     type="button"
-                    onClick={() => setEditingRecord(null)}
+                    onClick={() => closeEditingRecord()}
                     className="px-6 py-3 border border-workshop-border hover:border-workshop-muted-foreground/30 rounded-2xl text-xs font-bold text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface active:scale-[0.98] transition-all uppercase tracking-widest outline-none"
                   >
                     DISCARD CHANGES
@@ -2876,39 +2841,37 @@ export function ServiceHistory() {
         )}
       </AnimatePresence>
 
-      {/* Edit Details Modal */}
+      {/* Edit Details Fullscreen Modal */}
       <AnimatePresence>
         {detailsRecord && (
           <Portal>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                onClick={() => setDetailsRecord(null)}
-                className="absolute inset-0 bg-workshop-bg/85"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="relative bg-workshop-card w-full max-w-lg rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh]"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl font-black text-workshop-text tracking-tight uppercase px-1">
+            <motion.div
+              initial={{ x: "100%", opacity: 0.95 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.95 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
+            >
+              {/* Header Bar */}
+              <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+                <button
+                  type="button"
+                  onClick={() => setDetailsRecord(null)}
+                  className="flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
+                >
+                  <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
+                </button>
+
+                <div className="flex-1 pl-2">
+                  <h2 className="text-lg sm:text-2xl font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
                     Edit Service Details
                   </h2>
-                  <button
-                    onClick={() => setDetailsRecord(null)}
-                    className="p-2 text-workshop-muted hover:text-workshop-text transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
                 </div>
+              </div>
 
-                <form onSubmit={handleUpdateDetails} className="space-y-6">
+              {/* Scrollable Form Body */}
+              <form onSubmit={handleUpdateDetails} className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-2xl mx-auto w-full">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                       Personal Items / Valuables
@@ -2959,30 +2922,31 @@ export function ServiceHistory() {
                       className="py-3 text-sm font-bold text-workshop-text focus:ring-1 focus:ring-workshop-accent"
                     />
                   </div>
+                </div>
 
-                  <div className="flex gap-4 pt-4 px-1">
-                    <button
-                      type="button"
-                      onClick={() => setDetailsRecord(null)}
-                      className="flex-1 px-4 py-3 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-all active:scale-[0.98]"
-                    >
-                      Discard
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isUpdating || !detailsRecord.description || !detailsRecord.expectedDeliveryDate}
-                      className="flex-1 px-4 py-3 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
-                    >
-                      {isUpdating ? (
-                        <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
-                      ) : (
-                        "Save Details"
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </div>
+                {/* Bottom Sticky Action Bar */}
+                <div className="pt-4 px-6 pb-14 sm:pb-6 bg-workshop-bg border-t border-workshop-border/30 flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDetailsRecord(null)}
+                    className="px-6 py-3.5 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-all active:scale-[0.98]"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdating || !detailsRecord.description || !detailsRecord.expectedDeliveryDate}
+                    className="px-8 py-3.5 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
+                  >
+                    {isUpdating ? (
+                      <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
+                    ) : (
+                      "Save Details"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </Portal>
         )}
       </AnimatePresence>
@@ -3043,6 +3007,173 @@ export function ServiceHistory() {
         customerPhone={whatsAppRedirect?.phone || ''}
         url={whatsAppRedirect?.url || ''}
       />
+
+      {/* Completed Job Card & WhatsApp Bill Popup */}
+      <AnimatePresence>
+        {completedJobPopup && (() => {
+          const { record, customer, vehicle } = completedJobPopup;
+          const custName = customer?.name ? capitalizeName(customer.name) : "Customer";
+          const custPhone = customer?.phone || "";
+          const cleanPhone = custPhone.replace(/[^0-9]/g, "");
+          const vehicleTitle = vehicle ? `${vehicle.make ? vehicle.make + ' ' : ''}${vehicle.model}`.trim() : "Vehicle";
+          const plateNo = vehicle?.plateNumber || "";
+
+          const partsListStr = (record.partsUsed && record.partsUsed.length > 0)
+            ? record.partsUsed
+                .map((p, idx) => `${idx + 1}. ${p.name} (x${p.quantity}) - ${formatCurrency(p.unitPrice * p.quantity)}`)
+                .join('\n')
+            : '• General Inspection & Maintenance';
+
+          const presets = getWhatsAppPresetsSync();
+          const waText = formatDeliveryMessage(presets.deliveryTemplate, {
+            customerName: custName,
+            vehicleTitle,
+            vehicleMake: vehicle?.make,
+            vehicleModel: vehicle?.model,
+            vehiclePlate: plateNo,
+            partsList: partsListStr,
+            laborCost: formatCurrency(record.laborCost || 0),
+            totalCost: formatCurrency(record.totalCost || 0),
+            jobDescription: record.description || 'Service Maintenance',
+          });
+
+          const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
+
+          return (
+            <Portal>
+              <div className="fixed inset-0 z-[9999] bg-workshop-bg flex flex-col font-sans overflow-y-auto">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full min-h-screen flex flex-col justify-between p-6 md:p-10 max-w-3xl mx-auto space-y-6"
+                >
+                  {/* Top Header Bar */}
+                  <div className="flex items-center justify-between border-b border-workshop-border/30 pb-5">
+                    <div className="flex items-center gap-3.5">
+                      <MessageSquare className="w-7 h-7 text-[#128C7E] shrink-0" />
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-status-success/15 border border-status-success/30 text-status-success text-[10px] font-black uppercase tracking-widest mb-0.5">
+                          Job Card Completed
+                        </div>
+                        <h2 className="text-xl md:text-2xl font-black text-workshop-text tracking-tight uppercase leading-tight">
+                          Delivery Message
+                        </h2>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setCompletedJobPopup(null)}
+                      className="p-3 text-workshop-muted hover:text-workshop-text hover:bg-workshop-border/20 rounded-full transition-all cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {/* Content Body */}
+                  <div className="space-y-6 my-auto">
+                    {/* Client & Vehicle Summary */}
+                    <div className="bg-workshop-bg/60 border border-workshop-border/30 rounded-2xl p-5 space-y-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-bold text-workshop-muted uppercase tracking-wider text-xs">Client</span>
+                        <span className="font-black text-workshop-text uppercase text-sm">{custName}</span>
+                      </div>
+                      <div className="h-px bg-workshop-border/10" />
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-bold text-workshop-muted uppercase tracking-wider text-xs">Vehicle</span>
+                        <span className="font-bold uppercase flex items-center gap-2 text-sm">
+                          <span className="text-workshop-text">{vehicleTitle}</span>
+                          {plateNo && (
+                            <>
+                              <span className="text-workshop-muted">/</span>
+                              <span className="font-mono font-black text-blue-500">{plateNo}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Final Bill Breakdown */}
+                    <div className="bg-workshop-bg/80 border border-status-success/20 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-workshop-border/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Receipt className="w-5 h-5 text-status-success" />
+                          <span className="text-sm font-black uppercase tracking-wider text-workshop-text">
+                            Final Bill Summary
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Parts List */}
+                      <div className="space-y-2 text-sm">
+                        <span className="text-xs font-bold text-workshop-muted uppercase tracking-wider block">
+                          Fixed / Replaced Parts
+                        </span>
+                        {record.partsUsed && record.partsUsed.length > 0 ? (
+                          record.partsUsed.map((p, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-workshop-surface/60 px-4 py-2.5 rounded-xl border border-workshop-border/10 font-medium">
+                              <span className="text-workshop-text truncate max-w-[280px]">
+                                {p.name} <span className="text-workshop-muted font-bold">x{p.quantity}</span>
+                              </span>
+                              <span className="font-mono font-bold text-workshop-text">
+                                {formatCurrency(p.unitPrice * p.quantity)}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-workshop-muted italic text-xs px-1">
+                            No replacement parts billed.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Labor & Total */}
+                      <div className="pt-3 border-t border-workshop-border/20 space-y-2 text-sm">
+                        <div className="flex justify-between items-center text-workshop-muted">
+                          <span className="font-bold uppercase tracking-wider text-xs">Labor Charges</span>
+                          <span className="font-mono font-bold text-workshop-text">{formatCurrency(record.laborCost || 0)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-workshop-border/20">
+                          <span className="font-black uppercase tracking-wider text-sm text-workshop-text">Final Bill Amount</span>
+                          <span className="font-mono font-black text-2xl text-status-success">{formatCurrency(record.totalCost || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-workshop-border/20">
+                    {custPhone ? (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setCompletedJobPopup(null)}
+                        className="flex-1 py-4 px-6 bg-[#128C7E] hover:bg-[#0e6e63] text-white rounded-2xl text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-[#128C7E]/20 transition-all cursor-pointer active:scale-95"
+                      >
+                        <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-5 h-5 shrink-0" referrerPolicy="no-referrer" />
+                        <span>Send WhatsApp Message</span>
+                      </a>
+                    ) : (
+                      <div className="text-center text-status-urgent text-sm font-bold py-3 flex-1">
+                        No phone number available
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCompletedJobPopup(null)}
+                      className="py-4 px-8 bg-workshop-bg hover:bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text rounded-2xl text-sm font-bold uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </Portal>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

@@ -99,6 +99,16 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "email", "status", "createdAt", "updatedAt"]
+    },
+    "WhatsAppSettings": {
+      "title": "WhatsApp Settings",
+      "description": "Customizable WhatsApp message preset templates for intake and delivery.",
+      "type": "object",
+      "properties": {
+        "intakeTemplate": { "type": "string" },
+        "deliveryTemplate": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -121,6 +131,10 @@
     "/users/{userId}": {
       "schema": "WorkshopUser",
       "description": "Collection of workshop staff members."
+    },
+    "/settings/{settingId}": {
+      "schema": "WhatsAppSettings",
+      "description": "System settings and preset message configurations."
     }
   }
 }

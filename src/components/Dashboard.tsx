@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { ClipboardList, PlusCircle, Car, Clock, Package, Wrench } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { ServiceIntake } from './ServiceIntake';
 import type { ServiceRecord, Customer, Vehicle } from '../types';
 
 interface HistoryItem {
@@ -17,18 +16,19 @@ interface HistoryItem {
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [showIntake, setShowIntake] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<ServiceRecord[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [metrics, setMetrics] = useState({
     totalCustomers: 0,
     totalVehicles: 0,
+    totalServices: 0,
     pendingWorks: 0,
     issuesAttended: 0,
     completedWorks: 0,
     history: {
       customers: [] as HistoryItem[],
       vehicles: [] as HistoryItem[],
+      services: [] as HistoryItem[],
       pending: [] as HistoryItem[],
       issues: [] as HistoryItem[],
       completed: [] as HistoryItem[],
@@ -95,6 +95,7 @@ export function Dashboard() {
       // Calculate Metrics
       const totalCustomers = customersSnap.size;
       const totalVehicles = vehiclesSnap.size;
+      const totalServices = enrichedRecords.length;
 
       const pendingJobs = enrichedRecords.filter((s) => s.status === 'pending' || s.status === 'in-progress');
       
@@ -108,6 +109,7 @@ export function Dashboard() {
       // Calculate 7-day histories
       const customerHistory = getHistoryData(customers, 'createdAt');
       const vehicleHistory = getHistoryData(vehicles, 'createdAt');
+      const servicesHistory = getHistoryData(enrichedRecords, 'date');
       const pendingHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'pending' || r.status === 'in-progress');
       const completedHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'completed');
       
@@ -134,12 +136,14 @@ export function Dashboard() {
       setMetrics({
         totalCustomers,
         totalVehicles,
+        totalServices,
         pendingWorks: pendingJobs.length,
         issuesAttended,
         completedWorks,
         history: {
           customers: customerHistory,
           vehicles: vehicleHistory,
+          services: servicesHistory,
           pending: pendingHistory,
           issues: issuesHistory,
           completed: completedHistory
@@ -159,51 +163,10 @@ export function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  const [scrollTop, setScrollTop] = useState(0);
-
-  useEffect(() => {
-    let scrollContainer: Element | null = null;
-    
-    const handleScroll = () => {
-      if (scrollContainer) {
-        setScrollTop(scrollContainer.scrollTop);
-      }
-    };
-
-    const bindScroll = () => {
-      scrollContainer = document.querySelector('.overflow-y-auto');
-      if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-        setScrollTop(scrollContainer.scrollTop);
-        return true;
-      }
-      return false;
-    };
-
-    if (!bindScroll()) {
-      const interval = setInterval(() => {
-        if (bindScroll()) {
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => {
-        clearInterval(interval);
-        if (scrollContainer) {
-          scrollContainer.removeEventListener('scroll', handleScroll);
-        }
-      };
-    }
-
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
   const stats = [
-    { label: 'Registered Vehicles', value: metrics.totalVehicles, icon: Car, color: 'text-secondary', trend: metrics.history.vehicles, target: '/services', state: { activeTab: 'all' } },
-    { label: 'Pending Works', value: metrics.pendingWorks, icon: ClipboardList, color: 'text-status-urgent', trend: metrics.history.pending, target: '/services', state: { activeTab: 'pending' } },
+    { label: 'Total Services', value: metrics.totalServices, icon: ClipboardList, color: 'text-blue-500', trend: metrics.history.services, target: '/services', state: { activeTab: 'all' } },
+    { label: 'Pending Works', value: metrics.pendingWorks, icon: Clock, color: 'text-status-urgent', trend: metrics.history.pending, target: '/services', state: { activeTab: 'pending' } },
     { label: 'Completed Jobs', value: metrics.completedWorks, icon: Package, color: 'text-workshop-accent', trend: metrics.history.completed, target: '/services', state: { activeTab: 'completed' } },
     { label: 'Issues Attended', value: metrics.issuesAttended, icon: Wrench, color: 'text-status-success', trend: metrics.history.issues },
   ];
@@ -232,15 +195,13 @@ export function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 font-google-sans">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          style={{ opacity: Math.max(0, 1 - scrollTop / 60) }}
-          className="transition-opacity duration-75"
         >
-          <h1 className="text-2xl md:text-4xl font-black text-workshop-text tracking-tighter uppercase">Dashboard</h1>
+          <h1 className="text-2xl md:text-4xl font-black text-workshop-text tracking-tighter uppercase font-google-sans">Dashboard</h1>
         </motion.div>
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
@@ -249,23 +210,14 @@ export function Dashboard() {
         >
           <div className="absolute inset-0 bg-workshop-accent/20 blur-xl rounded group-hover:bg-workshop-accent/40 transition-all duration-500" />
           <button 
-            onClick={() => setShowIntake(true)}
-            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:brightness-110 transition-all active:scale-95"
+            onClick={() => navigate('/intake')}
+            className="relative flex items-center gap-2 px-6 py-4 bg-workshop-accent text-workshop-bg text-xs font-black uppercase tracking-widest rounded hover:brightness-110 transition-all active:scale-95 cursor-pointer font-google-sans"
           >
             <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             Vehicle Intake
           </button>
         </motion.div>
       </header>
-
-      <AnimatePresence>
-        {showIntake && (
-          <ServiceIntake 
-            onClose={() => setShowIntake(false)} 
-            onSuccess={fetchDashboardData}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Dashboard Watchlist Style */}
       <motion.div 
@@ -293,11 +245,11 @@ export function Dashboard() {
                 <stat.icon className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-workshop-text mb-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-workshop-text mb-1 font-google-sans">
                   {stat.label}
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-workshop-text tracking-tighter">
+                  <span className="text-xl font-black text-workshop-text tracking-tighter font-google-sans">
                     {stat.value}
                   </span>
                 </div>
@@ -335,7 +287,7 @@ export function Dashboard() {
         <motion.h2 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xl font-black text-workshop-text uppercase tracking-tighter"
+          className="text-xl font-black text-workshop-text uppercase tracking-tighter font-google-sans"
         >
           Recent Activities
         </motion.h2>
@@ -351,15 +303,16 @@ export function Dashboard() {
                 <motion.div 
                   key={job.id}
                   variants={itemVariants}
-                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30"
+                  onClick={() => navigate('/services', { state: { openRecordId: job.id } })}
+                  className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30 cursor-pointer active:scale-[0.99] select-none"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors">
                       <Car className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-workshop-text uppercase tracking-tight mb-1">{job.make} {job.model}</p>
-                      <p className="text-[10px] text-workshop-muted font-bold tracking-widest uppercase opacity-70">
+                      <p className="text-sm font-black text-workshop-text uppercase tracking-tight mb-1 font-google-sans">{job.make} {job.model}</p>
+                      <p className="text-[10px] text-workshop-muted font-bold tracking-widest uppercase opacity-70 font-google-sans">
                         {job.plateNumber} • {job.customerName}
                       </p>
                     </div>
@@ -374,11 +327,11 @@ export function Dashboard() {
                         "text-workshop-muted"
                       )}>
                         <Clock className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-right">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-right font-google-sans" style={{ fontFamily: "'Google Sans', sans-serif" }}>
                           {job.status}
                         </span>
                       </div>
-                      <p className="text-[9px] text-workshop-muted font-bold opacity-40 uppercase">
+                      <p className="text-[9px] text-workshop-muted font-bold opacity-40 uppercase font-google-sans">
                         {job.expectedDeliveryDate ? format(new Date(job.expectedDeliveryDate), 'dd MMM') : 'No Date'}
                       </p>
                     </div>
@@ -393,7 +346,7 @@ export function Dashboard() {
               className="flex flex-col items-center justify-center py-20 opacity-20"
             >
               <Package className="w-16 h-16 mb-4" />
-              <p className="font-black uppercase tracking-widest text-xs">No pending activities</p>
+              <p className="font-black uppercase tracking-widest text-xs font-google-sans">No pending activities</p>
             </motion.div>
           )}
         </motion.div>

@@ -38,26 +38,26 @@ service cloud.firestore {
 
     // --- Entity Validations ---
     function isImmutable(field) {
-      return incoming()[field] == existing()[field];
+      return !(field in incoming().keys()) || !(field in existing().keys()) || incoming()[field] == existing()[field];
     }
 
     function isValidCustomer(data) {
       return data.keys().hasAll(['name', 'phone', 'technicianId', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 20;
+             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30;
     }
 
     function isValidVehicle(data) {
       return data.keys().hasAll(['customerId', 'make', 'plateNumber', 'technicianId', 'createdAt']) &&
              data.customerId is string && isValidId(data.customerId) &&
              data.make is string && data.make.size() > 0 && data.make.size() <= 50 &&
-             data.plateNumber is string && data.plateNumber.size() > 0 && data.plateNumber.size() <= 20;
+             data.plateNumber is string && data.plateNumber.size() > 0 && data.plateNumber.size() <= 30;
     }
 
     function isValidPart(data) {
       return data.keys().hasAll(['name', 'stockQuantity', 'price']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             (!('sku' in data.keys()) || (data.sku is string && data.sku.size() <= 50)) &&
+             (!('sku' in data.keys()) || data.sku == null || (data.sku is string && data.sku.size() <= 50)) &&
              data.stockQuantity is int && data.stockQuantity >= 0 &&
              data.price is number && data.price >= 0;
     }
@@ -70,8 +70,8 @@ service cloud.firestore {
              data.laborCost is number && data.laborCost >= 0 &&
              data.partsCost is number && data.partsCost >= 0 &&
              data.totalCost is number && data.totalCost >= 0 &&
-             (!('remarks' in data.keys()) || (data.remarks is string && data.remarks.size() <= 2000)) &&
-             (!('finalRemarks' in data.keys()) || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
+             (!('remarks' in data.keys()) || data.remarks == null || (data.remarks is string && data.remarks.size() <= 2000)) &&
+             (!('finalRemarks' in data.keys()) || data.finalRemarks == null || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
     }
 
     function isValidWorkshopUser(data) {
@@ -79,6 +79,7 @@ service cloud.firestore {
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
              data.status in ['online', 'offline'] &&
+             (!('pin' in data.keys()) || data.pin == null || (data.pin is string && data.pin.size() <= 10)) &&
              (!('tags' in data.keys()) || (data.tags is list && (data.tags.size() == 0 || (data.tags.size() > 0 && data.tags[0] is string))));
     }
 
@@ -86,21 +87,21 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
-      allow update: if isSignedIn() && isValidWorkshopUser(incoming()) && isImmutable('createdAt') && incoming().updatedAt == request.time;
+      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) && (incoming().createdAt == request.time || incoming().createdAt is timestamp || incoming().createdAt is string) && (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
+      allow update: if isSignedIn() && isValidWorkshopUser(incoming()) && isImmutable('createdAt') && (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
       allow delete: if isSignedIn();
     }
 
     match /customers/{customerId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidCustomer(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && isValidCustomer(incoming());
       allow update: if isSignedIn() && isValidCustomer(incoming()) && isImmutable('createdAt');
       allow delete: if isSignedIn();
     }
 
     match /vehicles/{vehicleId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidVehicle(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && isValidVehicle(incoming());
       allow update: if isSignedIn() && isValidVehicle(incoming()) && isImmutable('createdAt');
       allow delete: if isSignedIn();
     }
@@ -113,12 +114,17 @@ service cloud.firestore {
 
     match /serviceRecords/{recordId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidServiceRecord(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
-      allow update: if isSignedIn() && isValidServiceRecord(incoming()) && isImmutable('createdAt') && incoming().updatedAt == request.time;
+      allow create: if isSignedIn() && isValidServiceRecord(incoming());
+      allow update: if isSignedIn() && isValidServiceRecord(incoming()) && isImmutable('createdAt');
       allow delete: if isSignedIn();
     }
 
     match /test/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /settings/{settingId} {
       allow read, write: if isSignedIn();
     }
   }

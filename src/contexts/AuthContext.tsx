@@ -8,7 +8,7 @@ import {
   User,
   updateProfile
 } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { WorkshopUser } from '../types';
 
@@ -45,8 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userRef = doc(db, 'users', authUser.uid);
           const userSnap = await getDoc(userRef);
           if (!userSnap.exists() && authUser.email) {
+            const emailLower = authUser.email.toLowerCase();
             // Check if there is an existing user profile document in the database with this email
-            const q = query(collection(db, 'users'), where('email', '==', authUser.email.toLowerCase()));
+            const q = query(collection(db, 'users'), where('email', '==', emailLower));
             const qSnap = await getDocs(q);
             
             if (!qSnap.empty) {
@@ -58,7 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await setDoc(userRef, {
                 ...oldData,
                 id: authUser.uid,
-                email: authUser.email, // Ensure email matches
+                name: oldData.name || authUser.displayName || emailLower.split('@')[0] || 'Unnamed Advisor',
+                email: emailLower,
+                status: oldData.status || 'offline',
+                createdAt: oldData.createdAt || serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
               
@@ -71,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // No existing profile found, create a new one
               await setDoc(userRef, {
                 id: authUser.uid,
-                name: authUser.displayName || authUser.email.split('@')[0] || 'Unnamed Advisor',
-                email: authUser.email,
+                name: authUser.displayName || emailLower.split('@')[0] || 'Unnamed Advisor',
+                email: emailLower,
                 status: 'offline',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
@@ -82,6 +86,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (e) {
           console.error('Error auto-syncing user profile:', e);
+          try {
+            handleFirestoreError(e, 'write', `users/${authUser.uid}`);
+          } catch {
+            // Error captured and formatted
+          }
         }
 
         // Setup real-time listener for the active user profile
@@ -93,6 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }, (err) => {
           console.error('Real-time profile listener error:', err);
+          try {
+            handleFirestoreError(err, 'get', `users/${authUser.uid}`);
+          } catch {
+            // Error captured and formatted
+          }
         });
       } else {
         setProfile(null);

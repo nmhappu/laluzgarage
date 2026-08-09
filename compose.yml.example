@@ -1,19 +1,9 @@
-# Example Docker Compose file for Laluz Garage
-# Usage:
-#   1. Copy file: cp compose.yml.example compose.yml
-#   2. Run container: docker compose up -d
-
 services:
   laluz-garage:
-    # Option 1: Build locally from source code
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    # Option 2: Pull pre-built image from GitHub Container Registry (GHCR)
-    # image: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME:latest
-
-    container_name: laluz_garage_app
+    image: ghcr.io/nmhappu/laluzgarage:latest
+    container_name: laluzgarage
     restart: unless-stopped
     ports:
       - "1002:1002"
+volumes:
+  laluzgarge:

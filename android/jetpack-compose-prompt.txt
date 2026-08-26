@@ -1,0 +1,403 @@
+Build a complete native Android application in Kotlin using Jetpack Compose, matching the existing workshop management app as closely as possible in UI, layout, flow, hierarchy, interaction patterns, and visual language. The goal is to reproduce the same product model and interface structure, but replace the database with a custom repository/data layer.
+
+This is not a new app idea. It is a clone of the same business workflow, optimized for Android native UI, with the storage system changed.
+
+Core requirement:
+- Keep the same exact app behavior and UI model as the original product.
+- Only change the database/backend layer.
+- The UI must remain functionally and visually equivalent to the original app even if the backend is a local database, Room, in-memory repository, or a custom API-backed repository.
+
+Technology stack:
+- Kotlin
+- Jetpack Compose
+- Material 3
+- Compose Navigation
+- ViewModel + StateFlow or MutableStateFlow
+- Repository pattern
+- Room optional if preferred, but not mandatory
+- Local mock data or SQLite-backed repository acceptable for the initial version
+- Clean architecture structure preferred:
+  - ui/
+  - viewmodel/
+  - repository/
+  - data/
+  - domain/
+  - model/
+  - theme/
+  - navigation/
+
+Project purpose:
+Create a workshop operations dashboard for managing:
+- customers
+- vehicles
+- service records
+- inventory / spare parts
+- technician/advisor users
+- work orders / repair jobs
+- vehicle intake workflow
+- status tracking and search/filtering
+
+The app should feel like a polished mobile-first workshop management dashboard, with a desktop/tablet-friendly sidebar layout when width permits.
+
+Important visual direction:
+The UI should be dark by default with muted, premium, tech-like styling. Strong uppercase headings, small metadata labels, compact cards, smooth animating lists, and a polished workshop dashboard aesthetic.
+
+Theme and styling:
+- Default dark palette:
+  - background: #0B0D11
+  - card/surface: #181B24 or similar dark neutral
+  - border: #1E232E
+  - muted text: #94A3B8
+  - primary accent green: #10B981
+  - secondary blue: #3B82F6
+  - warning amber: #FBBF24
+  - urgent/destructive red: #F43F5E
+- Light mode variant should exist, but dark theme is default
+- Use clear spacing, bold typography, subtle shadows, and minimal but present motion
+- Use compact but strong information hierarchy
+- Respect mobile sizes while still supporting tablet/desktop layout
+
+The app should use:
+- bold uppercase labels
+- modern sans serif typography
+- spacing similar to Material 3 and the original app
+- interactive items with subtle elevation and accent highlight
+- smooth transitions when opening pages and dialogs
+- soft accent glows on CTA buttons
+- minimal but visible motion for list entry, selection, and filter changes
+
+Exact app model to reproduce:
+The application is a workshop management dashboard with the following top-level structure:
+
+1. App shell
+- A root app container
+- On larger screens: left navigation sidebar
+- On small screens: compact nav / mobile stack
+- Background is a deep dark neutral
+- Main content area scrolls with lists and panels
+- Full-screen screens for intake and settings
+- Animated route transitions between screens
+
+2. Navigation
+Include navigation items:
+- Dashboard
+- Vehicle
+- Inventory
+- Services
+
+The active page should highlight visually with accent color and selected state.
+If a page is a list or registry screen, include a search input in the header or side panel.
+The navigation must behave like the referenced app:
+- search is part of the current screen flow
+- page titles and active tab state are tracked
+- settings should be accessible from the top-right or header
+- logout confirmation modal should appear when the user chooses to log out
+
+3. Dashboard screen
+The Dashboard screen should resemble a vertical “watchlist” style with metric rows stacked like a list.
+
+Metrics to include:
+- Total Services
+- Pending Works
+- Completed Jobs
+- Issues Attended
+
+Each metric row must:
+- show a small icon
+- show the numeric value in large bold text
+- show a compact label in uppercase
+- have a mini trend chart or area graph on the right
+- be clickable to navigate to a filtered list screen if applicable
+
+Also include:
+- Main page header: “Dashboard”
+- Right-aligned CTA button: “Vehicle Intake”
+- The CTA should have a strong accent background and subtle glow
+- The dashboard rows should animate in sequentially and feel premium
+
+4. Inventory screen
+Create a Parts Inventory screen with:
+- page title
+- Add Part button
+- list of parts in a card/list format
+- each item with:
+  - name
+  - category
+  - location
+  - stock quantity
+  - price
+  - low-stock tag if below minimum threshold
+- search by name and category
+- add part form
+- edit part modal/form
+- delete confirmation dialog
+- low-stock badge highlighting
+- compact metadata display
+
+The UI should visually feel like the original inventory list: clean, dense, structured, and action-oriented.
+
+5. Vehicle / customer registry
+Create a vehicle registry/history screen with:
+- search field
+- list of vehicles and customer metadata
+- each card includes details such as make, model, plate number, color, owner/customer name
+- ability to open details or history for a vehicle
+- use the same overall compact card style as the original app
+
+6. Service history
+Create a service records screen with:
+- list of service jobs
+- status labels like pending, in-progress, completed, cancelled
+- date and vehicle/customer info
+- service description
+- technician/advisor info
+- status filter and search
+- the screen should be organized and dense but readable
+
+7. Vehicle intake workflow
+This is a critical UX requirement. The app must include a multi-step intake flow with the same pattern and feel as the original app.
+
+Flow requirements:
+- Starts from the Dashboard “Vehicle Intake” button
+- Optionally opens a full-page intake screen or modal overlay
+- Step-based workflow
+- Advisor PIN verification must be required before intake can continue
+- Search existing customer/vehicle data
+- Allow creation of a new customer and vehicle
+- Allow selecting or matching an existing vehicle/customer
+- Form fields include:
+  - customer name
+  - phone
+  - vehicle make
+  - vehicle model
+  - vehicle color
+  - plate number
+  - password or pin (for vehicle access/security)
+  - mileage
+  - description of issue
+  - personal items
+  - expected delivery date
+  - service date
+  - dead vehicle flag
+  - unknown mileage flag
+- After completion, job is created and a WhatsApp message or message template is generated
+- Show confirmation/success state
+- Keep form UI compact and mobile-optimized
+
+This flow should feel like a native workshop intake workflow with minimal friction and strong validation.
+
+8. Settings screen
+Create a full-screen settings page:
+- basic app settings
+- workshop preferences
+- user profile or advisor settings
+- theme toggle
+- very similar to the original app’s settings screen structure
+- use the same dark neutral aesthetic and dense layout
+
+9. Authentication / advisor identity
+Include user identity management with:
+- advisor/user login concept
+- workshop user records
+- PIN-based verification for actions
+- user with name and status
+- maintain fields like:
+  - id
+  - name
+  - email
+  - status
+  - optional pin
+  - tags
+  - createdAt / updatedAt
+
+10. Data models
+Create domain models equivalent to these:
+
+Customer:
+- id
+- name
+- phone
+- technicianId
+- createdAt
+- updatedAt
+
+Vehicle:
+- id
+- customerId
+- make
+- model
+- color
+- plateNumber
+- passwordOrPin
+- technicianId
+- createdAt
+- updatedAt
+
+Part:
+- id
+- name
+- category
+- stockQuantity
+- price
+- minStockLevel
+- location
+- createdAt
+- updatedAt
+
+ServiceRecord:
+- id
+- vehicleId
+- customerId
+- technicianId
+- technicianName
+- date
+- expectedDeliveryDate
+- mileage
+- completionMileage
+- isDeadVehicle
+- isUnknownMileage
+- personalItems
+- description
+- remarks
+- finalRemarks
+- status
+- laborCost
+- partsCost
+- totalCost
+- partsUsed: list of parts with id, name, quantity, unitPrice
+- createdAt
+- updatedAt
+
+WorkshopUser:
+- id
+- name
+- email
+- status
+- pin
+- tags
+- createdAt
+- updatedAt
+
+11. Repository pattern
+Absolutely critical:
+- The UI must not depend on Firebase or any specific database.
+- Create repository interfaces such as:
+  - CustomerRepository
+  - VehicleRepository
+  - PartRepository
+  - ServiceRecordRepository
+  - UserRepository
+- Use a data layer abstraction so the UI can be switched between implementations:
+  - Local/mock repository
+  - Room database repository
+  - SQLite repository
+  - remote API repository
+- The app should run with a seeded/local mock repository by default
+
+12. Architecture
+Preferred structure:
+
+app/
+  - MainActivity
+  - AppNavigation
+  - AppTheme
+
+ui/
+  - dashboard/
+  - vehicle/
+  - inventory/
+  - services/
+  - intake/
+  - settings/
+  - common/
+
+viewmodel/
+  - DashboardViewModel
+  - VehicleViewModel
+  - InventoryViewModel
+  - ServiceViewModel
+  - IntakeViewModel
+  - SettingsViewModel
+
+repository/
+  - CustomerRepository
+  - VehicleRepository
+  - PartRepository
+  - ServiceRecordRepository
+  - UserRepository
+  - RepositoryProvider or DataStoreManager
+
+data/
+  - local/
+    - RoomDatabase or data store implementations
+  - mock/
+    - MockDataProvider
+    - seed data
+
+model/
+  - domain models
+
+theme/
+  - ColorScheme
+  - Theme
+  - typography
+  - shapes
+
+navigation/
+  - NavGraph
+  - Screen routes
+  - arguments
+
+13. Search and filtering behavior
+The app should support:
+- search on inventory
+- search on vehicles
+- search on service history
+- filter by status
+- filter by category or date state if needed
+- maintain the same interaction model as the original app with compact input fields and filter toggles
+
+14. Motion and animation
+Use animations subtly and consistently:
+- page transitions
+- list item entry
+- button tap feedback
+- modal opening/closing
+- metric card animation
+- search results reveal
+- accent glow on selected states
+- no excessive or flashy motion
+
+15. Seed data
+Provide realistic sample workshop data:
+- 3–5 customers
+- 5–10 vehicles
+- multiple service records with statuses such as pending, in-progress, completed
+- inventory list with categories such as oil, brake parts, filters, electrical components
+- current workshop users with advisor names and PINs
+- records with realistic prices, mileage, and dates
+
+16. Output expected from the AI
+Generate a complete runnable Android project with:
+- project structure
+- Kotlin files
+- Compose screens
+- repositories
+- domain models
+- navigation
+- mock data
+- theme definitions
+- app configuration
+- all necessary Gradle dependencies
+
+Must include:
+- complete source code for the app
+- architecture cleanly organized
+- working seeded demo data
+- repository abstraction
+- UI that visually matches the original app’s workshop management theme very closely
+
+Make sure the UI remains visually and functionally similar to the original product, but not identical in code. The database backend should be completely decoupled and replaceable.
+
+Important note:
+The goal is not to create a generic “garage app.” It is specifically the same application model as the referenced app, in native Android Compose, with the database replaced. Keep the same workflows, same visual hierarchy, same interactions, same compact dark dashboard aesthetic, same forms, same list layout, same business logic, and same action flows.

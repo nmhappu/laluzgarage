@@ -77,7 +77,7 @@ interface ServiceRecordCardProps {
   onClick: (r: ServiceRecord) => void;
   onUpdateDetails: (r: ServiceRecord) => void;
   onDelete: (r: ServiceRecord) => void;
-  onWhatsAppClick: (name: string, phone: string) => void;
+  onWhatsAppClick: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
 }
 
 const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails, onDelete, onWhatsAppClick }: ServiceRecordCardProps) => {
@@ -352,10 +352,10 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onWhatsAppClick(customer.name ? capitalizeName(customer.name) : 'Customer', customer.phone);
+                  onWhatsAppClick(record, customer, v);
                 }}
                 className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-[#128C7E] hover:border-[#128C7E]/40 hover:bg-[#128C7E]/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
-                title={`WhatsApp Message Client (${customer.phone})`}
+                title={`WhatsApp Options (${customer.phone})`}
               >
                 <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
               </button>
@@ -518,7 +518,13 @@ export function ServiceHistory() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
+  const [whatsAppRedirect, setWhatsAppRedirect] = useState<{
+    name: string;
+    phone: string;
+    url: string;
+    record?: ServiceRecord | null;
+    vehicle?: Vehicle | null;
+  } | null>(null);
   const [completedJobPopup, setCompletedJobPopup] = useState<{
     record: ServiceRecord;
     customer?: Customer;
@@ -1361,12 +1367,14 @@ export function ServiceHistory() {
                     onClick={handleCardClick}
                     onUpdateDetails={handleCardUpdateDetails}
                     onDelete={handleCardDelete}
-                    onWhatsAppClick={(name, phone) => {
-                      const cleanPhone = phone.replace(/[^0-9]/g, "");
+                    onWhatsAppClick={(rec, cust, veh) => {
+                      const cleanPhone = (cust?.phone || "").replace(/[^0-9]/g, "");
                       setWhatsAppRedirect({
-                        name,
-                        phone,
-                        url: `https://wa.me/${cleanPhone}`
+                        name: cust?.name ? capitalizeName(cust.name) : "Customer",
+                        phone: cust?.phone || "",
+                        url: `https://wa.me/${cleanPhone}`,
+                        record: rec,
+                        vehicle: veh,
                       });
                     }}
                   />
@@ -2336,7 +2344,9 @@ export function ServiceHistory() {
                                             setWhatsAppRedirect({
                                               name: customer.name ? capitalizeName(customer.name) : 'Customer',
                                               phone: customer.phone,
-                                              url: `https://wa.me/${cleanPhone}`
+                                              url: `https://wa.me/${cleanPhone}`,
+                                              record: editingRecord || null,
+                                              vehicle: vehicle || null,
                                             });
                                           }
                                         }}
@@ -2344,7 +2354,7 @@ export function ServiceHistory() {
                                         id="whatsapp-update-option"
                                       >
                                         <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
-                                        <span>Send WhatsApp Update</span>
+                                        <span>WhatsApp Options</span>
                                       </button>
                                     </motion.div>
                                   </>
@@ -2996,6 +3006,8 @@ export function ServiceHistory() {
         customerName={whatsAppRedirect?.name || ''}
         customerPhone={whatsAppRedirect?.phone || ''}
         url={whatsAppRedirect?.url || ''}
+        record={whatsAppRedirect?.record || null}
+        vehicle={whatsAppRedirect?.vehicle || null}
       />
 
       {/* Completed Job Card & WhatsApp Bill Popup */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
 import { Plus, Tag, Trash2, MapPin, AlertCircle, ArrowLeft, Package, Layers, DollarSign, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../types';
@@ -15,8 +15,7 @@ export function Inventory() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [searchParams] = useSearchParams();
-  const searchTerm = searchParams.get('q') || '';
+  const { searchTerm } = useResponsiveSearch();
   
   const [newPart, setNewPart] = useState<Partial<Part>>({
     name: '',

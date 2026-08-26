@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
+import { useResponsiveSearch } from "../hooks/useResponsiveSearch";
 import {
   collection,
   getDocs,
@@ -440,17 +441,7 @@ export function ServiceHistory() {
   // --- State: UI Control ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("status") as "all" | "pending" | "in-progress" | "completed" | "cancelled") || "all";
-  const setActiveTab = (val: "all" | "pending" | "in-progress" | "completed" | "cancelled") => {
-    setSearchParams(prev => {
-      if (val === "all") {
-        prev.delete("status");
-      } else {
-        prev.set("status", val);
-      }
-      return prev;
-    }, { replace: true });
-  };
+  const { searchTerm: stickySearchLogs, activeTab, setActiveTab } = useResponsiveSearch();
 
   // Sync activeTab from location state
 
@@ -553,7 +544,6 @@ export function ServiceHistory() {
   const [searchResults, setSearchResults] = useState<
     { customer: Customer; vehicle?: Vehicle }[]
   >([]);
-  const stickySearchLogs = searchParams.get("q") || "";
 
   const tabCounts = useMemo(() => {
     const counts = { all: records.length, pending: 0, "in-progress": 0, completed: 0, cancelled: 0 };

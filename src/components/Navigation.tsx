@@ -25,8 +25,8 @@ export function Navigation() {
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
-  const stickyQuery = searchParams.get('q') || '';
-  const setStickyQuery = (val: string) => {
+  const desktopQuery = searchParams.get('q') || '';
+  const setDesktopQuery = (val: string) => {
     setSearchParams(prev => {
       if (!val) {
         prev.delete('q');
@@ -37,13 +37,25 @@ export function Navigation() {
     }, { replace: true });
   };
 
-  const stickyStatus = searchParams.get('status') || 'all';
-  const setStickyStatus = (val: string) => {
+  const mobileQuery = searchParams.get('qm') || '';
+  const setMobileQuery = (val: string) => {
+    setSearchParams(prev => {
+      if (!val) {
+        prev.delete('qm');
+      } else {
+        prev.set('qm', val);
+      }
+      return prev;
+    }, { replace: true });
+  };
+
+  const mobileStatus = searchParams.get('status_m') || 'all';
+  const setMobileStatus = (val: string) => {
     setSearchParams(prev => {
       if (val === 'all') {
-        prev.delete('status');
+        prev.delete('status_m');
       } else {
-        prev.set('status', val);
+        prev.set('status_m', val);
       }
       return prev;
     }, { replace: true });
@@ -190,14 +202,14 @@ export function Navigation() {
               <Search className="absolute left-3 text-workshop-muted w-4 h-4" />
               <input 
                 type="text"
-                value={stickyQuery}
-                onChange={(e) => setStickyQuery(e.target.value)}
+                value={desktopQuery}
+                onChange={(e) => setDesktopQuery(e.target.value)}
                 placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
                 className="w-full bg-workshop-card border border-workshop-border pl-9 pr-8 py-2 rounded-xl text-xs font-semibold text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent/50 uppercase"
               />
-              {stickyQuery && (
+              {desktopQuery && (
                 <button 
-                  onClick={() => setStickyQuery('')}
+                  onClick={() => setDesktopQuery('')}
                   className="absolute right-3 text-workshop-muted hover:text-workshop-text flex items-center justify-center"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -386,8 +398,8 @@ export function Navigation() {
                   <Search className="w-5 h-5 text-workshop-muted shrink-0" />
                   <input
                     type="text"
-                    value={stickyQuery}
-                    onChange={(e) => setStickyQuery(e.target.value)}
+                    value={mobileQuery}
+                    onChange={(e) => setMobileQuery(e.target.value)}
                     placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
                     className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2 uppercase"
                     autoFocus
@@ -395,7 +407,7 @@ export function Navigation() {
                 </div>
                 <button
                   onClick={() => {
-                    setStickyQuery('');
+                    setMobileQuery('');
                     setShowStickySearch(false);
                   }}
                   className="p-2 text-workshop-muted hover:text-workshop-text transition-colors shrink-0"
@@ -428,12 +440,12 @@ export function Navigation() {
                     { id: 'completed', label: 'Completed', color: 'bg-workshop-accent' },
                     { id: 'cancelled', label: 'Cancelled', color: 'bg-workshop-muted' },
                   ].map((status) => {
-                    const isActive = stickyStatus === status.id;
+                    const isActive = mobileStatus === status.id;
                     return (
                       <button
                         key={status.id}
                         onClick={() => {
-                          setStickyStatus(status.id);
+                          setMobileStatus(status.id);
                           setFilterMenuOpen(false);
                         }}
                         className={cn(

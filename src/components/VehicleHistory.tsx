@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { Phone, Edit2, Trash2, X, History, Wrench, Package, ShieldCheck, Car, Key, PlusCircle, Check, ArrowLeft } from 'lucide-react';
@@ -32,8 +32,7 @@ export function VehicleHistory() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedVehicleForLedger, setSelectedVehicleForLedger] = useState<Vehicle | null>(null);
-  const [searchParams] = useSearchParams();
-  const searchTerm = searchParams.get('q') || '';
+  const { searchTerm } = useResponsiveSearch();
   const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
 
   // --- State: Active Models for Add/Edit ---

@@ -4,13 +4,43 @@ import { Wrench, ChevronRight, Mail, Lock, AlertCircle, User as UserIcon } from 
 import { motion } from 'motion/react';
 
 export function LoginPage() {
-  const { login, register } = useAuth();
+  const { login, loginWithGoogle, register } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (err: unknown) {
+      console.error('Google sign-in error:', err);
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        return;
+      }
+      if (error.code === 'auth/popup-blocked') {
+        setError('Popup was blocked by your browser. Please allow popups and try again.');
+        return;
+      }
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with this email using another sign-in method.');
+        return;
+      }
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Google authentication failed. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +92,35 @@ export function LoginPage() {
             </div>
             <h1 className="text-3xl font-logo font-semibold text-workshop-text tracking-tight">LaluZ Garage</h1>
             <p className="text-workshop-muted text-xs font-bold uppercase tracking-[0.2em] opacity-60">Workshop Management Core</p>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              type="button"
+              disabled={googleLoading || loading}
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-3 bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text hover:bg-workshop-surface/80 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+            >
+              {googleLoading ? (
+                <div className="w-4 h-4 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
+              ) : (
+                <img
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                  alt="Google"
+                  className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
+            </button>
+
+            <div className="flex items-center gap-4 py-1">
+              <div className="flex-1 h-px bg-workshop-border/60" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-workshop-muted/60 select-none">
+                Or with credentials
+              </span>
+              <div className="flex-1 h-px bg-workshop-border/60" />
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

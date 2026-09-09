@@ -37,6 +37,7 @@ import {
   FileText,
   Plus,
   Minus,
+  UserPlus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
@@ -60,6 +61,8 @@ import {
   SelectValue,
 } from "./ui/CustomSelect";
 import { getWhatsAppPresetsSync, formatDeliveryMessage } from "../services/whatsappPresetService";
+import { openCreateContactScreen } from "../services/contactService";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 
 const capitalizeName = (name?: string) => {
   if (!name) return "";
@@ -358,6 +361,27 @@ const ServiceRecordCard = memo(({ record, v, customer, onClick, onUpdateDetails,
                 title={`WhatsApp Options (${customer.phone})`}
               >
                 <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
+              </button>
+            )}
+            {customer?.phone && (
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const vehicleInfo = v
+                    ? `${v.make ? v.make + " " : ""}${v.model}${v.plateNumber ? ` (${v.plateNumber})` : ""}`
+                    : undefined;
+                  await openCreateContactScreen({
+                    name: customer.name,
+                    phone: customer.phone,
+                    vehicleInfo,
+                  });
+                }}
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/30 transition-all active:scale-95 shadow-sm shrink-0"
+                title={`Add ${capitalizeName(customer.name)} to Contacts`}
+                id={`add-contact-btn-${record.id}`}
+              >
+                <UserPlus className="w-4 h-4" />
               </button>
             )}
             <button
@@ -1156,6 +1180,18 @@ export function ServiceHistory() {
     });
   }, [records, activeTab, stickySearchLogs, vehicleMap, customerMap]);
 
+  const { 
+    visibleItems: visibleRecords, 
+    sentinelRef, 
+    hasMore, 
+    isLoadingMore, 
+    remainingCount, 
+    loadMore 
+  } = useInfiniteScroll(filteredRecords, {
+    batchSize: 20,
+    resetDependency: `${activeTab}-${stickySearchLogs}`,
+  });
+
   const addPartToRecord = (partId: string) => {
     const part = parts.find((p) => p.id === partId);
     if (!part) return;
@@ -1355,7 +1391,7 @@ export function ServiceHistory() {
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               className="space-y-4 accelerate-gpu will-change-transform-opacity"
             >
-              {filteredRecords.map((record) => {
+              {visibleRecords.map((record) => {
                 const v = vehicleMap.get(record.vehicleId);
                 const customer = customerMap.get(record.customerId);
                 return (
@@ -1380,6 +1416,27 @@ export function ServiceHistory() {
                   />
                 );
               })}
+              {hasMore && (
+                <div 
+                  ref={sentinelRef} 
+                  className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-workshop-muted"
+                >
+                  {isLoadingMore ? (
+                    <div className="flex items-center gap-2 font-bold tracking-widest uppercase text-workshop-accent">
+                      <div className="w-4 h-4 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
+                      <span>Loading records...</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={loadMore}
+                      className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text hover:text-workshop-accent transition-all text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
+                    >
+                      Load more records ({remainingCount} remaining)
+                    </button>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -2293,46 +2350,26 @@ export function ServiceHistory() {
                                     >
                                       <button
                                         type="button"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
                                           if (!customer) return;
-                                          try {
-                                            const parts = customer.name.split(" ");
-                                            const firstName = parts[0] || "";
-                                            const lastName = parts.slice(1).join(" ") || "";
-                                            
-                                            // Format with CRLF as required by RFC 2426 vCard format spec
-                                            const vcardLines = [
-                                              "BEGIN:VCARD",
-                                              "VERSION:3.0",
-                                              `N:${lastName};${firstName};;;`,
-                                              `FN:${customer.name}`,
-                                              `TEL;TYPE=CELL,VOICE:${customer.phone}`,
-                                              "END:VCARD"
-                                            ];
-                                            const vcardContent = vcardLines.join("\r\n");
-
-                                            const blob = new Blob([vcardContent], { type: "text/vcard;charset=utf-8" });
-                                            const vcardUrl = window.URL.createObjectURL(blob);
-                                            
-                                            const link = document.createElement("a");
-                                            link.href = vcardUrl;
-                                            link.download = `${customer.name.replace(/\s+/g, "_")}.vcf`;
-                                            
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                            window.URL.revokeObjectURL(vcardUrl);
-                                          } catch (error) {
-                                            console.error("Failed to generate and download vCard:", error);
-                                          }
                                           setContactMenuOpen(false);
+
+                                          const vehicleInfo = vehicle
+                                            ? `${vehicle.make ? vehicle.make + " " : ""}${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ""}`
+                                            : undefined;
+
+                                          await openCreateContactScreen({
+                                            name: customer.name,
+                                            phone: customer.phone,
+                                            vehicleInfo,
+                                          });
                                         }}
                                         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans"
                                         id="add-to-contacts-option"
                                       >
-                                        <User className="w-4 h-4 text-workshop-secondary shrink-0" />
+                                        <UserPlus className="w-4 h-4 text-workshop-secondary shrink-0" />
                                         <span>Add {capitalizeName(customer.name).split(" ")[0]} to Contacts</span>
                                       </button>
 

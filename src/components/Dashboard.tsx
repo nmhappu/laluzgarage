@@ -3,16 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { ClipboardList, PlusCircle, Car, Clock, Package, Wrench } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import type { ServiceRecord, Customer, Vehicle } from '../types';
+import { StatTile, type StatTrendItem } from './dashboard/StatTile';
 
-interface HistoryItem {
-  date: string;
-  value: number;
-}
+type HistoryItem = StatTrendItem;
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -181,7 +178,7 @@ export function Dashboard() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 12, scale: 0.98 },
     show: { 
       opacity: 1, 
@@ -227,58 +224,21 @@ export function Dashboard() {
         className="flex flex-col -mx-4 md:-mx-8 lg:-mx-10 accelerate-gpu will-change-transform-opacity"
       >
         {stats.map((stat) => (
-          <motion.div 
+          <StatTile
             key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            trend={stat.trend}
+            isMounted={isMounted}
             variants={itemVariants}
-            onClick={() => {
-              if (stat.target) {
-                navigate(stat.target, { state: stat.state });
-              }
-            }}
-            className={cn(
-              "flex items-center justify-between px-4 md:px-8 lg:px-10 py-6 md:py-8 hover:bg-workshop-surface transition-colors group border-b border-workshop-border/30 accelerate-gpu will-change-transform-opacity",
-              stat.target && "cursor-pointer active:scale-[0.99] select-none"
-            )}
-          >
-            <div className="flex-1 flex items-center gap-4">
-              <div className={cn("w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-workshop-text mb-1 font-google-sans">
-                  {stat.label}
-                </p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-workshop-text tracking-tighter font-google-sans">
-                    {stat.value}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0 pointer-events-none"
-              style={{
-                maskImage:
-                  'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-              }}
-            >
-              {isMounted && stat.trend.length > 0 && (
-                <ResponsiveContainer width="100%" height={40}>
-                  <AreaChart data={stat.trend}>
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      fill="transparent"
-                      className={stat.color}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </motion.div>
+            onClick={
+              stat.target
+                ? () => navigate(stat.target, { state: stat.state })
+                : undefined
+            }
+          />
         ))}
       </motion.div>
 

@@ -120,8 +120,7 @@ service cloud.firestore {
     }
 
     match /test/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /settings/{settingId} {

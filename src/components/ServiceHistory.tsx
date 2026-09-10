@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import { useResponsiveSearch } from "../hooks/useResponsiveSearch";
 import {
@@ -320,7 +320,7 @@ export function ServiceHistory() {
     }
   };
 
-  const handleUpdateRecord = async (e: React.FormEvent) => {
+  const handleUpdateRecord = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingRecord || isUpdating) return;
 
@@ -432,7 +432,7 @@ export function ServiceHistory() {
     }
   };
 
-  const handleUpdateDetails = async (e: React.FormEvent) => {
+  const handleUpdateDetails = async (e: FormEvent) => {
     e.preventDefault();
     if (!detailsRecord || isUpdating) return;
 

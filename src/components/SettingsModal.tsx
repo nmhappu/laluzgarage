@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   collection,
@@ -17,7 +17,7 @@ import {
   Plus,
   AlertTriangle,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
 import type { WorkshopUser } from "../types";
 import { useAuth } from "../contexts/AuthContext";
@@ -347,7 +347,7 @@ export function SettingsPage() {
     setSuccessMessage(null);
   };
 
-  const handleSaveUserProfile = async (e: React.FormEvent) => {
+  const handleSaveUserProfile = async (e: FormEvent) => {
     e.preventDefault();
     if (!formEmail.trim()) {
       setError("Email address is required.");
@@ -440,10 +440,10 @@ export function SettingsPage() {
     }
   };
 
-  const pageVariants = {
+  const pageVariants: Variants = {
     initial: { opacity: 0, x: 10 },
-    animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.2, 0, 0, 1.0] } },
-    exit: { opacity: 0, x: -10, transition: { duration: 0.16, ease: [0.2, 0, 0, 1.0] } },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.2, 0, 0, 1.0] as const } },
+    exit: { opacity: 0, x: -10, transition: { duration: 0.16, ease: [0.2, 0, 0, 1.0] as const } },
   };
 
   return (

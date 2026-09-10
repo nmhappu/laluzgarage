@@ -9,7 +9,7 @@ import {
   User,
   RefreshCw,
 } from "lucide-react";
-import { collection, doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { collection, doc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, auth, handleFirestoreError } from "../../lib/firebase";
 import { Portal } from "../Portal";
 import { MaterialCalendar } from "../ui/MaterialCalendar";
@@ -99,8 +99,8 @@ export function AddRecordModal({
           name: "Unknown Customer",
           phone: "",
           technicianId: "",
-          createdAt: new Date() as any,
-          updatedAt: new Date() as any,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
         };
         return { customer, vehicle: v };
       });

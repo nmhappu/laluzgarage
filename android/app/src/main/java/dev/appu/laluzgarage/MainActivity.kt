@@ -1,4 +1,4 @@
-package com.gearbox.workshop
+package dev.appu.laluzgarage
 
 import android.graphics.Color
 import android.os.Build

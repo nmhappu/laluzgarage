@@ -1,5 +1,5 @@
 {
-	"appId": "com.gearbox.workshop",
+	"appId": "dev.appu.laluzgarage",
 	"appName": "LaluzGarage",
 	"webDir": "dist",
 	"plugins": {

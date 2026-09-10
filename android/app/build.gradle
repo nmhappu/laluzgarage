@@ -6,10 +6,10 @@ apply plugin: 'kotlin-android'
 // }
 
 android {
-    namespace = "com.gearbox.workshop"
+    namespace = "dev.appu.laluzgarage"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.gearbox.workshop"
+        applicationId "dev.appu.laluzgarage"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

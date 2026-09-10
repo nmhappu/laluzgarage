@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.gearbox.workshop',
+  appId: 'dev.appu.laluzgarage',
   appName: 'LaluzGarage',
   webDir: 'dist',
   plugins: {

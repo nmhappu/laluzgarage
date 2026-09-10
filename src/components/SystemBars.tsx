@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Capacitor } from '@capacitor/core';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -26,12 +25,6 @@ export function SystemBars() {
           await StatusBar.setOverlaysWebView({ overlay: true });
           await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
           await StatusBar.setBackgroundColor({ color: '#00000000' });
-          
-          // Set Navigation Bar to be transparent and adjust button icon colors for contrast
-          await NavigationBar.setColor({ 
-            color: '#00000000', 
-            darkButtons: !isDark 
-          });
         } catch (err) {
           console.error('Error configuring transparent system bars:', err);
         }

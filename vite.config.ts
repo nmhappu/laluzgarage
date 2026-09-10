@@ -8,8 +8,8 @@ function syncColoursPlugin() {
   return {
     name: 'sync-colours',
     buildStart() {
-      const xmlPath = path.resolve(__dirname, 'src/styles/colours.xml');
-      const cssPath = path.resolve(__dirname, 'src/index.css');
+      const xmlPath = path.resolve(import.meta.dirname, 'src/styles/colours.xml');
+      const cssPath = path.resolve(import.meta.dirname, 'src/index.css');
 
       if (fs.existsSync(xmlPath)) {
         const xml = fs.readFileSync(xmlPath, 'utf-8');
@@ -88,7 +88,7 @@ export default defineConfig(({mode}) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {
@@ -100,11 +100,19 @@ export default defineConfig(({mode}) => {
       chunkSizeWarningLimit: 1600,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
-            'vendor-charts': ['recharts'],
-            'vendor-ui': ['lucide-react', 'motion'],
+          manualChunks(id) {
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('node_modules/recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('node_modules/lucide-react') || id.includes('node_modules/motion')) {
+              return 'vendor-ui';
+            }
           },
         },
       },

@@ -1,26 +1,149 @@
+# ==============================================================================
+# Dependencies & Package Managers
+# ==============================================================================
 node_modules/
-build/
+/.pnp
+.pnp.js
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ==============================================================================
+# Production Build Outputs
+# ==============================================================================
 dist/
-coverage/
-.DS_Store
-*.log
-.env*
+dist-ssr/
+build/
+out/
+.vite/
+*.tsbuildinfo
+
+# ==============================================================================
+# Environment & Secrets (Keep .env.example tracked)
+# ==============================================================================
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
-.idea/workspace.xml
-android/.idea/AndroidProjectSystem.xml
-android/.idea/compiler.xml
-android/.idea/deploymentTargetSelector.xml
-android/.idea/misc.xml
-android/.idea/runConfigurations.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_22_58__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_23_02__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_23_13__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_15_58__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_18_44__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_20_29__Changes_.xml
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_22_58_\[Changes]/shelved.patch
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_23_02_\[Changes]/shelved.patch
-android/.idea/shelf/Uncommitted_changes_before_Update_at_21_04_2026_23_13_\[Changes]/shelved.patch
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_15_58_\[Changes]/shelved.patch
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_18_44_\[Changes]/shelved.patch
-android/.idea/shelf/Uncommitted_changes_before_Update_at_22_04_2026_20_29_\[Changes]/shelved.patch
+
+# Firebase & Cloud Credentials / Logs
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+*-service-account*.json
+
+# ==============================================================================
+# Logs & Diagnostic Files
+# ==============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==============================================================================
+# Testing & Code Coverage
+# ==============================================================================
+coverage/
+.nyc_output/
+*.lcov
+.eslintcache
+.stylelintcache
+
+# ==============================================================================
+# IDEs & Code Editors
+# ==============================================================================
+# VS Code (ignore workspace state, preserve shared workspace config)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ / Android Studio / WebStorm
+.idea/
+*.iml
+android/.idea/
+android/*.iml
+android/app/*.iml
+
+# Eclipse / NetBeans / Sublime / Vim
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# ==============================================================================
+# Operating System Generated Files
+# ==============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+[Tt]humbs.db
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ==============================================================================
+# Android & Mobile Build Artifacts (Capacitor / Gradle)
+# ==============================================================================
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/.navigation/
+android/.cxx/
+android/.externalNativeBuild/
+android/local.properties
+
+# Android outputs and compiled binaries
+*.apk
+*.aab
+*.ap_
+*.aar
+*.dex
+*.class
+*.hprof
+
+# Android Signing / Keystore Files
+*.keystore
+*.jks
+
+# Fastlane (if used for automated deployment)
+android/fastlane/report.xml
+android/fastlane/Preview.html
+android/fastlane/screenshots
+android/fastlane/test_output
+
+# ==============================================================================
+# AI Assistants, Scratch & Temporary Directories
+# ==============================================================================
+.gemini/
+.claude/
+.chat/
+scratch/
+temp/
+tmp/

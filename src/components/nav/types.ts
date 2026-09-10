@@ -39,6 +39,25 @@ export const getActiveTabColor = (pathname: string): string => {
   return 'text-workshop-accent';
 };
 
+export const getTabAccentColor = (to: string): string => {
+  if (to === '/vehicles') return 'text-secondary';
+  return 'text-workshop-accent';
+};
+
+export const getActiveTabPillClass = (to: string): string => {
+  if (to === '/vehicles') {
+    return 'bg-secondary/15';
+  }
+  return 'bg-workshop-accent/15';
+};
+
+export const TAB_ACTIVE_WIDTHS: Record<string, number> = {
+  '/': 116,          // Dashboard
+  '/vehicles': 102,   // Vehicle
+  '/inventory': 114, // Inventory
+  '/services': 110,  // Services
+};
+
 export const SERVICE_STATUS_FILTERS = [
   { id: 'all', label: 'All Logs', color: 'bg-secondary' },
   { id: 'pending', label: 'Pending', color: 'bg-status-urgent' },

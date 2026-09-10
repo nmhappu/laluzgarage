@@ -1,6 +1,6 @@
+import { useRef, type MouseEvent as ReactMouseEvent } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 interface ThemeToggleProps {
@@ -9,31 +9,33 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
+    // Pass the actual button element directly so coordinates are guaranteed 100% exact
+    toggleTheme(buttonRef.current || e);
+  };
 
   return (
     <button
+      ref={buttonRef}
       data-theme-toggle
-      id="theme-toggle-btn"
-      onClick={(e) => toggleTheme(e)}
+      onClick={handleClick}
       className={cn(
-        "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95",
-        "bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50",
+        "relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-200",
+        "bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 active:bg-workshop-card/80",
         className
       )}
       aria-label="Toggle theme"
+      title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={theme}
-          initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
-          animate={{ opacity: 1, rotate: 0, scale: 1 }}
-          exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-          transition={{ duration: 0.15 }}
-          className="text-workshop-accent"
-        >
-          {theme === 'dark' ? <Moon className="w-5 h-5 fill-workshop-accent/10" /> : <Sun className="w-5 h-5" />}
-        </motion.div>
-      </AnimatePresence>
+      <div className="text-workshop-accent flex items-center justify-center">
+        {theme === 'dark' ? (
+          <Moon className="w-5 h-5 fill-workshop-accent/10 transition-transform duration-700 rotate-0" />
+        ) : (
+          <Sun className="w-5 h-5 transition-transform duration-700 rotate-90" />
+        )}
+      </div>
     </button>
   );
 }

@@ -110,7 +110,15 @@
   --status-urgent: #F43F5E;
 }
 
-/* View Transition Styles for Circular Reveal Theme Toggle */
+/* View Transition Styles for Circular Reveal Theme Toggle (Telegram Style) */
+:root {
+  --theme-transition-duration: 750ms;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -123,10 +131,23 @@
 
 ::view-transition-new(root) {
   z-index: 9999;
+  animation: telegram-theme-reveal var(--theme-transition-duration, 600ms) cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
-/* Specify which elements should NOT be affected by the transition if needed, 
-   but for the full-screen expansion theme toggle, we want root. */
+@keyframes telegram-theme-reveal {
+  0% {
+    clip-path: circle(0px at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
+  }
+  100% {
+    clip-path: circle(var(--theme-switch-radius, 150vmax) at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
 
 @layer base {
   * {

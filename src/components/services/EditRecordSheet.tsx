@@ -132,7 +132,7 @@ export function EditRecordSheet({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-            className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
+            className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text accelerate-gpu will-change-transform"
           >
             {/* Redesigned Premium Clean Top Bar Header */}
             <div className="relative overflow-hidden flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">

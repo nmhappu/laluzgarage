@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
@@ -131,9 +131,11 @@ export function useVehicleHistory() {
     });
   }, [vehicles, customers, serviceRecords]);
 
+  const deferredSearch = useDeferredValue(searchTerm);
+
   // Filter vehicles
   const filteredVehicles = useMemo(() => {
-    const query = searchTerm.toLowerCase().trim();
+    const query = deferredSearch.toLowerCase().trim();
     if (!query) return enrichedVehicles;
     return enrichedVehicles.filter(v => 
       v.plateNumber.toLowerCase().includes(query) ||
@@ -142,7 +144,7 @@ export function useVehicleHistory() {
       v.ownerName.toLowerCase().includes(query) ||
       (v.ownerPhone || '').includes(query)
     );
-  }, [enrichedVehicles, searchTerm]);
+  }, [enrichedVehicles, deferredSearch]);
 
   // Handlers
   const handleAddVehicle = useCallback(async (e: React.FormEvent) => {

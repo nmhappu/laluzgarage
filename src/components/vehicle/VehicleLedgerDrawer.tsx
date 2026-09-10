@@ -33,7 +33,7 @@ export function VehicleLedgerDrawer({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0.95 }}
         transition={{ type: "spring", stiffness: 350, damping: 30 }}
-        className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
+        className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text accelerate-gpu will-change-transform"
       >
         {/* Header of the Ledger (Top Bar) */}
         <div className="flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg shrink-0 select-none">

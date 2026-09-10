@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import type { Part } from '../types';
 import { inventoryService } from '../services/inventoryService';
 import { handleFirestoreError } from '../lib/firebase';
@@ -96,14 +96,16 @@ export function useInventory() {
     }
   }, [partToDelete]);
 
+  const deferredSearch = useDeferredValue(searchTerm);
+
   const filteredParts = useMemo(() => {
-    const query = searchTerm.toLowerCase().trim();
+    const query = deferredSearch.toLowerCase().trim();
     if (!query) return parts;
     return parts.filter(p =>
       p.name.toLowerCase().includes(query) ||
       (p.category && p.category.toLowerCase().includes(query))
     );
-  }, [parts, searchTerm]);
+  }, [parts, deferredSearch]);
 
   return {
     parts,

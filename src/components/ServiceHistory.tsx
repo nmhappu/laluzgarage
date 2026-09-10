@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, type FormEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, useDeferredValue, type FormEvent } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import { useResponsiveSearch } from "../hooks/useResponsiveSearch";
 import {
@@ -445,11 +445,13 @@ export function ServiceHistory() {
     return map;
   }, [customers]);
 
+  const deferredSearch = useDeferredValue(stickySearchLogs);
+
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const matchesTab =
         activeTab === "all" ||
-        stickySearchLogs.trim() !== "" ||
+        deferredSearch.trim() !== "" ||
         (activeTab === "pending" && r.status === "pending") ||
         (activeTab === "in-progress" && r.status === "in-progress") ||
         (activeTab === "completed" && r.status === "completed") ||
@@ -457,8 +459,8 @@ export function ServiceHistory() {
 
       if (!matchesTab) return false;
 
-      if (stickySearchLogs.trim()) {
-        const query = stickySearchLogs.toLowerCase();
+      if (deferredSearch.trim()) {
+        const query = deferredSearch.toLowerCase();
         const vehicle = vehicleMap.get(r.vehicleId);
         const customer = customerMap.get(r.customerId);
 
@@ -477,7 +479,7 @@ export function ServiceHistory() {
 
       return true;
     });
-  }, [records, activeTab, stickySearchLogs, vehicleMap, customerMap]);
+  }, [records, activeTab, deferredSearch, vehicleMap, customerMap]);
 
   const {
     visibleItems: visibleRecords,
@@ -488,7 +490,7 @@ export function ServiceHistory() {
     loadMore,
   } = useInfiniteScroll(filteredRecords, {
     batchSize: 20,
-    resetDependency: `${activeTab}-${stickySearchLogs}`,
+    resetDependency: `${activeTab}-${deferredSearch}`,
   });
 
   return (

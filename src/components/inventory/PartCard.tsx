@@ -32,7 +32,7 @@ export const PartCard = memo(function PartCard({ part, onClick }: PartCardProps)
         y: 8,
         transition: { duration: 0.2, ease: [0.2, 0, 0, 1.0] },
       }}
-      className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group accelerate-gpu will-change-transform-opacity"
+      className="flex items-center justify-between px-4 md:px-8 lg:px-10 py-5 md:py-6 hover:bg-workshop-surface transition-colors cursor-pointer group cv-part-row"
       onClick={onClick}
     >
       <div className="flex items-center gap-4 flex-1 min-w-0">

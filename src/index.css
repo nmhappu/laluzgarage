@@ -81,7 +81,7 @@
 
   /* Standard Component Heights */
   --topbar-height: 4rem;
-  --bottomnav-height: 4.5rem;
+  --bottomnav-height: 5.25rem;
 
   /* Composite Layout Offsets */
   --header-total-height: calc(var(--topbar-height) + var(--safe-top));
@@ -154,9 +154,10 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground font-sans antialiased select-none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   /* Elegantly custom style selection color across the entire app */
@@ -171,9 +172,10 @@
     box-shadow: none !important;
   }
 
-  /* Optimize scrolling for iOS */
-  .overflow-y-auto {
+  /* Hardware momentum scrolling and scroll containment */
+  .overflow-y-auto, .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 }
 
@@ -219,8 +221,53 @@
   perspective: 1000px;
 }
 
+@utility will-change-transform {
+  will-change: transform;
+}
+
 @utility will-change-transform-opacity {
   will-change: transform, opacity;
+}
+
+/* Zero-Cost Offscreen Rendering for Long Lists (DOM & Paint containment) */
+@utility content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 160px;
+}
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 160px;
+}
+
+@utility cv-record-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+
+.cv-record-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+
+@utility cv-vehicle-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
+}
+
+.cv-vehicle-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
+}
+
+@utility cv-part-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 74px;
+}
+
+.cv-part-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 74px;
 }
 
 @utility safe-bottom {

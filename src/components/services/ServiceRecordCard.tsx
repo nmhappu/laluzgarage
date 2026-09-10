@@ -80,7 +80,7 @@ export const ServiceRecordCard = memo(({
     <motion.div
       onClick={() => onClick(record)}
       className={cn(
-        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-transparent shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
+        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-transparent shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
         record.status === "completed"
           ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
           : record.status === "in-progress"

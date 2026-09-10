@@ -39,7 +39,7 @@ export const VehicleCard = memo(function VehicleCard({
         exit: { opacity: 0, y: -8 }
       }}
       transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-      className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/10 active:scale-[0.995] accelerate-gpu will-change-transform-opacity"
+      className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-[background-color,border-color,box-shadow,transform] duration-200 group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/10 active:scale-[0.995] cv-vehicle-card"
       onClick={() => onSelect(vehicle)}
     >
       {/* Row 1: Vehicle Identity with Plate opposite */}

@@ -468,7 +468,6 @@ export function ServiceHistory() {
   const { searchTerm: stickySearchLogs, activeTab, setActiveTab } = useResponsiveSearch();
 
   // Sync activeTab from location state
-
   useEffect(() => {
     if (location.state && typeof location.state === "object" && "activeTab" in location.state) {
       const stateObj = location.state as Record<string, unknown>;
@@ -477,10 +476,14 @@ export function ServiceHistory() {
         typeof tabVal === "string" &&
         ["all", "pending", "in-progress", "completed", "cancelled"].includes(tabVal)
       ) {
-        setActiveTab(tabVal as "all" | "pending" | "in-progress" | "completed" | "cancelled");
+        // Clear router state activeTab immediately to avoid infinite re-render loops with searchParams
+        navigate(location.pathname + location.search, { replace: true, state: {} });
+        if (activeTab !== tabVal) {
+          setActiveTab(tabVal as "all" | "pending" | "in-progress" | "completed" | "cancelled");
+        }
       }
     }
-  }, [location.state]);
+  }, [location.state, navigate, location.pathname, location.search, activeTab, setActiveTab]);
 
   useEffect(() => {
     const stateObj = location.state as Record<string, unknown> | null;
@@ -488,7 +491,7 @@ export function ServiceHistory() {
     if (targetId && records.length > 0) {
       const found = records.find(r => r.id === targetId);
       if (found) {
-        setEditingRecord({ ...found });
+        setEditingRecord(prev => (prev?.id === found.id ? prev : { ...found }));
         // Clean router state immediately to prevent re-opening loop on updates/fetches
         if (stateObj?.openRecordId) {
           navigate(location.pathname + location.search, { replace: true, state: {} });

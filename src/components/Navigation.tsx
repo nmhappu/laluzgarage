@@ -19,6 +19,7 @@ export function Navigation() {
   const { user, profile, logout } = useAuth();
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -108,7 +109,7 @@ export function Navigation() {
     };
   }, []);
 
-  if (location.pathname === '/settings' || location.pathname === '/intake' || isModalOpen) {
+  if (location.pathname === '/settings' || location.pathname === '/intake') {
     return null;
   }
 
@@ -369,15 +370,17 @@ export function Navigation() {
             {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
             <NavLink 
               to="/settings"
-              className="p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg"
+              className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-workshop-muted hover:text-workshop-text transition-colors rounded-lg"
               title="Settings"
             >
               <Settings className="w-5 h-5" />
             </NavLink>
             <button 
+              id="mobile-nav-logout-btn"
               onClick={() => setShowLogoutConfirm(true)}
-              className="p-2 text-workshop-muted hover:text-status-urgent transition-colors rounded-lg"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-workshop-muted hover:text-status-urgent active:scale-95 transition-all rounded-lg"
               title="Logout"
+              aria-label="Logout"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -555,19 +558,37 @@ export function Navigation() {
 
                 <div className="flex gap-3">
                   <button 
+                    type="button"
+                    disabled={isLoggingOut}
                     onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 px-4 py-2.5 bg-workshop-surface text-workshop-muted rounded-xl text-sm font-black uppercase tracking-widest border border-workshop-border hover:text-workshop-text hover:bg-workshop-border transition-all"
+                    className="flex-1 px-4 py-2.5 bg-workshop-surface text-workshop-muted rounded-xl text-sm font-black uppercase tracking-widest border border-workshop-border hover:text-workshop-text hover:bg-workshop-border transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button 
-                    onClick={() => {
-                      logout();
-                      setShowLogoutConfirm(false);
+                    type="button"
+                    id="confirm-logout-btn"
+                    disabled={isLoggingOut}
+                    onClick={async () => {
+                      try {
+                        setIsLoggingOut(true);
+                        setShowLogoutConfirm(false);
+                        await logout();
+                      } catch (err) {
+                        console.error('Logout error:', err);
+                        setIsLoggingOut(false);
+                      }
                     }}
-                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:opacity-90 transition-all"
+                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
-                    Log Out
+                    {isLoggingOut ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span>Signing out...</span>
+                      </>
+                    ) : (
+                      'Log Out'
+                    )}
                   </button>
                 </div>
               </motion.div>

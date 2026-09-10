@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { VehicleHistory } from './components/VehicleHistory';
@@ -94,6 +95,14 @@ function MainLayout() {
 
 function AppContent() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user && location.pathname !== '/') {
+      navigate('/', { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
 
   if (!user) {
     return (
@@ -105,11 +114,11 @@ function AppContent() {
   }
 
   return (
-    <Router>
+    <>
       <SystemBars />
       <BackButtonHandler />
       <MainLayout />
-    </Router>
+    </>
   );
 }
 
@@ -118,7 +127,9 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <UIProvider>
-          <AppContent />
+          <Router>
+            <AppContent />
+          </Router>
         </UIProvider>
       </AuthProvider>
     </ThemeProvider>

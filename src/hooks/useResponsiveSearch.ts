@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 export function useIsMobile() {
@@ -37,7 +37,7 @@ export function useResponsiveSearch() {
   const searchTerm = searchParams.get(queryKey) || '';
   const activeTab = (searchParams.get(statusKey) || 'all') as "all" | "pending" | "in-progress" | "completed" | "cancelled";
 
-  const setSearchTerm = (val: string) => {
+  const setSearchTerm = useCallback((val: string) => {
     setSearchParams(prev => {
       if (!val) {
         prev.delete(queryKey);
@@ -46,9 +46,9 @@ export function useResponsiveSearch() {
       }
       return prev;
     }, { replace: true });
-  };
+  }, [queryKey, setSearchParams]);
 
-  const setActiveTab = (val: "all" | "pending" | "in-progress" | "completed" | "cancelled") => {
+  const setActiveTab = useCallback((val: "all" | "pending" | "in-progress" | "completed" | "cancelled") => {
     setSearchParams(prev => {
       if (val === 'all') {
         prev.delete(statusKey);
@@ -57,7 +57,7 @@ export function useResponsiveSearch() {
       }
       return prev;
     }, { replace: true });
-  };
+  }, [statusKey, setSearchParams]);
 
   return {
     isMobile,

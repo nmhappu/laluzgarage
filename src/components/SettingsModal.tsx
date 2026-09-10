@@ -3,10 +3,12 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
-import { Key, Check, Loader2, RefreshCw, User, Sliders, Info, Trash2, Plus, Mail, ChevronRight, ArrowLeft, MessageSquare, RotateCcw, Sparkles, Tag, BarChart2, Wrench, CheckCircle2, DollarSign, Clock } from 'lucide-react';
+import { Key, Check, Loader2, RefreshCw, User, Sliders, Info, Trash2, Plus, Mail, ChevronRight, ArrowLeft, MessageSquare, RotateCcw, Sparkles, Tag, BarChart2, Wrench, CheckCircle2, DollarSign, Clock, LogOut, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import type { WorkshopUser, ServiceRecord } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { Portal } from './Portal';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import {
   fetchWhatsAppPresets,
@@ -38,12 +40,12 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (tabParam && ['accounts', 'edit_account', 'general', 'system', 'whatsapp_presets', 'tags', 'performance'].includes(tabParam)) {
-      setViewState(tabParam);
+      setViewState(prev => prev !== tabParam ? tabParam : prev);
       if (tabParam === 'performance') {
         setPerformanceRevealed(true);
       }
-    } else if (!tabParam && viewState !== 'edit_account') {
-      setViewState('categories');
+    } else if (!tabParam) {
+      setViewState(prev => (prev !== 'edit_account' && prev !== 'categories' ? 'categories' : prev));
     }
   }, [tabParam]);
 
@@ -62,6 +64,9 @@ export function SettingsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // WhatsApp Presets states
@@ -770,6 +775,26 @@ export function SettingsPage() {
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+                    </button>
+
+                    {/* Log Out / End Session */}
+                    <button
+                      id="settings-category-logout"
+                      onClick={() => setShowLogoutConfirm(true)}
+                      className="w-full py-5 flex items-center justify-between text-left hover:bg-status-urgent/10 transition-colors rounded-none group px-0 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-status-urgent/10 flex items-center justify-center text-status-urgent shrink-0 border border-status-urgent/20">
+                          <LogOut className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-status-urgent leading-tight">Log Out</p>
+                          <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                            {user?.email ? `Signed in as ${user.email}` : 'End active session'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-status-urgent/50 group-hover:text-status-urgent transition-colors shrink-0 ml-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -1611,6 +1636,77 @@ export function SettingsPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <Portal>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                onClick={() => !isLoggingOut && setShowLogoutConfirm(false)}
+                className="absolute inset-0 bg-workshop-bg/85 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                style={{ willChange: "transform, opacity" }}
+                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center z-10"
+              >
+                <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                
+                <h2 className="text-xl font-black text-workshop-text uppercase tracking-tight mb-2">End Session?</h2>
+                <p className="text-workshop-muted text-sm mb-8 leading-relaxed">
+                  Are you sure you want to log out? You will need to sign in again to access the workshop dashboard.
+                </p>
+
+                <div className="flex gap-3">
+                  <button 
+                    type="button"
+                    disabled={isLoggingOut}
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-4 py-2.5 bg-workshop-surface text-workshop-muted rounded-xl text-sm font-black uppercase tracking-widest border border-workshop-border hover:text-workshop-text hover:bg-workshop-border transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    id="settings-confirm-logout-btn"
+                    disabled={isLoggingOut}
+                    onClick={async () => {
+                      try {
+                        setIsLoggingOut(true);
+                        setShowLogoutConfirm(false);
+                        await logout();
+                      } catch (err) {
+                        console.error('Logout error:', err);
+                        setIsLoggingOut(false);
+                      }
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span>Signing out...</span>
+                      </>
+                    ) : (
+                      'Log Out'
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </Portal>
         )}
       </AnimatePresence>
     </div>

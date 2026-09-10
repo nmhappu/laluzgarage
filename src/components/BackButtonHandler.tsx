@@ -10,26 +10,11 @@ export function BackButtonHandler() {
   const lastPressRef = useRef<number>(0);
   const [showExitHint, setShowExitHint] = useState(false);
   const { isModalOpen } = useUI();
-  const isProgrammaticCloseRef = useRef(false);
-
-  // Synchronize history state when modal opens/closes to capture swipe back gestures in browser
-  useEffect(() => {
-    if (isModalOpen) {
-      isProgrammaticCloseRef.current = false;
-      window.history.pushState({ modalActive: true }, '');
-    } else {
-      if (window.history.state?.modalActive && !isProgrammaticCloseRef.current) {
-        isProgrammaticCloseRef.current = true;
-        window.history.back();
-      }
-    }
-  }, [isModalOpen]);
 
   // Handle standard browser/PWA popstate (Android swipe-back, browser back)
   useEffect(() => {
     const handlePopState = () => {
       if (isModalOpen) {
-        isProgrammaticCloseRef.current = true;
         const customEvent = new CustomEvent('appBackButton', { cancelable: true });
         window.dispatchEvent(customEvent);
       }

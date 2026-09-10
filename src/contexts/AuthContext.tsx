@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import '@material/web/progress/circular-progress.js';
 import { 
   onAuthStateChanged, 
@@ -11,7 +11,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { WorkshopUser } from '../types';
 
 interface AuthContextType {
@@ -33,14 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<WorkshopUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const unsubscribeProfileRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    let unsubscribeProfile: (() => void) | null = null;
-
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-        unsubscribeProfile = null;
+      if (unsubscribeProfileRef.current) {
+        unsubscribeProfileRef.current();
+        unsubscribeProfileRef.current = null;
       }
 
       if (authUser) {
@@ -97,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Setup real-time listener for the active user profile
-        unsubscribeProfile = onSnapshot(doc(db, 'users', authUser.uid), (docSnap) => {
+        unsubscribeProfileRef.current = onSnapshot(doc(db, 'users', authUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as WorkshopUser);
           } else {
@@ -121,23 +120,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       unsubscribe();
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
+      if (unsubscribeProfileRef.current) {
+        unsubscribeProfileRef.current();
+        unsubscribeProfileRef.current = null;
       }
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
-  };
+  }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, provider);
-  };
+  }, []);
 
-  const register = async (email: string, password: string, displayName: string) => {
+  const register = useCallback(async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
       await updateProfile(userCredential.user, { displayName });
@@ -155,9 +155,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force user state refresh to include displayName
       setUser({ ...userCredential.user, displayName });
     }
-  };
+  }, []);
 
-  const logout = () => signOut(auth);
+  const logout = useCallback(async () => {
+    // 1. Unsubscribe profile snapshot listener first to prevent permission-denied errors
+    if (unsubscribeProfileRef.current) {
+      try {
+        unsubscribeProfileRef.current();
+      } catch (err) {
+        console.warn('Error unsubscribing profile listener on logout:', err);
+      }
+      unsubscribeProfileRef.current = null;
+    }
+
+    // 2. Best-effort mark user offline in Firestore
+    const currentUid = auth.currentUser?.uid;
+    if (currentUid) {
+      try {
+        const userRef = doc(db, 'users', currentUid);
+        await updateDoc(userRef, {
+          status: 'offline',
+          updatedAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Could not update status to offline in Firestore:', err);
+      }
+    }
+
+    // 3. Sign out of Firebase Auth
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Firebase signOut error:', err);
+    } finally {
+      // 4. Guaranteed state cleanup
+      setUser(null);
+      setProfile(null);
+    }
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    loading,
+    login,
+    loginWithGoogle,
+    register,
+    logout
+  }), [user, profile, loading, login, loginWithGoogle, register, logout]);
 
   if (loading) {
     return (
@@ -183,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, loginWithGoogle, register, logout }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

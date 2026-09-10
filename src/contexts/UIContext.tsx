@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 interface UIContextType {
   isModalOpen: boolean;
@@ -15,8 +15,13 @@ export function UIProvider({ children }: { children: ReactNode }) {
     return () => setModalCount(prev => Math.max(0, prev - 1));
   }, []);
 
+  const value = useMemo(() => ({
+    isModalOpen: modalCount > 0,
+    registerModal
+  }), [modalCount, registerModal]);
+
   return (
-    <UIContext.Provider value={{ isModalOpen: modalCount > 0, registerModal }}>
+    <UIContext.Provider value={value}>
       {children}
     </UIContext.Provider>
   );

@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.gearbox.workshop",
+  "applicationId": "dev.appu.laluzgarage",
   "variantName": "release",
   "elements": [
     {

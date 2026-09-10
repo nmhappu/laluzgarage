@@ -12,6 +12,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
 
   return (
     <button
+      data-theme-toggle
+      id="theme-toggle-btn"
       onClick={(e) => toggleTheme(e)}
       className={cn(
         "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95",

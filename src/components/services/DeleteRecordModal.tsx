@@ -18,7 +18,7 @@ export function DeleteRecordModal({
     <AnimatePresence>
       {recordToDelete && (
         <Portal>
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="viewport-fill z-[200] flex items-center justify-center p-4 sheet-header-safe sheet-footer-safe">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

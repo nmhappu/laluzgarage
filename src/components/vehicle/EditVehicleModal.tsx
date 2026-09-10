@@ -40,10 +40,10 @@ export function EditVehicleModal({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0.95 }}
         transition={{ type: "spring", stiffness: 350, damping: 30 }}
-        className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
+        className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
       >
         {/* Header Bar */}
-        <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+        <div className="flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
           <button
             type="button"
             onClick={onClose}
@@ -188,7 +188,7 @@ export function EditVehicleModal({
           </div>
 
           {/* Bottom Sticky Action Bar */}
-          <div className="pt-4 px-6 pb-14 sm:pb-6 bg-workshop-bg border-t border-workshop-border/30 flex justify-end gap-3 shrink-0">
+          <div className="pt-4 px-6 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/30 flex justify-end gap-3 shrink-0">
             <button 
               type="button" 
               onClick={onClose}

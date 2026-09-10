@@ -129,28 +129,31 @@ export function MobileTopBar({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute inset-0 bg-workshop-surface flex items-center justify-between px-6 z-50 border-b border-workshop-border"
+            className="absolute inset-x-0 top-0 bg-workshop-surface flex flex-col z-50 border-b border-workshop-border shadow-md"
           >
-            <div className="flex items-center gap-2 flex-1 mr-4">
-              <Search className="w-5 h-5 text-workshop-muted shrink-0" />
-              <input
-                type="text"
-                value={mobileQuery}
-                onChange={(e) => onMobileQueryChange(e.target.value)}
-                placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
-                className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2 uppercase"
-                autoFocus
-              />
+            <div className="safe-top" />
+            <div className="h-16 flex items-center justify-between px-6">
+              <div className="flex items-center gap-2 flex-1 mr-4">
+                <Search className="w-5 h-5 text-workshop-muted shrink-0" />
+                <input
+                  type="text"
+                  value={mobileQuery}
+                  onChange={(e) => onMobileQueryChange(e.target.value)}
+                  placeholder={getActiveTabLabel(location.pathname).toLowerCase()}
+                  className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2 uppercase"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={() => {
+                  onMobileQueryChange('');
+                  setShowStickySearch(false);
+                }}
+                className="p-2 text-workshop-muted hover:text-workshop-text transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              onClick={() => {
-                onMobileQueryChange('');
-                setShowStickySearch(false);
-              }}
-              className="p-2 text-workshop-muted hover:text-workshop-text transition-colors shrink-0"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -168,7 +171,7 @@ export function MobileTopBar({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-6 top-[68px] bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[160px]"
+              className="absolute right-6 topbar-menu-offset bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[160px]"
             >
               {SERVICE_STATUS_FILTERS.map((status) => {
                 const isActive = mobileStatus === status.id;

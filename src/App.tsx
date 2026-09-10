@@ -88,7 +88,7 @@ function MainLayout() {
       <Navigation />
       
       <main className="flex-1 flex flex-col min-h-0 min-w-0 bg-transparent text-workshop-text relative">
-        <div className="flex-1 overflow-y-auto scroll-smooth pb-32 md:pb-8 p-4 md:p-8 lg:p-10 pt-[calc(5.125rem+env(safe-area-inset-top,0px))] md:pt-6.5">
+        <div className="flex-1 overflow-y-auto scroll-smooth main-content-scroll md:pt-6.5 md:pb-8 p-4 md:p-8 lg:p-10">
           <AnimatedRoutes />
         </div>
 

@@ -40,10 +40,10 @@ export function PartFormModal({
           exit={{ x: '100%', opacity: 0.95 }}
           transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
           style={{ willChange: 'transform, opacity' }}
-          className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
+          className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
         >
           {/* Top Bar Header */}
-          <div className="flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+          <div className="flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
             <button
               type="button"
               onClick={onClose}
@@ -228,7 +228,7 @@ export function PartFormModal({
 
             {/* Action Bar Footer */}
             <div
-              className={`px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-workshop-bg border-t border-workshop-border/40 flex items-center shrink-0 z-20 shadow-lg select-none font-sans ${
+              className={`px-6 pt-5 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/40 flex items-center shrink-0 z-20 shadow-lg select-none font-sans ${
                 isEdit && onDelete ? 'justify-between' : 'justify-end gap-4'
               }`}
             >

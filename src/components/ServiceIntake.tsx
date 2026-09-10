@@ -155,7 +155,7 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
                 />
               )}
             </AnimatePresence>
-            <div className="safe-bottom h-4" />
+            <div className="sheet-footer-safe" />
           </div>
         </div>
       </motion.div>

@@ -67,6 +67,28 @@
   --status-success: #10B981;
   --status-pending: #FBBF24;
   --status-urgent: #F43F5E;
+
+  /* Hardware Safe-Area Insets */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Standard Component Heights */
+  --topbar-height: 4rem;
+  --bottomnav-height: 4.5rem;
+
+  /* Composite Layout Offsets */
+  --header-total-height: calc(var(--topbar-height) + var(--safe-top));
+  --bottomnav-total-height: calc(var(--bottomnav-height) + var(--safe-bottom));
+
+  /* Modal & Drawer Standard Padding */
+  --sheet-header-pt: calc(1rem + var(--safe-top));
+  --sheet-footer-pb: calc(1.25rem + var(--safe-bottom));
+
+  /* Main Content Clearance */
+  --main-content-pt: calc(var(--header-total-height) + 0.5rem);
+  --main-content-pb: calc(var(--bottomnav-total-height) + 1.5rem);
 }
 
 [data-theme="light"] {
@@ -152,11 +174,45 @@
 }
 
 @utility safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @utility safe-top {
-  padding-top: env(safe-area-inset-top, 0);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility main-content-scroll {
+  padding-top: var(--main-content-pt);
+  padding-bottom: var(--main-content-pb);
+}
+
+@utility sheet-header-safe {
+  padding-top: var(--sheet-header-pt);
+}
+
+@utility sheet-footer-safe {
+  padding-bottom: var(--sheet-footer-pb);
+}
+
+@utility bottomnav-safe {
+  padding-top: 0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@utility header-safe-sticky {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: var(--header-total-height);
+}
+
+@utility topbar-menu-offset {
+  top: calc(var(--header-total-height) + 4px);
+}
+
+@utility viewport-fill {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  max-height: 100dvh;
 }
 
 @utility h-mobile-screen {

@@ -62,13 +62,13 @@ export function DeliveryBillModal({
 
         return (
           <Portal>
-            <div className="fixed inset-0 z-[9999] bg-workshop-bg flex flex-col font-sans overflow-y-auto">
+            <div className="viewport-fill z-[9999] bg-workshop-bg flex flex-col font-sans overflow-y-auto">
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="w-full min-h-screen flex flex-col justify-between p-6 md:p-10 max-w-3xl mx-auto space-y-6"
+                className="w-full min-h-full flex flex-col justify-between p-6 md:p-10 sheet-header-safe sheet-footer-safe max-w-3xl mx-auto space-y-6"
               >
                 {/* Top Header Bar */}
                 <div className="flex items-center justify-between border-b border-workshop-border/30 pb-5">

@@ -141,10 +141,10 @@ export function EditRecordSheet({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-            className="fixed inset-0 z-[100] bg-workshop-bg flex flex-col h-screen w-full overflow-hidden font-sans text-workshop-text"
+            className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
           >
             {/* Redesigned Premium Clean Top Bar Header */}
-            <div className="relative overflow-hidden flex justify-between items-center pl-2 pr-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
+            <div className="relative overflow-hidden flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
               {/* Faded Text Silhouette Watermark */}
               <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 pointer-events-none select-none text-[100px] sm:text-[160px] md:text-[196px] font-black text-white/[0.015] tracking-[0.13em] uppercase font-sans whitespace-nowrap z-0">
                 RECORD
@@ -850,7 +850,7 @@ export function EditRecordSheet({
               </div>
 
               {/* Fixed Material Sticky Bottom Action Footer Bar */}
-              <div className="px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
+              <div className="px-6 pt-5 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
                 <button
                   type="button"
                   onClick={onClose}

@@ -21,7 +21,7 @@ export function DeleteVehicleModal({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans">
+      <div className="viewport-fill z-[100] flex items-center justify-center p-4 sheet-header-safe sheet-footer-safe font-sans">
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

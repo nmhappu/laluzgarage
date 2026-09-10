@@ -11,7 +11,7 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
   return (
     <nav
       className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-bg border-t border-workshop-border px-4 pt-4 pb-12 z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] safe-bottom transition-all duration-300 ease-in-out",
+        "md:hidden fixed bottom-0 left-0 right-0 w-full bg-workshop-bg border-t border-workshop-border px-4 bottomnav-safe z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.2)] transition-all duration-300 ease-in-out",
         isModalOpen && "bg-workshop-bg/95"
       )}
     >

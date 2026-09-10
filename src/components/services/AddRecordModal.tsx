@@ -269,7 +269,7 @@ export function AddRecordModal({
     <AnimatePresence>
       {showAddModal && (
         <Portal>
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="viewport-fill z-[100] flex items-center justify-center p-4 sheet-header-safe sheet-footer-safe">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -284,7 +284,7 @@ export function AddRecordModal({
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
               style={{ willChange: "transform, opacity" }}
-              className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-[95vh] bg-clip-padding will-change-transform"
+              className="relative bg-workshop-card w-full max-w-2xl rounded-xl p-8 shadow-2xl border border-workshop-border overflow-y-auto max-h-full bg-clip-padding will-change-transform"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>

@@ -36,7 +36,7 @@ export function AdvisorVerification({
           "bg-workshop-bg flex flex-col justify-between",
           isPage
             ? "w-full max-w-4xl mx-auto min-h-[75vh]"
-            : "fixed inset-0 z-[100] h-full p-0 pb-6 overflow-y-auto"
+            : "viewport-fill z-[100] p-0 sheet-footer-safe overflow-y-auto"
         )}
       >
         {/* Top Header Bar */}

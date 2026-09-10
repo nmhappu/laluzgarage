@@ -447,7 +447,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans pb-12">
+    <div className="w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans sheet-footer-safe pb-8">
       {/* Header Bar */}
       <div className="bg-workshop-bg sticky top-0 z-20 border-b border-workshop-border/20">
         <div className="safe-top" />

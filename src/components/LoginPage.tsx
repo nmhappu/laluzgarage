@@ -79,7 +79,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4 safe-top safe-bottom relative">
       <div className="max-w-md w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

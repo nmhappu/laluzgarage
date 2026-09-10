@@ -3,6 +3,14 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { useTheme } from '../contexts/ThemeContext';
 
+import { registerPlugin } from '@capacitor/core';
+
+interface SystemBarsPluginInterface {
+  setSystemBarsStyle(options: { isDark: boolean }): Promise<void>;
+}
+
+const NativeSystemBars = registerPlugin<SystemBarsPluginInterface>('SystemBars');
+
 export function SystemBars() {
   const { theme } = useTheme();
 
@@ -21,12 +29,16 @@ export function SystemBars() {
     if (Capacitor.isNativePlatform()) {
       const setupBars = async () => {
         try {
-          // Draw WebView under the Status Bar (fully transparent overlay)
-          await StatusBar.setOverlaysWebView({ overlay: true });
-          await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
-          await StatusBar.setBackgroundColor({ color: '#00000000' });
-        } catch (err) {
-          console.error('Error configuring transparent system bars:', err);
+          // Synchronize both status bar and navigation bar icon contrast and disable scrims
+          await NativeSystemBars.setSystemBarsStyle({ isDark });
+        } catch {
+          // Graceful fallback to standard StatusBar plugin if needed
+          try {
+            await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+            await StatusBar.setBackgroundColor({ color: '#00000000' });
+          } catch (fallbackErr) {
+            console.debug('Fallback status bar setup error:', fallbackErr);
+          }
         }
       };
 

@@ -1,12 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
-import { Dashboard } from './components/Dashboard';
-import { VehicleHistory } from './components/VehicleHistory';
-import { Inventory } from './components/Inventory';
-import { ServiceHistory } from './components/ServiceHistory';
-import { SettingsPage } from './components/SettingsModal';
-import { ServiceIntakePage } from './components/ServiceIntake';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
@@ -14,6 +8,13 @@ import { LoginPage } from './components/LoginPage';
 import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
 import { ThemeProvider } from './contexts/ThemeContext';
+
+const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ default: m.Dashboard })));
+const VehicleHistory = lazy(() => import('./components/VehicleHistory').then((m) => ({ default: m.VehicleHistory })));
+const Inventory = lazy(() => import('./components/Inventory').then((m) => ({ default: m.Inventory })));
+const ServiceHistory = lazy(() => import('./components/ServiceHistory').then((m) => ({ default: m.ServiceHistory })));
+const SettingsPage = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsPage })));
+const ServiceIntakePage = lazy(() => import('./components/ServiceIntake').then((m) => ({ default: m.ServiceIntakePage })));
 
 const m3Variants = {
   enter: {
@@ -30,6 +31,15 @@ const m3Variants = {
   },
 };
 
+function RouteLoadingFallback() {
+  return (
+    <div className="w-full py-24 flex flex-col items-center justify-center gap-3 text-workshop-muted">
+      <div className="w-6 h-6 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
+      <span className="text-[11px] font-bold uppercase tracking-widest opacity-60">Loading view...</span>
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   
@@ -45,14 +55,16 @@ function AnimatedRoutes() {
         style={{ willChange: "transform, opacity" }}
         className="w-full max-w-7xl mx-auto"
       >
-        <Routes location={location}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vehicles" element={<VehicleHistory />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/services" element={<ServiceHistory />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/intake" element={<ServiceIntakePage />} />
-        </Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes location={location}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/vehicles" element={<VehicleHistory />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/services" element={<ServiceHistory />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/intake" element={<ServiceIntakePage />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );

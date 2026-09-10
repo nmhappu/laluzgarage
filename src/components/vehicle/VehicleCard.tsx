@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'motion/react';
 import { Car, Key, History, Phone, UserPlus } from 'lucide-react';
 import { openCreateContactScreen } from '../../services/contactService';
+import { WhatsAppIcon } from '../ui/BrandIcons';
+import type { Vehicle } from '../../types';
 
 const capitalizeName = (name?: string) => {
   if (!name) return "";
@@ -13,16 +14,23 @@ const capitalizeName = (name?: string) => {
     .join(" ");
 };
 
+export interface EnrichedVehicle extends Vehicle {
+  ownerName?: string;
+  ownerPhone?: string;
+  totalSpend?: number;
+  servicesCount?: number;
+  lastServiceDate?: string;
+}
+
 interface VehicleCardProps {
-  key?: any;
-  vehicle: any;
-  onSelect: (v: any) => void;
-  onEdit: (v: any) => void;
-  onDelete: (v: any) => void;
+  vehicle: EnrichedVehicle;
+  onSelect: (v: EnrichedVehicle) => void;
+  onEdit: (v: EnrichedVehicle) => void;
+  onDelete: (v: EnrichedVehicle) => void;
   onWhatsApp: (info: { name: string; phone: string; url: string }) => void;
 }
 
-export function VehicleCard({
+export const VehicleCard = memo(function VehicleCard({
   vehicle,
   onSelect,
   onEdit,
@@ -134,7 +142,7 @@ export function VehicleCard({
                 className="inline-flex items-center gap-1.5 bg-[#128C7E]/15 hover:bg-[#128C7E]/25 text-[#128C7E] px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-[#128C7E]/10 active:scale-95 border-0 outline-none"
                 title={`Send WhatsApp Message to ${capOwnerName}`}
               >
-                <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-3.5 h-3.5 shrink-0" referrerPolicy="no-referrer" />
+                <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>WhatsApp</span>
               </button>
               <button
@@ -192,4 +200,4 @@ export function VehicleCard({
       </div>
     </motion.div>
   );
-}
+});

@@ -54,14 +54,15 @@ export function Navigation() {
     }, { replace: true });
   };
 
-  const [scrollTop, setScrollTop] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     let scrollContainer: Element | null = null;
 
     const handleScroll = () => {
       if (scrollContainer) {
-        setScrollTop(scrollContainer.scrollTop);
+        const scrolled = scrollContainer.scrollTop > 10;
+        setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
       }
     };
 
@@ -69,7 +70,7 @@ export function Navigation() {
       scrollContainer = document.querySelector('.overflow-y-auto');
       if (scrollContainer) {
         scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-        setScrollTop(scrollContainer.scrollTop);
+        handleScroll();
         return true;
       }
       return false;
@@ -124,7 +125,7 @@ export function Navigation() {
       {/* Mobile Top Bar */}
       <MobileTopBar
         isModalOpen={isModalOpen}
-        scrollTop={scrollTop}
+        isScrolled={isScrolled}
         mobileQuery={mobileQuery}
         onMobileQueryChange={setMobileQuery}
         mobileStatus={mobileStatus}

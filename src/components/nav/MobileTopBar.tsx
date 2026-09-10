@@ -13,7 +13,7 @@ import {
 
 interface MobileTopBarProps {
   isModalOpen: boolean;
-  scrollTop: number;
+  isScrolled: boolean;
   mobileQuery: string;
   onMobileQueryChange: (val: string) => void;
   mobileStatus: string;
@@ -23,7 +23,7 @@ interface MobileTopBarProps {
 
 export function MobileTopBar({
   isModalOpen,
-  scrollTop,
+  isScrolled,
   mobileQuery,
   onMobileQueryChange,
   mobileStatus,
@@ -43,7 +43,7 @@ export function MobileTopBar({
     <nav
       className={cn(
         "md:hidden fixed top-0 left-0 right-0 z-50 flex flex-col transition-all duration-200 ease-out",
-        scrollTop > 10
+        isScrolled
           ? "bg-workshop-bg/85 backdrop-blur-md border-b border-workshop-border/40 shadow-sm"
           : "bg-workshop-bg border-b border-workshop-border/20",
         isModalOpen && "bg-workshop-bg/95"

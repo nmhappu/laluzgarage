@@ -1,6 +1,6 @@
+import { useMemo } from 'react';
 import { type LucideIcon } from 'lucide-react';
 import { motion, type Variants } from 'motion/react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '../../lib/utils';
 
 export interface StatTrendItem {
@@ -20,16 +20,53 @@ export interface StatTileProps {
   variants?: Variants;
 }
 
+function generateSparklinePath(data: number[], width = 100, height = 36, padding = 4): string {
+  if (!data || data.length === 0) return '';
+  if (data.length === 1) return `M 0,${height / 2} L ${width},${height / 2}`;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const usableHeight = height - padding * 2;
+
+  const points = data.map((val, idx) => {
+    const x = (idx / (data.length - 1)) * width;
+    const y = height - padding - ((val - min) / range) * usableHeight;
+    return [x, y];
+  });
+
+  let path = `M ${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? i : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+
+    path += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return path;
+}
+
 export function StatTile({
   label,
   value,
   icon: Icon,
   color,
   trend = [],
-  isMounted = true,
   onClick,
   variants,
 }: StatTileProps) {
+  const sparklinePath = useMemo(() => {
+    if (!trend || trend.length === 0) return '';
+    const values = trend.map((t) => t.value);
+    return generateSparklinePath(values);
+  }, [trend]);
+
   return (
     <motion.div
       variants={variants}
@@ -56,24 +93,27 @@ export function StatTile({
       </div>
 
       <div
-        className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0 pointer-events-none"
+        className="relative w-24 md:w-32 lg:w-40 h-10 min-w-[96px] overflow-hidden opacity-50 group-hover:opacity-100 transition-opacity shrink-0 pointer-events-none flex items-center"
         style={{
           maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
         }}
       >
-        {isMounted && trend.length > 0 && (
-          <ResponsiveContainer width="100%" height={40}>
-            <AreaChart data={trend}>
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="currentColor"
-                strokeWidth={2}
-                fill="transparent"
-                className={color}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        {sparklinePath && (
+          <svg
+            viewBox="0 0 100 36"
+            className="w-full h-8 overflow-visible"
+            preserveAspectRatio="none"
+          >
+            <path
+              d={sparklinePath}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={color}
+            />
+          </svg>
         )}
       </div>
     </motion.div>

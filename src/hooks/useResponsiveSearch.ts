@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth < 768;
+      return window.matchMedia('(max-width: 767px)').matches;
     }
     return false;
   });
@@ -12,13 +12,15 @@ export function useIsMobile() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
     };
     
-    window.addEventListener('resize', handleResize);
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
     return () => {
-      window.removeEventListener('resize', handleResize);
+      mediaQuery.removeEventListener('change', handleChange);
     };
   }, []);
 

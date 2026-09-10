@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -169,31 +169,47 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     fetchBasics();
   }, []);
 
-  const getLastServicedDate = useCallback((customer: Customer, vehicle?: Vehicle) => {
-    const matchRecords = records.filter(
-      (r) => (vehicle && r.vehicleId === vehicle.id) || r.customerId === customer.id
-    );
-    if (matchRecords.length > 0) {
-      const sorted = [...matchRecords].sort((a, b) => {
-        const dateA = a.date ? new Date(a.date).getTime() : 0;
-        const dateB = b.date ? new Date(b.date).getTime() : 0;
-        return dateB - dateA;
-      });
-      const latest = sorted[0];
-      if (latest && latest.date) {
-        const d = new Date(latest.date);
-        if (!isNaN(d.getTime())) {
-          const day = d.getDate();
-          const month = d.toLocaleString('en-US', { month: 'short' });
-          const year = d.getFullYear();
-          return `${day} ${month} ${year}`;
+  const latestDatesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of records) {
+      if (!r.date) continue;
+      const rTime = new Date(r.date).getTime();
+      if (isNaN(rTime)) continue;
+
+      if (r.vehicleId) {
+        const prev = map.get(`v_${r.vehicleId}`);
+        const prevTime = prev ? new Date(prev).getTime() : 0;
+        if (rTime > prevTime) {
+          map.set(`v_${r.vehicleId}`, r.date);
+        }
+      }
+
+      if (r.customerId) {
+        const prev = map.get(`c_${r.customerId}`);
+        const prevTime = prev ? new Date(prev).getTime() : 0;
+        if (rTime > prevTime) {
+          map.set(`c_${r.customerId}`, r.date);
         }
       }
     }
-    return `21 May ${new Date().getFullYear()}`;
+    return map;
   }, [records]);
 
-  // Real-time lookup
+  const getLastServicedDate = useCallback((customer: Customer, vehicle?: Vehicle) => {
+    const dateStr = (vehicle && latestDatesMap.get(`v_${vehicle.id}`)) || latestDatesMap.get(`c_${customer.id}`);
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const day = d.getDate();
+        const month = d.toLocaleString('en-US', { month: 'short' });
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+      }
+    }
+    return `21 May ${new Date().getFullYear()}`;
+  }, [latestDatesMap]);
+
+  // Real-time lookup with 150ms debounce and Map indexing
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) {
@@ -201,63 +217,77 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
       return;
     }
 
-    const qClean = q.replace(/\s+/g, '');
-    const resultsMap = new Map<string, { customer: Customer; vehicle?: Vehicle }>();
+    const handler = setTimeout(() => {
+      const qClean = q.replace(/\s+/g, '');
+      const resultsMap = new Map<string, { customer: Customer; vehicle?: Vehicle }>();
 
-    // Search in vehicles (plate, make, model, color, pin/password)
-    vehicles.forEach((v) => {
-      const plate = (v.plateNumber || '').toLowerCase();
-      const plateClean = plate.replace(/\s+/g, '');
-      const make = (v.make || '').toLowerCase();
-      const model = (v.model || '').toLowerCase();
-      const makeModel = `${make} ${model}`;
-      const color = (v.color || '').toLowerCase();
-      const pin = (v.passwordOrPin || '').toLowerCase();
+      const customerMap = new Map<string, Customer>();
+      customers.forEach(c => customerMap.set(c.id, c));
 
-      const isMatch =
-        plate.includes(q) ||
-        plateClean.includes(qClean) ||
-        make.includes(q) ||
-        model.includes(q) ||
-        makeModel.includes(q) ||
-        color.includes(q) ||
-        pin.includes(q);
+      const vehiclesByCustomer = new Map<string, Vehicle[]>();
+      vehicles.forEach(v => {
+        const list = vehiclesByCustomer.get(v.customerId) || [];
+        list.push(v);
+        vehiclesByCustomer.set(v.customerId, list);
+      });
 
-      if (isMatch) {
-        const customer = customers.find((c) => c.id === v.customerId);
-        if (customer) {
-          const key = `${customer.id}_${v.id}`;
-          resultsMap.set(key, { customer, vehicle: v });
-        }
-      }
-    });
+      // Search in vehicles (plate, make, model, color, pin/password)
+      for (const v of vehicles) {
+        const plate = (v.plateNumber || '').toLowerCase();
+        const plateClean = plate.replace(/\s+/g, '');
+        const make = (v.make || '').toLowerCase();
+        const model = (v.model || '').toLowerCase();
+        const makeModel = `${make} ${model}`;
+        const color = (v.color || '').toLowerCase();
+        const pin = (v.passwordOrPin || '').toLowerCase();
 
-    // Search in customers (name, phone)
-    customers.forEach((c) => {
-      const name = (c.name || '').toLowerCase();
-      const phone = (c.phone || '').replace(/\s/g, '');
+        const isMatch =
+          plate.includes(q) ||
+          plateClean.includes(qClean) ||
+          make.includes(q) ||
+          model.includes(q) ||
+          makeModel.includes(q) ||
+          color.includes(q) ||
+          pin.includes(q);
 
-      const isMatch = name.includes(q) || phone.includes(qClean) || (c.phone || '').includes(q);
-
-      if (isMatch) {
-        const cVehicles = vehicles.filter((v) => v.customerId === c.id);
-        if (cVehicles.length > 0) {
-          cVehicles.forEach((v) => {
-            const key = `${c.id}_${v.id}`;
-            if (!resultsMap.has(key)) {
-              resultsMap.set(key, { customer: c, vehicle: v });
-            }
-          });
-        } else {
-          const key = `${c.id}_no-vehicle`;
-          if (!resultsMap.has(key)) {
-            resultsMap.set(key, { customer: c });
+        if (isMatch) {
+          const customer = customerMap.get(v.customerId);
+          if (customer) {
+            const key = `${customer.id}_${v.id}`;
+            resultsMap.set(key, { customer, vehicle: v });
           }
         }
       }
-    });
 
-    setSearchResults(Array.from(resultsMap.values()));
+      // Search in customers (name, phone)
+      for (const c of customers) {
+        const name = (c.name || '').toLowerCase();
+        const phone = (c.phone || '').replace(/\s/g, '');
+
+        const isMatch = name.includes(q) || phone.includes(qClean) || (c.phone || '').includes(q);
+
+        if (isMatch) {
+          const cVehicles = vehiclesByCustomer.get(c.id) || [];
+          if (cVehicles.length > 0) {
+            cVehicles.forEach((v) => {
+              const key = `${c.id}_${v.id}`;
+              if (!resultsMap.has(key)) {
+                resultsMap.set(key, { customer: c, vehicle: v });
+              }
+            });
+          } else {
+            const key = `${c.id}_no-vehicle`;
+            if (!resultsMap.has(key)) {
+              resultsMap.set(key, { customer: c });
+            }
+          }
+        }
+      }
+
+      setSearchResults(Array.from(resultsMap.values()));
+    }, 150);
+
+    return () => clearTimeout(handler);
   }, [searchQuery, vehicles, customers]);
 
   const handleSelectResult = useCallback((customer: Customer, vehicle?: Vehicle) => {

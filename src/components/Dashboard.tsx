@@ -32,53 +32,79 @@ export function Dashboard() {
     }
   });
 
-  const getHistoryData = <T,>(records: T[], dateField: keyof T, filter?: (r: T) => boolean): HistoryItem[] => {
-    const days = 14;
-    const history = [];
-    const now = new Date();
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = format(d, 'yyyy-MM-dd');
-      
-      const count = records.filter(r => {
-        const rDateRaw = r[dateField] as unknown as { toDate?: () => Date } | string | null;
-        let rDateStr = '';
-        if (rDateRaw && typeof rDateRaw !== 'string' && rDateRaw.toDate) { // Firestore Timestamp
-          rDateStr = format(rDateRaw.toDate(), 'yyyy-MM-dd');
-        } else if (typeof rDateRaw === 'string') {
-          rDateStr = rDateRaw.split('T')[0];
-        }
-        
-        const matchesDate = rDateStr === dateStr;
-        return matchesDate && (filter ? filter(r) : true);
-      }).length;
-      
-      history.push({ date: dateStr, value: count });
-    }
-    return history;
-  };
-
   /**
    * Fetches all necessary data to populate the dashboard metrics and activity feed.
-   * Joins Customers, Vehicles, and Service Records in-memory.
+   * Joins Customers, Vehicles, and Service Records in-memory using Maps.
    */
   const fetchDashboardData = async () => {
     try {
-      const customersSnap = await getDocs(collection(db, 'customers'));
-      const servicesSnap = await getDocs(collection(db, 'serviceRecords'));
-      const vehiclesSnap = await getDocs(collection(db, 'vehicles'));
+      const [customersSnap, servicesSnap, vehiclesSnap] = await Promise.all([
+        getDocs(collection(db, 'customers')),
+        getDocs(collection(db, 'serviceRecords')),
+        getDocs(collection(db, 'vehicles')),
+      ]);
 
       const customers = customersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Customer));
       const vehicles = vehiclesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle));
       const serviceRecords = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() } as ServiceRecord));
-      
-      // Merge data for display
+
+      const customerMap = new Map<string, Customer>();
+      customers.forEach(c => customerMap.set(c.id, c));
+
+      const vehicleMap = new Map<string, Vehicle>();
+      vehicles.forEach(v => vehicleMap.set(v.id, v));
+
+      // Build 14-day date keys
+      const days = 14;
+      const dateKeys: string[] = [];
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        dateKeys.push(format(d, 'yyyy-MM-dd'));
+      }
+
+      const servicesFreq = new Map<string, number>();
+      const pendingFreq = new Map<string, number>();
+      const completedFreq = new Map<string, number>();
+      const issuesFreq = new Map<string, number>();
+      dateKeys.forEach(k => {
+        servicesFreq.set(k, 0);
+        pendingFreq.set(k, 0);
+        completedFreq.set(k, 0);
+        issuesFreq.set(k, 0);
+      });
+
+      let pendingWorksCount = 0;
+      let completedWorksCount = 0;
+      let issuesAttendedCount = 0;
+
+      // Single-pass enrichment and metrics calculation
       const enrichedRecords = serviceRecords.map(record => {
-        const vehicle = vehicles.find(v => v.id === record.vehicleId);
-        const customer = customers.find(c => c.id === record.customerId);
+        const vehicle = vehicleMap.get(record.vehicleId);
+        const customer = customerMap.get(record.customerId);
         
+        const isPending = record.status === 'pending' || record.status === 'in-progress';
+        const isCompleted = record.status === 'completed';
+        const partsCount = record.partsUsed?.length || 0;
+
+        if (isPending) pendingWorksCount++;
+        if (isCompleted) completedWorksCount++;
+        issuesAttendedCount += partsCount;
+
+        const dateStr = record.date ? record.date.split('T')[0] : '';
+        if (servicesFreq.has(dateStr)) {
+          servicesFreq.set(dateStr, servicesFreq.get(dateStr)! + 1);
+          if (isPending) {
+            pendingFreq.set(dateStr, pendingFreq.get(dateStr)! + 1);
+          } else if (isCompleted) {
+            completedFreq.set(dateStr, completedFreq.get(dateStr)! + 1);
+          }
+          if (partsCount > 0) {
+            issuesFreq.set(dateStr, issuesFreq.get(dateStr)! + partsCount);
+          }
+        }
+
         return {
           ...record,
           make: vehicle?.make || 'Unknown',
@@ -88,58 +114,29 @@ export function Dashboard() {
           technicianName: record.technicianName || 'Unknown Advisor'
         };
       });
-      
-      // Calculate Metrics
-      const totalCustomers = customersSnap.size;
-      const totalVehicles = vehiclesSnap.size;
-      const totalServices = enrichedRecords.length;
 
-      const pendingJobs = enrichedRecords.filter((s) => s.status === 'pending' || s.status === 'in-progress');
-      
-      // Count parts used as surrogate for "issues addressed"
-      const issuesAttended = enrichedRecords.reduce((acc, curr) => {
-        return acc + (curr.partsUsed?.length || 0);
-      }, 0);
-
-      const completedWorks = enrichedRecords.filter(s => s.status === 'completed').length;
-
-      // Calculate 7-day histories
-      const customerHistory = getHistoryData(customers, 'createdAt');
-      const vehicleHistory = getHistoryData(vehicles, 'createdAt');
-      const servicesHistory = getHistoryData(enrichedRecords, 'date');
-      const pendingHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'pending' || r.status === 'in-progress');
-      const completedHistory = getHistoryData(enrichedRecords, 'date', (r) => r.status === 'completed');
-      
-      // For issues, we need to count parts per day
-      const issuesHistory = [];
-      const now = new Date();
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        const dateStr = format(d, 'yyyy-MM-dd');
-        const count = enrichedRecords.filter(r => r.date?.split('T')[0] === dateStr)
-          .reduce((acc, curr) => acc + (curr.partsUsed?.length || 0), 0);
-        issuesHistory.push({ date: dateStr, value: count });
-      }
+      const servicesHistory = dateKeys.map(k => ({ date: k, value: servicesFreq.get(k) || 0 }));
+      const pendingHistory = dateKeys.map(k => ({ date: k, value: pendingFreq.get(k) || 0 }));
+      const completedHistory = dateKeys.map(k => ({ date: k, value: completedFreq.get(k) || 0 }));
+      const issuesHistory = dateKeys.map(k => ({ date: k, value: issuesFreq.get(k) || 0 }));
 
       // Sort activities: most recent first
-      const allActivities = enrichedRecords
-        .sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return dateB - dateA;
-        });
+      const allActivities = enrichedRecords.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
 
       setMetrics({
-        totalCustomers,
-        totalVehicles,
-        totalServices,
-        pendingWorks: pendingJobs.length,
-        issuesAttended,
-        completedWorks,
+        totalCustomers: customersSnap.size,
+        totalVehicles: vehiclesSnap.size,
+        totalServices: enrichedRecords.length,
+        pendingWorks: pendingWorksCount,
+        issuesAttended: issuesAttendedCount,
+        completedWorks: completedWorksCount,
         history: {
-          customers: customerHistory,
-          vehicles: vehicleHistory,
+          customers: [],
+          vehicles: [],
           services: servicesHistory,
           pending: pendingHistory,
           issues: issuesHistory,

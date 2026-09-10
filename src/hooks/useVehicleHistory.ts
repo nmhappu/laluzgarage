@@ -88,38 +88,44 @@ export function useVehicleHistory() {
 
   // Derived rich vehicles list
   const enrichedVehicles = useMemo(() => {
-    return vehicles.map(v => {
-      const owner = customers.find(c => c.id === v.customerId);
-      const matchingRecords = serviceRecords.filter(r => r.vehicleId === v.id);
-      
-      const totalSpend = matchingRecords.reduce((sum, r) => sum + (r.totalCost || 0), 0);
-      const servicesCount = matchingRecords.length;
-      
-      let lastServiceDate = '';
-      if (matchingRecords.length > 0) {
-        const sorted = [...matchingRecords].sort((a, b) => {
-          const dateA = a.date ? new Date(a.date).getTime() : 0;
-          const dateB = b.date ? new Date(b.date).getTime() : 0;
-          return dateB - dateA;
-        });
-        if (sorted[0] && sorted[0].date) {
-          const d = new Date(sorted[0].date);
+    const customerMap = new Map<string, Customer>();
+    customers.forEach(c => customerMap.set(c.id, c));
+
+    // Pre-aggregate service records by vehicleId in a single pass O(S)
+    const recordsMap = new Map<string, { totalSpend: number; count: number; latestDate: string; latestTime: number }>();
+    for (const r of serviceRecords) {
+      if (!r.vehicleId) continue;
+      const current = recordsMap.get(r.vehicleId) || { totalSpend: 0, count: 0, latestDate: '', latestTime: 0 };
+      current.totalSpend += r.totalCost || 0;
+      current.count += 1;
+
+      const recordTime = r.date ? new Date(r.date).getTime() : 0;
+      if (recordTime > current.latestTime) {
+        current.latestTime = recordTime;
+        if (r.date) {
+          const d = new Date(r.date);
           if (!isNaN(d.getTime())) {
             const day = d.getDate();
             const month = d.toLocaleString('en-US', { month: 'short' });
             const year = d.getFullYear();
-            lastServiceDate = `${day} ${month} ${year}`;
+            current.latestDate = `${day} ${month} ${year}`;
           }
         }
       }
+      recordsMap.set(r.vehicleId, current);
+    }
+
+    return vehicles.map(v => {
+      const owner = customerMap.get(v.customerId);
+      const stats = recordsMap.get(v.id);
 
       return {
         ...v,
         ownerName: owner ? owner.name : 'Unknown Owner',
         ownerPhone: owner ? owner.phone : '',
-        totalSpend,
-        servicesCount,
-        lastServiceDate: lastServiceDate || 'No past entries'
+        totalSpend: stats?.totalSpend || 0,
+        servicesCount: stats?.count || 0,
+        lastServiceDate: stats?.latestDate || 'No past entries'
       };
     });
   }, [vehicles, customers, serviceRecords]);
@@ -159,6 +165,11 @@ export function useVehicleHistory() {
           updatedAt: serverTimestamp()
         });
         customerId = cDoc.id;
+        setCustomers(prev => [{
+          id: cDoc.id,
+          name: newVehicle.ownerName!,
+          phone: formattedPhone,
+        } as Customer, ...prev]);
       }
 
       if (!customerId) return;
@@ -184,7 +195,8 @@ export function useVehicleHistory() {
         updatedAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'vehicles'), vehicleToSave);
+      const vDoc = await addDoc(collection(db, 'vehicles'), vehicleToSave);
+      setVehicles(prev => [{ id: vDoc.id, ...vehicleToSave } as Vehicle, ...prev]);
 
       // Automated WhatsApp dispatch upon successful vehicle submission
       if (owner && owner.phone) {
@@ -217,9 +229,6 @@ export function useVehicleHistory() {
         useKey: false
       });
 
-      // Refresh data
-      await fetchData();
-
     } catch (err) {
       console.error(err);
       handleFirestoreError(err, 'create', 'vehicles');
@@ -232,7 +241,7 @@ export function useVehicleHistory() {
 
     try {
       const vRef = doc(db, 'vehicles', editingVehicle.id);
-      await updateDoc(vRef, {
+      const updatedFields = {
         make: editingVehicle.make,
         model: editingVehicle.model,
         color: editingVehicle.color || '',
@@ -240,13 +249,15 @@ export function useVehicleHistory() {
         passwordOrPin: editingVehicle.passwordOrPin,
         customerId: editingVehicle.customerId,
         updatedAt: serverTimestamp()
-      });
+      };
+
+      await updateDoc(vRef, updatedFields);
+
+      // Optimistic state update
+      setVehicles(prev => prev.map(v => v.id === editingVehicle.id ? { ...v, ...updatedFields } : v));
 
       setShowEditModal(false);
       setEditingVehicle(null);
-
-      // Refresh data
-      await fetchData();
     } catch (err) {
       console.error(err);
       handleFirestoreError(err, 'update', `vehicles/${editingVehicle.id}`);
@@ -257,11 +268,12 @@ export function useVehicleHistory() {
     if (!vehicleToDelete) return;
     try {
       await deleteDoc(doc(db, 'vehicles', vehicleToDelete.id));
+
+      // Optimistic state update
+      setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+
       setShowDeleteConfirm(false);
       setVehicleToDelete(null);
-
-      // Refresh data
-      await fetchData();
     } catch (err) {
       console.error(err);
       handleFirestoreError(err, 'delete', `vehicles/${vehicleToDelete.id}`);

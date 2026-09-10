@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import {
   Phone,
   Key,
@@ -15,6 +15,7 @@ import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } fr
 import type { ServiceRecord, Vehicle, Customer } from "../../types";
 import { formatCurrency, cn } from "../../lib/utils";
 import { openCreateContactScreen } from "../../services/contactService";
+import { WhatsAppIcon, OlaWatermark } from "../ui/BrandIcons";
 
 const capitalizeName = (name?: string) => {
   if (!name) return "";
@@ -44,6 +45,45 @@ export const ServiceRecordCard = memo(({
   onDelete,
   onWhatsAppClick,
 }: ServiceRecordCardProps) => {
+  const formattedDate = useMemo(() => {
+    try {
+      const d = new Date(record.date);
+      return {
+        month: format(d, "MMM"),
+        day: format(d, "dd")
+      };
+    } catch {
+      return { month: "---", day: "--" };
+    }
+  }, [record.date]);
+
+  const descriptionLines = useMemo(() => {
+    return (record.description || "")
+      .split("\n")
+      .map((line) => line.replace(/^\[[x ]\]\s*/, "").trim())
+      .filter(Boolean);
+  }, [record.description]);
+
+  const dueDateInfo = useMemo(() => {
+    if (!record.expectedDeliveryDate || record.status === "completed") return null;
+    try {
+      const dueDate = parseISO(record.expectedDeliveryDate);
+      const today = startOfDay(new Date());
+      const normalizedDueDate = startOfDay(dueDate);
+      const isToday = isSameDay(normalizedDueDate, today);
+      const isPast = isAfter(today, normalizedDueDate);
+      const diff = Math.abs(differenceInDays(normalizedDueDate, today));
+      return {
+        formattedDate: format(dueDate, "dd MMM"),
+        isToday,
+        isPast,
+        diff,
+      };
+    } catch {
+      return null;
+    }
+  }, [record.expectedDeliveryDate, record.status]);
+
   return (
     <motion.div
       onClick={() => onClick(record)}
@@ -71,23 +111,18 @@ export const ServiceRecordCard = memo(({
       />
 
       {v?.make?.toUpperCase() === "OLA" && (
-        <div className="absolute inset-y-0 left-0 w-1/2 pointer-events-none opacity-[0.03] overflow-hidden grayscale brightness-200">
-          <img
-            src="https://logos-world.net/wp-content/uploads/2023/11/Ola-Logo.png"
-            alt="OLA Background"
-            className="h-full w-full object-contain object-left scale-150 -translate-x-1/4"
-            referrerPolicy="no-referrer"
-          />
+        <div className="absolute inset-y-0 left-0 w-1/3 pointer-events-none opacity-[0.03] flex items-center pl-4 text-workshop-text overflow-hidden">
+          <OlaWatermark className="w-full h-auto" />
         </div>
       )}
       <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
         <div className="flex items-center gap-4 mb-2">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest">
-              {format(new Date(record.date), "MMM")}
+              {formattedDate.month}
             </span>
             <span className="text-xl font-black text-workshop-text tracking-tighter">
-              {format(new Date(record.date), "dd")}
+              {formattedDate.day}
             </span>
           </div>
           <div className="flex-1 h-px bg-workshop-border/20" />
@@ -206,15 +241,12 @@ export const ServiceRecordCard = memo(({
 
           <div className="w-full bg-workshop-surface/30 rounded-xl p-3.5 border border-workshop-border/10">
             <div className="text-workshop-text/90 whitespace-pre-wrap italic leading-relaxed space-y-1.5">
-              {record.description.split("\n").map((line, i) => {
-                const cleanLine = line.replace(/^\[[x ]\]\s*/, "");
-                return cleanLine ? (
-                  <div key={i} className="flex items-start gap-2 text-xs md:text-sm font-semibold">
-                    <span className="opacity-60 text-workshop-accent shrink-0 mt-0.5">•</span>
-                    <span className="flex-1">{cleanLine}</span>
-                  </div>
-                ) : null;
-              })}
+              {descriptionLines.map((cleanLine, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs md:text-sm font-semibold">
+                  <span className="opacity-60 text-workshop-accent shrink-0 mt-0.5">•</span>
+                  <span className="flex-1">{cleanLine}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -237,45 +269,32 @@ export const ServiceRecordCard = memo(({
           )}
         </div>
 
-        {record.expectedDeliveryDate &&
-          record.status !== "completed" &&
-          (() => {
-            const dueDate = parseISO(record.expectedDeliveryDate);
-            const today = startOfDay(new Date());
-            const normalizedDueDate = startOfDay(dueDate);
-            const isToday = isSameDay(normalizedDueDate, today);
-            const isPast = isAfter(today, normalizedDueDate);
-            const diff = Math.abs(
-              differenceInDays(normalizedDueDate, today),
-            );
-
-            return (
-              <div className="flex items-center gap-4 px-1">
-                <div className="flex items-center gap-1.5 text-workshop-muted/90">
-                  <ScanHeart className="w-3.5 h-3.5 opacity-60 text-workshop-accent" />
-                  <span className="text-xs font-black uppercase tracking-widest leading-none">
-                    Due: {format(dueDate, "dd MMM")}
-                  </span>
-                </div>
-                <div
-                  className={cn(
-                    "text-xs font-black uppercase tracking-widest leading-none",
-                    isToday
-                      ? "text-workshop-warning"
-                      : isPast
-                        ? "text-status-urgent"
-                        : "text-workshop-accent",
-                  )}
-                >
-                  {isToday
-                    ? "Due Today"
-                    : isPast
-                      ? `${diff} Days Overdue`
-                      : `${diff} Days Left`}
-                </div>
-              </div>
-            );
-          })()}
+        {dueDateInfo && (
+          <div className="flex items-center gap-4 px-1">
+            <div className="flex items-center gap-1.5 text-workshop-muted/90">
+              <ScanHeart className="w-3.5 h-3.5 opacity-60 text-workshop-accent" />
+              <span className="text-xs font-black uppercase tracking-widest leading-none">
+                Due: {dueDateInfo.formattedDate}
+              </span>
+            </div>
+            <div
+              className={cn(
+                "text-xs font-black uppercase tracking-widest leading-none",
+                dueDateInfo.isToday
+                  ? "text-workshop-warning"
+                  : dueDateInfo.isPast
+                    ? "text-status-urgent"
+                    : "text-workshop-accent",
+              )}
+            >
+              {dueDateInfo.isToday
+                ? "Due Today"
+                : dueDateInfo.isPast
+                  ? `${dueDateInfo.diff} Days Overdue`
+                  : `${dueDateInfo.diff} Days Left`}
+            </div>
+          </div>
+        )}
 
         {record.technicianName && (
           <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
@@ -320,7 +339,7 @@ export const ServiceRecordCard = memo(({
                 className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-[#128C7E] hover:border-[#128C7E]/40 hover:bg-[#128C7E]/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
                 title={`WhatsApp Options (${customer.phone})`}
               >
-                <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-4 h-4 shrink-0" referrerPolicy="no-referrer" />
+                <WhatsAppIcon className="w-4 h-4 shrink-0" />
               </button>
             )}
             {customer?.phone && (

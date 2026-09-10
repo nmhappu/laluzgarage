@@ -65,7 +65,7 @@ export function InventoryList({
           }}
           className="divide-y divide-workshop-border/30 accelerate-gpu will-change-transform-opacity"
         >
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {visibleParts.map((part) => (
               <PartCard
                 key={part.id}

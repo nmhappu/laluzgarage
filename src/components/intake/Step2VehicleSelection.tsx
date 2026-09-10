@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Key } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { DEFAULT_PLATE_PLACEHOLDER } from '../../lib/constants';
 import type { Customer } from '../../types';
 
 export interface Step2VehicleSelectionProps {
@@ -64,10 +65,7 @@ export function Step2VehicleSelection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Manufacturer
           </label>
           <input
@@ -80,10 +78,7 @@ export function Step2VehicleSelection({
           />
         </div>
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
             Model
             <span className="text-status-urgent">*</span>
           </label>
@@ -97,10 +92,7 @@ export function Step2VehicleSelection({
           />
         </div>
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Registration Plate
           </label>
           <div className="relative">
@@ -114,12 +106,12 @@ export function Step2VehicleSelection({
                 })
               }
               className={cn(
-                "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono font-bold uppercase transition-all",
+                "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-plate font-bold uppercase transition-all",
                 vehicleForm.plateNumber === "U/R"
                   ? "text-status-urgent bg-workshop-surface/40"
                   : "text-workshop-accent"
               )}
-              placeholder={vehicleForm.plateNumber === "U/R" ? "UNREGISTERED" : "KL01X1234"}
+              placeholder={vehicleForm.plateNumber === "U/R" ? "UNREGISTERED" : DEFAULT_PLATE_PLACEHOLDER}
             />
             <button
               type="button"
@@ -142,10 +134,7 @@ export function Step2VehicleSelection({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Vehicle Colour
           </label>
           <input
@@ -158,10 +147,7 @@ export function Step2VehicleSelection({
           />
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
             Security
             <span className="text-status-urgent">*</span>
           </label>

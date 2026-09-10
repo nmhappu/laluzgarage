@@ -26,8 +26,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MdCircularProgress = 'md-circular-progress' as any;
+import { CircularProgress } from '../components/ui/CircularProgress';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -210,12 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="text-center space-y-6">
           <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
             <div className="absolute inset-0 bg-workshop-accent/15 blur-2xl rounded-full scale-110" />
-            <MdCircularProgress
-              indeterminate
-              style={{
-                '--md-circular-progress-size': '48px',
-                '--md-circular-progress-active-indicator-color': 'var(--color-workshop-accent)'
-              }}
+            <CircularProgress
+              size={48}
+              color="var(--color-workshop-accent)"
             />
           </div>
           <div className="space-y-2">

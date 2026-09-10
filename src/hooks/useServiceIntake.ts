@@ -3,6 +3,8 @@ import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Customer, Vehicle, WorkshopUser, ServiceRecord } from '../types';
+import { DEFAULT_ADVISOR_PIN } from '../lib/constants';
+import { formatIndianPhone, buildWhatsAppUrl, formatDateSafe } from '../lib/utils';
 import { getWhatsAppPresetsSync, formatIntakeMessage } from '../services/whatsappPresetService';
 
 export interface CreatedJobSummary {
@@ -47,8 +49,8 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     setPinError(null);
     if (val.length === 4) {
       const matched = users.find(u => u.pin && String(u.pin) === val) ||
-        (profile && (profile.pin ? String(profile.pin) === val : val === '1234') ? profile : null) ||
-        (users.length === 0 && val === '1234' && authUser ? { id: authUser.uid, name: authUser.displayName || authUser.email || 'Advisor', email: authUser.email || '', status: 'online' as const } : null);
+        (profile && (profile.pin ? String(profile.pin) === val : val === DEFAULT_ADVISOR_PIN) ? profile : null) ||
+        (users.length === 0 && val === DEFAULT_ADVISOR_PIN && authUser ? { id: authUser.uid, name: authUser.displayName || authUser.email || 'Advisor', email: authUser.email || '', status: 'online' as const } : null);
       if (matched) {
         setAuthenticatedAdvisor(matched);
         setPinCode('');
@@ -198,15 +200,9 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
   const getLastServicedDate = useCallback((customer: Customer, vehicle?: Vehicle) => {
     const dateStr = (vehicle && latestDatesMap.get(`v_${vehicle.id}`)) || latestDatesMap.get(`c_${customer.id}`);
     if (dateStr) {
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        const day = d.getDate();
-        const month = d.toLocaleString('en-US', { month: 'short' });
-        const year = d.getFullYear();
-        return `${day} ${month} ${year}`;
-      }
+      return formatDateSafe(dateStr, 'dd MMM yyyy', 'No past entries');
     }
-    return `21 May ${new Date().getFullYear()}`;
+    return 'No past entries';
   }, [latestDatesMap]);
 
   // Real-time lookup with 150ms debounce and Map indexing
@@ -314,9 +310,7 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
 
       // 1. Create Customer if needed
       if (!selectedCustomer) {
-        const formattedPhone = customerForm.phone.trim().startsWith('+91')
-          ? customerForm.phone.trim()
-          : `+91 ${customerForm.phone.trim()}`;
+        const formattedPhone = formatIndianPhone(customerForm.phone);
 
         const cDoc = await addDoc(collection(db, 'customers'), {
           name: customerForm.name,
@@ -374,9 +368,7 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
       // Automated WhatsApp dispatch upon successful registration
       const customerPhone = selectedCustomer
         ? selectedCustomer.phone
-        : customerForm.phone.trim().startsWith('+91')
-        ? customerForm.phone.trim()
-        : `+91 ${customerForm.phone.trim()}`;
+        : formatIndianPhone(customerForm.phone);
       const customerName = selectedCustomer ? selectedCustomer.name : customerForm.name;
       const vehicleMake = selectedVehicle ? selectedVehicle.make : vehicleForm.make;
       const vehicleModel = selectedVehicle ? selectedVehicle.model : vehicleForm.model;
@@ -384,7 +376,6 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
 
       let waUrl = '';
       if (customerPhone) {
-        const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
         const presets = getWhatsAppPresetsSync();
         const fullText = formatIntakeMessage(presets.intakeTemplate, {
           customerName,
@@ -393,7 +384,7 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
           vehiclePlate,
           jobDescription: jobForm.description,
         });
-        waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(fullText)}`;
+        waUrl = buildWhatsAppUrl(customerPhone, fullText);
       }
 
       setCreatedJob({

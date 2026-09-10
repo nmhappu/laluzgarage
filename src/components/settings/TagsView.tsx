@@ -87,7 +87,7 @@ export function TagsView({
                     <span className="px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-mono font-black uppercase tracking-wider rounded-md">
                       {tag}
                     </span>
-                    <span className="text-xs text-workshop-muted font-mono">
+                    <span className="text-xs text-workshop-muted font-numeric">
                       ({assignedAdvisors.length}{" "}
                       {assignedAdvisors.length === 1 ? "advisor" : "advisors"})
                     </span>

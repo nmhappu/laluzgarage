@@ -14,7 +14,7 @@ import { db, handleFirestoreError } from "../lib/firebase";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
-import { cn } from "../lib/utils";
+import { cn, capitalizeName, cleanPhoneNumber, buildWhatsAppUrl } from "../lib/utils";
 import { WhatsAppPopup } from "./WhatsAppPopup";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ServiceRecordCard } from "./services/ServiceRecordCard";
@@ -37,15 +37,6 @@ const contentVariants = {
     opacity: 0,
     y: -8,
   },
-};
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 };
 
 export function ServiceHistory() {
@@ -227,28 +218,6 @@ export function ServiceHistory() {
     return () => window.removeEventListener("appBackButton", handleBackButton);
   }, [editingRecord, showAddModal, detailsRecord, closeEditingRecord]);
 
-  useEffect(() => {
-    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (!metaThemeColor) {
-      metaThemeColor = document.createElement("meta");
-      metaThemeColor.setAttribute("name", "theme-color");
-      document.head.appendChild(metaThemeColor);
-    }
-
-    const originalColor = metaThemeColor.getAttribute("content") || "#0B0D11";
-
-    if (editingRecord || detailsRecord) {
-      metaThemeColor.setAttribute("content", "#0B0D11");
-    } else {
-      metaThemeColor.setAttribute("content", originalColor);
-    }
-
-    return () => {
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute("content", originalColor);
-      }
-    };
-  }, [editingRecord, detailsRecord]);
 
   // --- Data Fetching ---
   const fetchData = async () => {
@@ -768,11 +737,11 @@ export function ServiceHistory() {
         customers={customers}
         parts={parts}
         onWhatsAppClick={(rec, cust, veh) => {
-          const cleanPhone = (cust?.phone || "").replace(/[^0-9]/g, "");
+          const cleanPhone = cleanPhoneNumber(cust?.phone || "");
           setWhatsAppRedirect({
             name: cust?.name ? capitalizeName(cust.name) : "Customer",
             phone: cust?.phone || "",
-            url: `https://wa.me/${cleanPhone}`,
+            url: buildWhatsAppUrl(cleanPhone),
             record: rec,
             vehicle: veh,
           });

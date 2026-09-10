@@ -49,11 +49,11 @@ export function PartFormModal({
               onClick={onClose}
               className="flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-[#3B82F6]" />
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-secondary" />
             </button>
 
             <div className="flex-1 pl-1">
-              <h2 className="text-base font-black text-[#3B82F6] tracking-tight uppercase leading-none font-sans">
+              <h2 className="text-base font-black text-secondary tracking-tight uppercase leading-none font-sans">
                 {title}
               </h2>
             </div>
@@ -62,7 +62,7 @@ export function PartFormModal({
               <span className="text-[9px] font-black text-workshop-muted uppercase tracking-widest leading-none">
                 {subtitle}
               </span>
-              <span className="text-[11px] font-mono font-black text-[#3B82F6] leading-none">
+              <span className="text-[11px] font-numeric font-black text-secondary leading-none">
                 {subValue}
               </span>
             </div>
@@ -76,7 +76,7 @@ export function PartFormModal({
                 {/* Section 1: Specifications & Core Registry */}
                 <div className="space-y-5 text-left font-sans">
                   <div className="flex items-center gap-2 border-b border-workshop-border/30 pb-3">
-                    <Package className="w-4 h-4 text-[#3B82F6] shrink-0" />
+                    <Package className="w-4 h-4 text-secondary shrink-0" />
                     <span className="text-xs font-black uppercase tracking-wider text-workshop-text">
                       Specifications & Core Registry
                     </span>
@@ -84,7 +84,7 @@ export function PartFormModal({
 
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                         Part Name
                       </label>
                       <input
@@ -92,13 +92,13 @@ export function PartFormModal({
                         type="text"
                         value={partData.name || ''}
                         onChange={e => onChange({ ...partData, name: e.target.value })}
-                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text transition-all text-sm font-sans font-bold shadow-sm"
+                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text transition-all text-sm font-sans font-bold shadow-sm"
                         placeholder="Specify part or asset name..."
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                         Category Tag
                       </label>
                       <div className="relative">
@@ -109,7 +109,7 @@ export function PartFormModal({
                           type="text"
                           value={partData.category || ''}
                           onChange={e => onChange({ ...partData, category: e.target.value })}
-                          className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
+                          className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary pl-11 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
                           placeholder="e.g., Engine, Brakes..."
                         />
                       </div>
@@ -120,7 +120,7 @@ export function PartFormModal({
                 {/* Section 2: Stock Allocation & Valuation */}
                 <div className="space-y-5 text-left font-sans">
                   <div className="flex items-center gap-2 border-b border-workshop-border/30 pb-3">
-                    <DollarSign className="w-4 h-4 text-[#3B82F6] shrink-0" />
+                    <DollarSign className="w-4 h-4 text-secondary shrink-0" />
                     <span className="text-xs font-black uppercase tracking-wider text-workshop-text">
                       Stock Allocation & Valuation
                     </span>
@@ -129,7 +129,7 @@ export function PartFormModal({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Current / Initial Stock */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                         {isEdit ? 'Current Stock' : 'Initial Stock'}
                       </label>
                       <input
@@ -142,14 +142,14 @@ export function PartFormModal({
                             stockQuantity: e.target.value === '' ? 0 : Number(e.target.value),
                           })
                         }
-                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text font-sans text-sm font-bold tabular-nums transition-all shadow-sm"
+                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text font-sans text-sm font-bold tabular-nums transition-all shadow-sm"
                         placeholder="0"
                       />
                     </div>
 
                     {/* Unit Price */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                         Unit Price (INR)
                       </label>
                       <div className="relative">
@@ -166,7 +166,7 @@ export function PartFormModal({
                               price: e.target.value === '' ? 0 : Number(e.target.value),
                             })
                           }
-                          className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] pl-8 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text font-sans text-sm font-bold tabular-nums transition-all shadow-sm"
+                          className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary pl-8 pr-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text font-sans text-sm font-bold tabular-nums transition-all shadow-sm"
                           placeholder="0.00"
                         />
                       </div>
@@ -174,7 +174,7 @@ export function PartFormModal({
 
                     {/* Alert Threshold */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1 flex items-center gap-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1 flex items-center gap-1.5">
                         <span>Alert Threshold</span>
                         <span className="group relative">
                           <Info className="w-3 h-3 text-workshop-muted/60 cursor-help" />
@@ -193,7 +193,7 @@ export function PartFormModal({
                             minStockLevel: e.target.value === '' ? 5 : Number(e.target.value),
                           })
                         }
-                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm font-sans font-bold tabular-nums transition-all shadow-sm"
+                        className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text text-sm font-sans font-bold tabular-nums transition-all shadow-sm"
                         placeholder="5"
                       />
                     </div>
@@ -203,21 +203,21 @@ export function PartFormModal({
                 {/* Section 3: Storage & Placement Location */}
                 <div className="space-y-5 text-left font-sans">
                   <div className="flex items-center gap-2 border-b border-workshop-border/30 pb-3">
-                    <MapPin className="w-4 h-4 text-[#3B82F6] shrink-0" />
+                    <MapPin className="w-4 h-4 text-secondary shrink-0" />
                     <span className="text-xs font-black uppercase tracking-wider text-workshop-text">
                       Storage & Placement
                     </span>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-workshop-muted px-1">
                       Inventory Location Info
                     </label>
                     <input
                       type="text"
                       value={partData.location || ''}
                       onChange={e => onChange({ ...partData, location: e.target.value })}
-                      className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-[#3B82F6] px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#3B82F6] text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
+                      className="w-full bg-workshop-surface/20 border border-workshop-border focus:border-secondary px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-secondary text-workshop-text text-sm transition-all font-sans font-bold shadow-sm"
                       placeholder="e.g., Cabinet A, Shelf 2, Row B..."
                     />
                   </div>
@@ -253,7 +253,7 @@ export function PartFormModal({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-[#3B82F6] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#3B82F6]/25 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
+                  className="px-6 py-3 bg-secondary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/25 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
                 >
                   {submitText}
                 </button>

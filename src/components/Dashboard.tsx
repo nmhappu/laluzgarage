@@ -270,7 +270,7 @@ export function Dashboard() {
                     <div>
                       <p className="text-sm font-black text-workshop-text uppercase tracking-tight mb-1 font-google-sans">{job.make} {job.model}</p>
                       <p className="text-[10px] text-workshop-muted font-bold tracking-widest uppercase opacity-70 font-google-sans">
-                        {job.plateNumber} • {job.customerName}
+                        <span className="font-plate font-bold text-secondary">{job.plateNumber}</span> • {job.customerName}
                       </p>
                     </div>
                   </div>
@@ -284,7 +284,7 @@ export function Dashboard() {
                         "text-workshop-muted"
                       )}>
                         <Clock className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-right font-google-sans" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-right font-google-sans">
                           {job.status}
                         </span>
                       </div>

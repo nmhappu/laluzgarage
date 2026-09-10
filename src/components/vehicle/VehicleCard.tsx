@@ -4,15 +4,7 @@ import { Car, Key, History, Phone, UserPlus } from 'lucide-react';
 import { openCreateContactScreen } from '../../services/contactService';
 import { WhatsAppIcon } from '../ui/BrandIcons';
 import type { Vehicle } from '../../types';
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+import { capitalizeName, cleanPhoneNumber, buildWhatsAppUrl } from '../../lib/utils';
 
 export interface EnrichedVehicle extends Vehicle {
   ownerName?: string;
@@ -47,24 +39,21 @@ export const VehicleCard = memo(function VehicleCard({
         exit: { opacity: 0, y: -8 }
       }}
       transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-      className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/10 active:scale-[0.995] accelerate-gpu will-change-transform-opacity"
+      className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-all group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/10 active:scale-[0.995] accelerate-gpu will-change-transform-opacity"
       onClick={() => onSelect(vehicle)}
     >
       {/* Row 1: Vehicle Identity with Plate opposite */}
       <div className="flex items-center justify-between gap-4 w-full">
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="w-12 h-12 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center text-[#3B82F6] shrink-0 border-0">
+          <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center text-secondary shrink-0 border-0">
             <Car className="w-6 h-6" />
           </div>
-          <h3 className="font-black text-workshop-text text-lg sm:text-2xl uppercase tracking-tight group-hover:text-[#3B82F6] transition-colors leading-tight font-sans truncate">
+          <h3 className="font-black text-workshop-text text-lg sm:text-2xl uppercase tracking-tight group-hover:text-secondary transition-colors leading-tight font-sans truncate">
             {vehicle.make} {vehicle.model}
           </h3>
         </div>
         {vehicle.plateNumber && (
-          <span 
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-base sm:text-lg text-[#3B82F6] font-black uppercase tracking-wider shrink-0 text-right"
-          >
+          <span className="text-base sm:text-lg text-secondary font-plate font-black uppercase tracking-wider shrink-0 text-right">
             {vehicle.plateNumber}
           </span>
         )}
@@ -74,14 +63,14 @@ export const VehicleCard = memo(function VehicleCard({
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-sans bg-workshop-surface/10 p-4 rounded-xl border border-workshop-border/10 w-full animate-fade-in">
         {/* Item 1: Owner */}
         <div className="flex flex-col items-start">
-          <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Owner</p>
+          <p className="text-[9px] text-workshop-muted font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Owner</p>
           <p className="font-black text-workshop-text truncate max-w-[140px] font-sans uppercase">{capOwnerName}</p>
         </div>
 
         {/* Item 2: Services Done */}
         <div className="flex flex-col items-start">
-          <p className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Services Done</p>
-          <div className="flex items-center gap-1 text-[#3B82F6] font-sans">
+          <p className="text-[9px] text-workshop-muted font-bold uppercase tracking-widest leading-none mb-1.5 font-sans">Services Done</p>
+          <div className="flex items-center gap-1 text-secondary font-sans">
             <History className="w-3.5 h-3.5 shrink-0" />
             <span className="text-xs font-black uppercase tracking-wider font-sans">
               {vehicle.servicesCount} {vehicle.servicesCount === 1 ? 'Service' : 'Services'}
@@ -100,7 +89,7 @@ export const VehicleCard = memo(function VehicleCard({
             ) : vehicle.passwordOrPin ? (
               <>
                 <Key className="w-3.5 h-3.5 text-status-success shrink-0" />
-                <span className="text-xs font-sans font-black tracking-widest text-white">#{vehicle.passwordOrPin}</span>
+                <span className="text-xs font-numeric font-black tracking-widest text-status-success">#{vehicle.passwordOrPin}</span>
               </>
             ) : (
               <>
@@ -131,15 +120,15 @@ export const VehicleCard = memo(function VehicleCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (vehicle.ownerPhone) {
-                    const cleanPhone = vehicle.ownerPhone.replace(/[^0-9]/g, "");
+                    const cleanPhone = cleanPhoneNumber(vehicle.ownerPhone);
                     onWhatsApp({
                       name: capOwnerName || 'Customer',
                       phone: vehicle.ownerPhone,
-                      url: `https://wa.me/${cleanPhone}`
+                      url: buildWhatsAppUrl(cleanPhone)
                     });
                   }
                 }}
-                className="inline-flex items-center gap-1.5 bg-[#128C7E]/15 hover:bg-[#128C7E]/25 text-[#128C7E] px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-[#128C7E]/10 active:scale-95 border-0 outline-none"
+                className="inline-flex items-center gap-1.5 bg-whatsapp/15 hover:bg-whatsapp/25 text-whatsapp px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm shadow-whatsapp/10 active:scale-95 border-0 outline-none"
                 title={`Send WhatsApp Message to ${capOwnerName}`}
               >
                 <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
@@ -177,7 +166,7 @@ export const VehicleCard = memo(function VehicleCard({
               e.stopPropagation();
               onEdit(vehicle);
             }}
-            className="p-2 text-yellow-500 hover:text-yellow-400 hover:scale-110 active:scale-90 transition-all font-sans"
+            className="p-2 text-status-pending hover:brightness-110 active:scale-90 transition-all font-sans"
             title="Edit Vehicle"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -189,7 +178,7 @@ export const VehicleCard = memo(function VehicleCard({
               e.stopPropagation();
               onDelete(vehicle);
             }}
-            className="p-2 text-status-urgent hover:text-red-400 hover:scale-110 active:scale-90 transition-all font-sans"
+            className="p-2 text-status-urgent hover:brightness-110 active:scale-90 transition-all font-sans"
             title="Delete Vehicle"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

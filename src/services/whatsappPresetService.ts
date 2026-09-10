@@ -1,6 +1,10 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
 
+import { STORAGE_KEYS } from '../lib/constants';
+import { capitalizeName } from '../lib/utils';
+export { capitalizeName };
+
 export interface WhatsAppPresets {
   intakeTemplate: string;
   deliveryTemplate: string;
@@ -35,7 +39,7 @@ export const DEFAULT_WHATSAPP_PRESETS: WhatsAppPresets = {
   deliveryTemplate: DEFAULT_DELIVERY_TEMPLATE,
 };
 
-const LOCAL_STORAGE_KEY = 'whatsapp_message_presets_v1';
+const LOCAL_STORAGE_KEY = STORAGE_KEYS.WHATSAPP_PRESETS;
 
 export function getWhatsAppPresetsSync(): WhatsAppPresets {
   try {
@@ -84,15 +88,6 @@ export async function saveWhatsAppPresets(presets: WhatsAppPresets): Promise<voi
     console.error('Failed to save WhatsApp presets to Firestore:', e);
     handleFirestoreError(e, 'write', 'settings/whatsapp');
   }
-}
-
-export function capitalizeName(name?: string): string {
-  if (!name) return '';
-  return name
-    .trim()
-    .split(/\s+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
 }
 
 export interface IntakeParams {

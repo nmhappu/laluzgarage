@@ -2,18 +2,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, X, Key, PlusCircle, Check } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, capitalizeName } from '../../lib/utils';
+import { DEFAULT_PLATE_PLACEHOLDER } from '../../lib/constants';
 import { Portal } from '../Portal';
 import type { Customer, Vehicle } from '../../types';
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 interface AddVehicleModalProps {
   isOpen: boolean;
@@ -122,10 +114,10 @@ export function AddVehicleModal({
                     value={newVehicle.plateNumber || ''}
                     onChange={e => setNewVehicle({...newVehicle, plateNumber: e.target.value.toUpperCase()})}
                     className={cn(
-                      "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-2.5 rounded-xl text-sm font-mono font-black focus:ring-1 focus:ring-workshop-accent outline-none tracking-widest uppercase transition-all",
+                      "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-2.5 rounded-xl text-sm font-plate font-black focus:ring-1 focus:ring-workshop-accent outline-none tracking-widest uppercase transition-all",
                       newVehicle.plateNumber === "U/R" ? "text-status-urgent bg-workshop-surface/40" : "text-workshop-accent"
                     )}
-                    placeholder={newVehicle.plateNumber === "U/R" ? "UNREGISTERED" : "MH12AB1234"}
+                    placeholder={newVehicle.plateNumber === "U/R" ? "UNREGISTERED" : DEFAULT_PLATE_PLACEHOLDER}
                   />
                   <button
                     type="button"
@@ -179,7 +171,7 @@ export function AddVehicleModal({
                     }
                   }}
                   className={cn(
-                    "w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm font-mono focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text transition-all",
+                    "w-full bg-workshop-surface border border-workshop-border px-4 py-2.5 rounded-xl text-sm font-numeric focus:ring-1 focus:ring-workshop-accent outline-none text-workshop-text transition-all",
                     useKey && "opacity-50 font-bold"
                   )}
                   placeholder="Enter 4-6 digit numeric PIN..."
@@ -260,14 +252,14 @@ export function AddVehicleModal({
                     />
                   </div>
                   <div className="relative pt-2 py-0.5 col-span-2 md:col-span-1">
-                    <div className="flex items-center w-full bg-workshop-surface border-2 border-[#3B82F6] rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-[#3B82F6]/30 transition-all">
+                    <div className="flex items-center w-full bg-workshop-surface border-2 border-secondary rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-secondary/30 transition-all">
                       {/* Floating notched label */}
-                      <span className="absolute left-4 top-0 bg-workshop-card px-2 text-[10px] font-black uppercase tracking-wider text-[#3B82F6] select-none">
+                      <span className="absolute left-4 top-0 bg-workshop-card px-2 text-[10px] font-black uppercase tracking-wider text-secondary select-none">
                         Phone number
                       </span>
                       
                       {/* Prefix */}
-                      <span className="text-workshop-text font-mono font-bold text-sm select-none pr-3 shrink-0">
+                      <span className="text-workshop-text font-numeric font-bold text-sm select-none pr-3 shrink-0">
                         +91
                       </span>
                       
@@ -289,7 +281,7 @@ export function AddVehicleModal({
                           }
                           setNewVehicle({...newVehicle, ownerPhone: val});
                         }}
-                        className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-mono font-bold text-sm tracking-wide placeholder-workshop-muted/40"
+                        className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-numeric font-bold text-sm tracking-wide placeholder-workshop-muted/40"
                         placeholder="85471 87345"
                       />
                     </div>

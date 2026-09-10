@@ -2,17 +2,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Receipt } from "lucide-react";
 import { Portal } from "../Portal";
 import type { ServiceRecord, Customer, Vehicle } from "../../types";
-import { formatCurrency } from "../../lib/utils";
+import { formatCurrency, capitalizeName, cleanPhoneNumber, buildWhatsAppUrl, formatPartsListForWhatsApp } from "../../lib/utils";
 import { getWhatsAppPresetsSync, formatDeliveryMessage } from "../../services/whatsappPresetService";
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+import { WhatsAppIcon } from "../ui/BrandIcons";
 
 export interface CompletedJobPayload {
   record: ServiceRecord;
@@ -35,15 +27,11 @@ export function DeliveryBillModal({
         const { record, customer, vehicle } = completedJob;
         const custName = customer?.name ? capitalizeName(customer.name) : "Customer";
         const custPhone = customer?.phone || "";
-        const cleanPhone = custPhone.replace(/[^0-9]/g, "");
+        const cleanPhone = cleanPhoneNumber(custPhone);
         const vehicleTitle = vehicle ? `${vehicle.make ? vehicle.make + ' ' : ''}${vehicle.model}`.trim() : "Vehicle";
         const plateNo = vehicle?.plateNumber || "";
 
-        const partsListStr = (record.partsUsed && record.partsUsed.length > 0)
-          ? record.partsUsed
-              .map((p, idx) => `${idx + 1}. ${p.name} (x${p.quantity}) - ${formatCurrency(p.unitPrice * p.quantity)}`)
-              .join('\n')
-          : '• General Inspection & Maintenance';
+        const partsListStr = formatPartsListForWhatsApp(record.partsUsed);
 
         const presets = getWhatsAppPresetsSync();
         const waText = formatDeliveryMessage(presets.deliveryTemplate, {
@@ -58,7 +46,7 @@ export function DeliveryBillModal({
           jobDescription: record.description || 'Service Maintenance',
         });
 
-        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
+        const waUrl = buildWhatsAppUrl(cleanPhone, waText);
 
         return (
           <Portal>
@@ -73,7 +61,7 @@ export function DeliveryBillModal({
                 {/* Top Header Bar */}
                 <div className="flex items-center justify-between border-b border-workshop-border/30 pb-5">
                   <div className="flex items-center gap-3.5">
-                    <MessageSquare className="w-7 h-7 text-[#128C7E] shrink-0" />
+                    <MessageSquare className="w-7 h-7 text-whatsapp shrink-0" />
                     <div>
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-status-success/15 border border-status-success/30 text-status-success text-[10px] font-black uppercase tracking-widest mb-0.5">
                         Job Card Completed
@@ -109,7 +97,7 @@ export function DeliveryBillModal({
                         {plateNo && (
                           <>
                             <span className="text-workshop-muted">/</span>
-                            <span className="font-mono font-black text-blue-500">{plateNo}</span>
+                            <span className="font-plate font-black text-secondary">{plateNo}</span>
                           </>
                         )}
                       </span>
@@ -138,7 +126,7 @@ export function DeliveryBillModal({
                             <span className="text-workshop-text truncate max-w-[280px]">
                               {p.name} <span className="text-workshop-muted font-bold">x{p.quantity}</span>
                             </span>
-                            <span className="font-mono font-bold text-workshop-text">
+                            <span className="font-numeric font-bold text-workshop-text">
                               {formatCurrency(p.unitPrice * p.quantity)}
                             </span>
                           </div>
@@ -154,11 +142,11 @@ export function DeliveryBillModal({
                     <div className="pt-3 border-t border-workshop-border/20 space-y-2 text-sm">
                       <div className="flex justify-between items-center text-workshop-muted">
                         <span className="font-bold uppercase tracking-wider text-xs">Labor Charges</span>
-                        <span className="font-mono font-bold text-workshop-text">{formatCurrency(record.laborCost || 0)}</span>
+                        <span className="font-numeric font-bold text-workshop-text">{formatCurrency(record.laborCost || 0)}</span>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-workshop-border/20">
                         <span className="font-black uppercase tracking-wider text-sm text-workshop-text">Final Bill Amount</span>
-                        <span className="font-mono font-black text-2xl text-status-success">{formatCurrency(record.totalCost || 0)}</span>
+                        <span className="font-numeric font-black text-2xl text-status-success">{formatCurrency(record.totalCost || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -172,9 +160,9 @@ export function DeliveryBillModal({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={onClose}
-                      className="flex-1 py-4 px-6 bg-[#128C7E] hover:bg-[#0e6e63] text-white rounded-2xl text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-[#128C7E]/20 transition-all cursor-pointer active:scale-95"
+                      className="flex-1 py-4 px-6 bg-whatsapp hover:bg-whatsapp-dark text-white rounded-2xl text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-whatsapp/20 transition-all cursor-pointer active:scale-95"
                     >
-                      <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg" alt="WhatsApp" className="w-5 h-5 shrink-0" referrerPolicy="no-referrer" />
+                      <WhatsAppIcon className="w-5 h-5 shrink-0" />
                       <span>Send WhatsApp Message</span>
                     </a>
                   ) : (

@@ -25,6 +25,8 @@
     <color name="secondary">#3B82F6</color>
     <color name="warning">#FBBF24</color>
     <color name="destructive">#EF4444</color>
+    <color name="whatsapp">#128C7E</color>
+    <color name="whatsapp_dark">#0E7065</color>
 
     <!-- Status Colours (Accessible Context) -->
     <color name="success_dark">#10B981</color>

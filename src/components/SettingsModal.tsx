@@ -15,13 +15,11 @@ import {
   ArrowLeft,
   RefreshCw,
   Plus,
-  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
 import type { WorkshopUser } from "../types";
 import { useAuth } from "../contexts/AuthContext";
-import { Portal } from "./Portal";
 import {
   fetchWhatsAppPresets,
   saveWhatsAppPresets,
@@ -38,6 +36,8 @@ import { WhatsAppPresetsView } from "./settings/WhatsAppPresetsView";
 import { TagsView } from "./settings/TagsView";
 import { PerformanceView } from "./settings/PerformanceView";
 import { DeleteUserModal } from "./settings/DeleteUserModal";
+import { LogoutModal } from "./nav/LogoutModal";
+import { STORAGE_KEYS } from "../lib/constants";
 
 export interface SettingsModalProps {
   isOpen?: boolean;
@@ -218,10 +218,10 @@ export function SettingsPage() {
 
   // Easter Egg States
   const [accountsRevealed, setAccountsRevealed] = useState(() => {
-    return localStorage.getItem("workshop_accounts_revealed") === "true";
+    return localStorage.getItem(STORAGE_KEYS.ACCOUNTS_REVEALED) === "true";
   });
   const [performanceRevealed, setPerformanceRevealed] = useState(() => {
-    return localStorage.getItem("workshop_performance_revealed") === "true";
+    return localStorage.getItem(STORAGE_KEYS.PERFORMANCE_REVEALED) === "true";
   });
   const [clickCount, setClickCount] = useState(0);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -232,7 +232,7 @@ export function SettingsPage() {
     setClickCount(newCount);
     if (newCount === 3 && !accountsRevealed) {
       setAccountsRevealed(true);
-      localStorage.setItem("workshop_accounts_revealed", "true");
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS_REVEALED, "true");
       setSuccessMessage("Admin Mode Activated: Accounts view unlocked.");
       setTimeout(() => setSuccessMessage(null), 3500);
     }
@@ -243,7 +243,7 @@ export function SettingsPage() {
     holdTimerRef.current = setTimeout(() => {
       if (!performanceRevealed) {
         setPerformanceRevealed(true);
-        localStorage.setItem("workshop_performance_revealed", "true");
+        localStorage.setItem(STORAGE_KEYS.PERFORMANCE_REVEALED, "true");
         setSuccessMessage("Analytics Dashboard Unlocked: Performance view revealed.");
         setTimeout(() => setSuccessMessage(null), 3500);
       }
@@ -694,78 +694,21 @@ export function SettingsPage() {
       />
 
       {/* Settings Logout Confirmation Modal */}
-      <AnimatePresence>
-        {showLogoutConfirm && (
-          <Portal>
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                onClick={() => !isLoggingOut && setShowLogoutConfirm(false)}
-                className="absolute inset-0 bg-workshop-bg/85 backdrop-blur-sm"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                style={{ willChange: "transform, opacity" }}
-                className="relative bg-workshop-card w-full max-w-sm rounded-xl p-8 shadow-2xl border border-workshop-border text-center z-10"
-              >
-                <div className="w-16 h-16 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-status-urgent border border-status-urgent/20">
-                  <AlertTriangle className="w-8 h-8" />
-                </div>
-
-                <h2 className="text-xl font-black text-workshop-text uppercase tracking-tight mb-2">
-                  End Session?
-                </h2>
-                <p className="text-workshop-muted text-sm mb-8 leading-relaxed">
-                  Are you sure you want to log out? You will need to sign in again to access the
-                  workshop dashboard.
-                </p>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    disabled={isLoggingOut}
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 px-4 py-2.5 bg-workshop-surface text-workshop-muted rounded-xl text-sm font-black uppercase tracking-widest border border-workshop-border hover:text-workshop-text hover:bg-workshop-border transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    id="settings-confirm-logout-btn"
-                    disabled={isLoggingOut}
-                    onClick={async () => {
-                      try {
-                        setIsLoggingOut(true);
-                        setShowLogoutConfirm(false);
-                        await logout();
-                      } catch (err) {
-                        console.error("Logout error:", err);
-                        setIsLoggingOut(false);
-                      }
-                    }}
-                    className="flex-1 px-4 py-2.5 bg-status-urgent text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-status-urgent/20 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    {isLoggingOut ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                        <span>Signing out...</span>
-                      </>
-                    ) : (
-                      "Log Out"
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </Portal>
-        )}
-      </AnimatePresence>
+      <LogoutModal
+        isOpen={showLogoutConfirm}
+        isLoggingOut={isLoggingOut}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={async () => {
+          try {
+            setIsLoggingOut(true);
+            setShowLogoutConfirm(false);
+            await logout();
+          } catch (err) {
+            console.error("Logout error:", err);
+            setIsLoggingOut(false);
+          }
+        }}
+      />
     </div>
   );
 }

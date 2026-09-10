@@ -1,11 +1,8 @@
 import { ClipboardCheck, X } from 'lucide-react';
-import '@material/web/progress/circular-progress.js';
 import { cn } from '../../lib/utils';
 import { WavyProgress } from '../WavyProgress';
+import { CircularProgress } from '../ui/CircularProgress';
 import type { WorkshopUser } from '../../types';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MdCircularProgress = 'md-circular-progress' as any;
 
 export interface IntakeStepProgressProps {
   step: number;
@@ -37,7 +34,7 @@ export function IntakeStepProgress({
               <h2 className="text-lg md:text-xl font-black tracking-tight uppercase leading-none">
                 Vehicle Intake
               </h2>
-              <p className="text-orange-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+              <p className="text-workshop-accent text-[10px] font-bold uppercase tracking-widest mt-1">
                 {authenticatedAdvisor?.name || authenticatedAdvisor?.email}
               </p>
             </div>
@@ -72,16 +69,11 @@ export function IntakeStepProgress({
                 return (
                   <div key={s} className="relative flex items-center justify-center w-9 h-9">
                     {isActive && (
-                      <MdCircularProgress
-                        indeterminate
-                        style={{
-                          position: 'absolute',
-                          '--md-circular-progress-size': '38px',
-                          '--md-circular-progress-active-indicator-color': 'var(--color-workshop-accent)',
-                          '--md-circular-progress-active-indicator-width': '2.5px',
-                          zIndex: 20,
-                          pointerEvents: 'none',
-                        }}
+                      <CircularProgress
+                        size={38}
+                        color="var(--color-workshop-accent)"
+                        strokeWidth="2.5px"
+                        className="absolute z-20 pointer-events-none"
                       />
                     )}
                     <div

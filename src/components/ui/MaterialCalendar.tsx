@@ -275,10 +275,10 @@ export function MaterialCalendar({
                 transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                 style={{ willChange: "transform, opacity" }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-[328px] overflow-hidden rounded-[28px] border border-workshop-border bg-[#16181D] shadow-[0_12px_48px_rgba(0,0,0,0.6)] flex flex-col font-sans"
+                className="w-full max-w-[328px] overflow-hidden rounded-[28px] border border-workshop-border bg-workshop-card shadow-[0_12px_48px_rgba(0,0,0,0.6)] flex flex-col font-sans"
               >
                 {/* Visual Header in Material Design 3 Spec */}
-                <div className="bg-[#1F2228] px-6 py-5 border-b border-workshop-border/30">
+                <div className="bg-workshop-surface px-6 py-5 border-b border-workshop-border/30">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-workshop-muted mb-1">
                     Select Date
                   </div>
@@ -359,7 +359,7 @@ export function MaterialCalendar({
                 </div>
 
                 {/* Optional Footer Controls */}
-                <div className="px-6 pb-5 pt-1 border-t border-workshop-border/20 flex justify-end gap-3 bg-[#131519]">
+                <div className="px-6 pb-5 pt-1 border-t border-workshop-border/20 flex justify-end gap-3 bg-workshop-surface/50">
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}

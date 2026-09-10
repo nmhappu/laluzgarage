@@ -21,7 +21,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { WorkshopUser, ServiceRecord } from "../../types";
-import { cn } from "../../lib/utils";
+import { cn, formatCurrency } from "../../lib/utils";
 
 export interface PerformanceViewProps {
   users: WorkshopUser[];
@@ -211,7 +211,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-workshop-muted">
                   Completed Jobs
                 </p>
-                <p className="text-lg font-black font-mono text-workshop-text">
+                <p className="text-lg font-black font-numeric text-workshop-text">
                   {techPerformanceData.reduce((acc, t) => acc + t.completed, 0)}
                 </p>
               </div>
@@ -225,7 +225,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-workshop-muted">
                   Active Jobs
                 </p>
-                <p className="text-lg font-black font-mono text-workshop-text">
+                <p className="text-lg font-black font-numeric text-workshop-text">
                   {techPerformanceData.reduce((acc, t) => acc + t.inProgress + t.pending, 0)}
                 </p>
               </div>
@@ -239,8 +239,8 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-workshop-muted">
                   Revenue Generated
                 </p>
-                <p className="text-lg font-black font-mono text-workshop-text">
-                  ₹{techPerformanceData.reduce((acc, t) => acc + t.totalRevenue, 0).toLocaleString()}
+                <p className="text-lg font-black font-numeric text-workshop-text">
+                  {formatCurrency(techPerformanceData.reduce((acc, t) => acc + t.totalRevenue, 0))}
                 </p>
               </div>
             </div>
@@ -335,13 +335,13 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
                             <p className="text-xs font-bold text-workshop-text leading-tight">
                               {tech.name}
                             </p>
-                            <p className="text-[10px] text-workshop-muted font-mono">
+                            <p className="text-[10px] text-workshop-muted font-numeric">
                               {tech.total} total assigned work orders
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 text-xs font-mono font-bold">
+                        <div className="flex items-center gap-4 text-xs font-numeric font-bold">
                           <div className="text-right">
                             <span className="text-[10px] uppercase font-sans text-workshop-muted block">
                               Completed
@@ -359,7 +359,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
                               Revenue
                             </span>
                             <span className="text-emerald-400">
-                              ₹{tech.totalRevenue.toLocaleString()}
+                              {formatCurrency(tech.totalRevenue)}
                             </span>
                           </div>
                         </div>
@@ -367,7 +367,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
 
                       {/* Completion Progress Bar */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] font-mono text-workshop-muted">
+                        <div className="flex justify-between text-[10px] font-numeric text-workshop-muted">
                           <span>Completion Rate</span>
                           <span className="font-bold text-workshop-text">{completionRate}%</span>
                         </div>

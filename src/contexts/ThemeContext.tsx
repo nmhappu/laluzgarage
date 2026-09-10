@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { STORAGE_KEYS } from '../lib/constants';
+
 type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
@@ -12,13 +14,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     return (saved as Theme) || 'dark';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
 
     // Synchronize native system status/navigation bar colors (Android 15 / 16 & iOS) theme-color
     let metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -98,7 +100,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     if (!document.startViewTransition || isShiftKey || prefersReducedMotion) {
       document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
+      localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
       setTheme(newTheme);
       return;
     }
@@ -106,7 +108,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try {
       const transition = document.startViewTransition(() => {
         document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
         flushSync(() => {
           setTheme(newTheme);
         });
@@ -136,7 +138,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {
       document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
+      localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
       setTheme(newTheme);
     }
   };

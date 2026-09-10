@@ -72,7 +72,7 @@ export function DesktopSidebar({
             <Settings className="w-4 h-4" />
           </NavLink>
         </div>
-        <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
+        <p className="text-workshop-muted text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
       </div>
 
       {/* Search input in desktop sidebar */}
@@ -138,7 +138,7 @@ export function DesktopSidebar({
                       className={cn(
                         "absolute inset-0 shadow-lg z-[-1]",
                         item.to === '/vehicles'
-                          ? "bg-blue-600 shadow-blue-500/30"
+                          ? "bg-secondary shadow-secondary/30"
                           : "bg-workshop-accent shadow-workshop-accent/20"
                       )}
                       transition={{ type: "spring", stiffness: 350, damping: 28 }}

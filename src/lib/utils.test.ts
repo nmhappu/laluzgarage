@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { cn, formatCurrency } from './utils';
 import {
+  cn,
+  formatCurrency,
   capitalizeName,
+  cleanPhoneNumber,
+  formatIndianPhone,
+  buildWhatsAppUrl,
+  formatPartsListForWhatsApp,
+  parseDateSafe,
+  formatDateSafe,
+} from './utils';
+import {
   cleanJobDescription,
   formatIntakeMessage,
   formatDeliveryMessage,
@@ -20,15 +29,57 @@ describe('Utility Functions', () => {
     const formatted = formatCurrency(1500);
     expect(formatted).toContain('1,500');
   });
-});
 
-describe('WhatsApp Preset Service', () => {
   it('capitalizeName capitalizes each word in a string', () => {
     expect(capitalizeName('john doe')).toBe('John Doe');
     expect(capitalizeName('  RAJESH  KUMAR ')).toBe('Rajesh Kumar');
     expect(capitalizeName('')).toBe('');
+    expect(capitalizeName(undefined)).toBe('');
   });
 
+  it('cleanPhoneNumber extracts only digits', () => {
+    expect(cleanPhoneNumber('+91 98765-43210')).toBe('919876543210');
+    expect(cleanPhoneNumber('98765 43210')).toBe('9876543210');
+    expect(cleanPhoneNumber('')).toBe('');
+    expect(cleanPhoneNumber(undefined)).toBe('');
+  });
+
+  it('formatIndianPhone adds +91 prefix correctly', () => {
+    expect(formatIndianPhone('9876543210')).toBe('+91 9876543210');
+    expect(formatIndianPhone('+91 9876543210')).toBe('+91 9876543210');
+    expect(formatIndianPhone('+919876543210')).toBe('+91 9876543210');
+    expect(formatIndianPhone('')).toBe('');
+  });
+
+  it('buildWhatsAppUrl constructs valid WhatsApp links', () => {
+    expect(buildWhatsAppUrl('+91 98765 43210')).toBe('https://wa.me/919876543210');
+    expect(buildWhatsAppUrl('+91 98765 43210', 'Hello world')).toBe(
+      'https://wa.me/919876543210?text=Hello%20world'
+    );
+    expect(buildWhatsAppUrl('')).toBe('');
+  });
+
+  it('formatPartsListForWhatsApp generates numbered parts list', () => {
+    const emptyResult = formatPartsListForWhatsApp([]);
+    expect(emptyResult).toBe('• General Inspection & Maintenance');
+
+    const partsResult = formatPartsListForWhatsApp([
+      { name: 'Brake Pad', quantity: 2, unitPrice: 450 },
+      { name: 'Engine Oil', quantity: 1, unitPrice: 1200 },
+    ]);
+    expect(partsResult).toContain('1. Brake Pad (x2) -');
+    expect(partsResult).toContain('2. Engine Oil (x1) -');
+  });
+
+  it('parseDateSafe and formatDateSafe handle ISO strings reliably', () => {
+    expect(formatDateSafe('2026-09-11', 'dd MMM yyyy')).toBe('11 Sep 2026');
+    expect(formatDateSafe('', 'dd MMM yyyy', 'No Date')).toBe('No Date');
+    expect(formatDateSafe(undefined, 'dd MMM yyyy', 'No Date')).toBe('No Date');
+    expect(parseDateSafe('invalid-date')).toBeNull();
+  });
+});
+
+describe('WhatsApp Preset Service', () => {
   it('cleanJobDescription removes markdown checkboxes and empty lines', () => {
     const raw = `[ ] Oil change
 [x] Brake pad replacement

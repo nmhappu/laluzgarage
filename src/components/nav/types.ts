@@ -35,12 +35,12 @@ export const getActiveTabM3Icon = (pathname: string): string => {
 };
 
 export const getActiveTabColor = (pathname: string): string => {
-  if (pathname.startsWith('/vehicles')) return 'text-blue-500';
+  if (pathname.startsWith('/vehicles')) return 'text-secondary';
   return 'text-workshop-accent';
 };
 
 export const SERVICE_STATUS_FILTERS = [
-  { id: 'all', label: 'All Logs', color: 'bg-workshop-secondary' },
+  { id: 'all', label: 'All Logs', color: 'bg-secondary' },
   { id: 'pending', label: 'Pending', color: 'bg-status-urgent' },
   { id: 'in-progress', label: 'In-Progress', color: 'bg-status-pending' },
   { id: 'completed', label: 'Completed', color: 'bg-workshop-accent' },

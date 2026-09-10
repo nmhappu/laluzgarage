@@ -80,8 +80,6 @@ export function useInventory() {
       setEditingPart(null);
     } catch (e: unknown) {
       console.error(e);
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      alert(errorMessage);
       handleFirestoreError(e, 'update', `parts/${partId}`);
     }
   }, []);

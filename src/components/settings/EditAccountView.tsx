@@ -118,7 +118,7 @@ export function EditAccountView({
                 value={formPin}
                 onChange={(e) => setFormPin(e.target.value.replace(/\D/g, "").substring(0, 4))}
                 placeholder="4-Digit Security PIN"
-                className="w-full bg-workshop-surface border border-workshop-border/60 pl-10 pr-4 py-2.5 rounded-lg text-sm font-mono tracking-widest font-bold text-workshop-text focus:border-status-success focus:ring-1 focus:ring-status-success/20 outline-none transition-all"
+                className="w-full bg-workshop-surface border border-workshop-border/60 pl-10 pr-4 py-2.5 rounded-lg text-sm font-numeric tracking-widest font-bold text-workshop-text focus:border-status-success focus:ring-1 focus:ring-status-success/20 outline-none transition-all"
               />
             </div>
           </div>

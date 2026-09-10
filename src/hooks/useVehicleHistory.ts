@@ -4,6 +4,7 @@ import { db, handleFirestoreError, auth } from '../lib/firebase';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
 import { useResponsiveSearch } from './useResponsiveSearch';
 import { getWhatsAppPresetsSync, formatIntakeMessage } from '../services/whatsappPresetService';
+import { formatIndianPhone, cleanPhoneNumber, buildWhatsAppUrl } from '../lib/utils';
 
 export function useVehicleHistory() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -153,9 +154,7 @@ export function useVehicleHistory() {
 
       // Inline customer registration
       if (newVehicle.createNewOwner && newVehicle.ownerName && newVehicle.ownerPhone) {
-        const formattedPhone = newVehicle.ownerPhone.trim().startsWith('+91')
-          ? newVehicle.ownerPhone.trim()
-          : `+91 ${newVehicle.ownerPhone.trim()}`;
+        const formattedPhone = formatIndianPhone(newVehicle.ownerPhone);
 
         const cDoc = await addDoc(collection(db, 'customers'), {
           name: newVehicle.ownerName,
@@ -177,9 +176,7 @@ export function useVehicleHistory() {
       const owner = newVehicle.createNewOwner
         ? {
             name: newVehicle.ownerName || '',
-            phone: newVehicle.ownerPhone?.trim().startsWith('+91')
-              ? newVehicle.ownerPhone.trim()
-              : `+91 ${newVehicle.ownerPhone?.trim()}`
+            phone: newVehicle.ownerPhone ? formatIndianPhone(newVehicle.ownerPhone) : ''
           }
         : customers.find(c => c.id === customerId);
 
@@ -200,7 +197,7 @@ export function useVehicleHistory() {
 
       // Automated WhatsApp dispatch upon successful vehicle submission
       if (owner && owner.phone) {
-        const cleanPhone = owner.phone.replace(/[^0-9]/g, "");
+        const cleanPhone = cleanPhoneNumber(owner.phone);
         const presets = getWhatsAppPresetsSync();
         const fullText = formatIntakeMessage(presets.intakeTemplate, {
           customerName: owner.name,
@@ -209,7 +206,7 @@ export function useVehicleHistory() {
           vehiclePlate: newVehicle.plateNumber,
           jobDescription: 'Vehicle Registration',
         });
-        const waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(fullText)}`;
+        const waUrl = buildWhatsAppUrl(cleanPhone, fullText);
         window.open(waUrl, '_blank', 'noopener,noreferrer');
       }
 

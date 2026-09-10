@@ -25,7 +25,7 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
                 "flex flex-col items-center gap-0 transition-all duration-300 flex-1 min-w-[56px] active:scale-90",
                 isActive
                   ? item.to === '/vehicles'
-                    ? "text-blue-500"
+                    ? "text-secondary"
                     : "text-workshop-accent"
                   : "text-workshop-muted"
               )
@@ -40,7 +40,7 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
                       className={cn(
                         "absolute inset-0 rounded-full z-0",
                         item.to === '/vehicles'
-                          ? "bg-blue-500/10 shadow-[0_4px_12px_rgba(59,130,246,0.15)]"
+                          ? "bg-secondary/10 shadow-[0_4px_12px_rgba(59,130,246,0.15)]"
                           : "bg-workshop-accent/10 shadow-[0_4px_12px_rgba(16,185,129,0.1)]"
                       )}
                       transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}

@@ -22,17 +22,8 @@ import {
 import { parseISO, startOfDay, isAfter, isSameDay } from "date-fns";
 import { Portal } from "../Portal";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../../types";
-import { formatCurrency, cn } from "../../lib/utils";
+import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
 import { openCreateContactScreen } from "../../services/contactService";
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 export interface EditRecordSheetProps {
   editingRecord: ServiceRecord | null;
@@ -159,10 +150,7 @@ export function EditRecordSheet({
               </button>
 
               <div className="relative z-10 flex-1 pl-1 flex flex-col justify-center">
-                <span
-                  style={{ fontFamily: "'Google Sans', 'Inter', sans-serif" }}
-                  className="text-base font-black text-workshop-accent uppercase tracking-tight leading-none"
-                >
+                <span className="text-base font-black font-google-sans text-workshop-accent uppercase tracking-tight leading-none">
                   {(() => {
                     const vehicle = vehicleMap.get(editingRecord.vehicleId);
                     return vehicle ? `${vehicle.make} ${vehicle.model}` : "";

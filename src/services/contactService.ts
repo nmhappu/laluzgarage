@@ -1,4 +1,5 @@
-import { capitalizeName } from './whatsappPresetService';
+import { capitalizeName, cleanPhoneNumber } from '../lib/utils';
+import { WORKSHOP_DETAILS } from '../lib/constants';
 
 export interface AddToContactsOptions {
   name: string;
@@ -14,7 +15,7 @@ export interface AddToContactsOptions {
 export function generateVCard(options: AddToContactsOptions): string {
   const { name, phone, email, vehicleInfo, notes } = options;
   const formattedName = capitalizeName(name).trim() || 'Customer';
-  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  const cleanPhone = cleanPhoneNumber(phone);
 
   const parts = formattedName.split(/\s+/);
   const firstName = parts[0] || '';
@@ -23,7 +24,7 @@ export function generateVCard(options: AddToContactsOptions): string {
   const noteItems: string[] = [];
   if (vehicleInfo) noteItems.push(`Vehicle: ${vehicleInfo}`);
   if (notes) noteItems.push(notes);
-  noteItems.push('Gearbox Workshop Client');
+  noteItems.push(`${WORKSHOP_DETAILS.name} Client`);
   const fullNotes = noteItems.join(' | ');
 
   const vcardLines = [
@@ -31,7 +32,7 @@ export function generateVCard(options: AddToContactsOptions): string {
     'VERSION:3.0',
     `N:${lastName};${firstName};;;`,
     `FN:${formattedName}`,
-    'ORG:Gearbox Workshop',
+    `ORG:${WORKSHOP_DETAILS.name}`,
     `TEL;TYPE=CELL,VOICE:${cleanPhone}`,
     email ? `EMAIL;TYPE=INTERNET:${email.trim()}` : '',
     fullNotes ? `NOTE:${fullNotes}` : '',
@@ -62,11 +63,11 @@ export async function openCreateContactScreen(options: AddToContactsOptions): Pr
 }> {
   const { name, phone, email, vehicleInfo, notes } = options;
   const formattedName = capitalizeName(name).trim() || 'Customer';
-  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  const cleanPhone = cleanPhoneNumber(phone);
   const noteText = [
     vehicleInfo ? `Vehicle: ${vehicleInfo}` : '',
     notes || '',
-    'Gearbox Workshop Client',
+    `${WORKSHOP_DETAILS.name} Client`,
   ].filter(Boolean).join(' | ');
 
   const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);

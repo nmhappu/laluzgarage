@@ -90,7 +90,7 @@ export function Step3JobSpecification({
             {isKey ? (
               <>
                 <Key className="w-3.5 h-3.5 text-workshop-accent animate-pulse" />
-                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-workshop-text">
+                <span className="text-[10px] font-google-sans font-black uppercase tracking-wider text-workshop-text">
                   Key
                 </span>
               </>
@@ -100,10 +100,10 @@ export function Step3JobSpecification({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-workshop-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-workshop-accent"></span>
                 </span>
-                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-workshop-muted">
+                <span className="text-[10px] font-google-sans font-black uppercase tracking-wider text-workshop-muted">
                   PIN:
                 </span>
-                <span className="text-[11px] font-mono font-black tracking-wider text-workshop-text">
+                <span className="text-[11px] font-numeric font-black tracking-wider text-workshop-text">
                   {pinOrKey}
                 </span>
               </>
@@ -114,10 +114,7 @@ export function Step3JobSpecification({
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Odometer
           </label>
           <div className="relative">
@@ -133,7 +130,7 @@ export function Step3JobSpecification({
                 }
               }}
               className={cn(
-                "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-mono text-lg font-black text-workshop-text transition-all",
+                "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-numeric text-lg font-black text-workshop-text transition-all",
                 (jobForm.isDeadVehicle || jobForm.isUnknownMileage) && "opacity-40 grayscale"
               )}
               placeholder={
@@ -215,10 +212,7 @@ export function Step3JobSpecification({
         </div>
 
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Complaints / Works
           </label>
           <textarea
@@ -232,10 +226,7 @@ export function Step3JobSpecification({
         </div>
 
         <div className="space-y-1.5">
-          <label
-            style={{ fontFamily: "'Google Sans', sans-serif" }}
-            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-          >
+          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
             Items inside vehicle
           </label>
           <textarea
@@ -250,10 +241,7 @@ export function Step3JobSpecification({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1.5">
-            <label
-              style={{ fontFamily: "'Google Sans', sans-serif" }}
-              className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
-            >
+            <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
               Service Date
               <span className="text-status-urgent">*</span>
             </label>
@@ -272,10 +260,7 @@ export function Step3JobSpecification({
             />
           </div>
           <div className="space-y-1.5">
-            <label
-              style={{ fontFamily: "'Google Sans', sans-serif" }}
-              className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5"
-            >
+            <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
               Estimated Delivery Date
               <span className="text-status-urgent">*</span>
             </label>

@@ -44,8 +44,8 @@ export function AdvisorVerification({
           <div className="safe-top" />
           <div className="h-16 flex items-center justify-between px-5">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <Key className="w-4 h-4 text-blue-400" />
+              <div className="p-2 bg-secondary/10 border border-secondary/20 rounded-xl">
+                <Key className="w-4 h-4 text-secondary" />
               </div>
               <h2 className="text-sm font-black tracking-wider uppercase text-workshop-text font-google-sans">
                 Advisor Verification
@@ -94,8 +94,8 @@ export function AdvisorVerification({
                 className={cn(
                   "w-4 h-4 rounded-full border-2 transition-all duration-200 pointer-events-none",
                   pinCode.length > index
-                    ? "bg-blue-500 border-blue-400 scale-110 shadow-lg shadow-blue-500/40"
-                    : "border-workshop-border/80 bg-workshop-surface/50 group-hover:border-blue-400/60"
+                    ? "bg-secondary border-secondary scale-110 shadow-lg shadow-secondary/40"
+                    : "border-workshop-border/80 bg-workshop-surface/50 group-hover:border-secondary/60"
                 )}
               />
             ))}

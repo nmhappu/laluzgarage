@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 const firebaseConfig = {
   apiKey: "AIzaSyDOKnWPCvAAujHhxz6r2HOcvpi_cFsvnIQ",
   authDomain: "gen-lang-client-0601889915.firebaseapp.com",
@@ -52,21 +52,4 @@ export function handleFirestoreError(error: unknown, operationType: FirestoreErr
   throw error;
 }
 
-/**
- * Validates the connection to Firestore.
- */
-async function testConnection() {
-  try {
-    // Attempt to fetch a dummy document to verify connectivity
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log('Firebase connection established.');
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Firestore is unreachable. Please check your configuration or network.');
-    } else {
-      console.warn('Initial connection check skipped or failed (expected if DB is empty).');
-    }
-  }
-}
 
-testConnection();

@@ -197,7 +197,7 @@ export function LoginPage() {
         
         <div className="mt-12 text-center text-workshop-muted text-[10px] flex flex-col gap-3">
           <p className="font-bold opacity-30 uppercase tracking-[0.3em]">© 2026 LaluZ Garage Precision Workshop</p>
-          <div className="flex items-center justify-center gap-4 opacity-20 font-mono">
+          <div className="flex items-center justify-center gap-4 opacity-20 font-numeric">
             <span>SECURE-NODE-AUTH</span>
             <span className="w-1 h-1 bg-workshop-muted rounded-full" />
             <span>v1.1.2-ALPHA</span>

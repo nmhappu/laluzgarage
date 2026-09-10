@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-google-sans: "Google Sans", "Google Sans Text", sans-serif;
+  --font-numeric: "Google Sans", "Google Sans Text", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-logo: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", sans-serif;
 
@@ -52,6 +53,10 @@
   --color-workshop-border: var(--border-color);
   --color-workshop-text: var(--fg);
   --color-workshop-muted: var(--muted-fg);
+
+  /* WhatsApp Brand Integration */
+  --color-whatsapp: #128C7E;
+  --color-whatsapp-dark: #0E7065;
 }
 
 :root {
@@ -162,6 +167,30 @@
   font-family: "Google Sans", sans-serif;
   font-optical-sizing: auto;
   font-variation-settings: "GRAD" 0;
+}
+
+@utility font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility font-plate {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.font-plate {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 @utility accelerate-gpu {
   transform: translate3d(0, 0, 0);

@@ -109,10 +109,7 @@ export function Step1CustomerDiscovery({
                           {res.vehicle.passwordOrPin && (
                             <div className="flex items-center gap-1.5 text-status-success">
                               <Key className="w-3.5 h-3.5 shrink-0" />
-                              <span
-                                style={{ fontFamily: "'Google Sans', sans-serif" }}
-                                className="text-sm md:text-base font-sans font-bold uppercase tracking-tight"
-                              >
+                              <span className="text-sm md:text-base font-google-sans font-bold uppercase tracking-tight">
                                 {res.vehicle.passwordOrPin}
                               </span>
                             </div>
@@ -169,10 +166,7 @@ export function Step1CustomerDiscovery({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1.5">
-              <label
-                style={{ fontFamily: "'Google Sans', sans-serif" }}
-                className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-workshop-muted"
-              >
+              <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
                 Full Name
               </label>
               <input
@@ -188,17 +182,14 @@ export function Step1CustomerDiscovery({
               />
             </div>
             <div className="relative pt-2.5">
-              <div className="flex items-center w-full bg-workshop-surface border-2 border-[#3B82F6] rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-[#3B82F6]/30 transition-all">
+              <div className="flex items-center w-full bg-workshop-surface border-2 border-secondary rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-secondary/30 transition-all">
                 {/* Floating notched label */}
-                <span
-                  style={{ fontFamily: "'Google Sans', sans-serif" }}
-                  className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-black uppercase tracking-wider text-[#3B82F6] select-none"
-                >
+                <span className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-google-sans font-black uppercase tracking-wider text-secondary select-none">
                   Phone number
                 </span>
 
                 {/* Prefix */}
-                <span className="text-workshop-text font-mono font-bold text-base select-none pr-3 shrink-0">
+                <span className="text-workshop-text font-numeric font-bold text-base select-none pr-3 shrink-0">
                   +91
                 </span>
 
@@ -222,7 +213,7 @@ export function Step1CustomerDiscovery({
                       phone: val,
                     });
                   }}
-                  className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-mono font-bold text-base tracking-wide placeholder-workshop-muted/40"
+                  className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-numeric font-bold text-base tracking-wide placeholder-workshop-muted/40"
                   placeholder="85471 87345"
                 />
               </div>

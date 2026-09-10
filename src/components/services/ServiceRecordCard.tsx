@@ -13,18 +13,10 @@ import {
 import { motion } from "motion/react";
 import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } from "date-fns";
 import type { ServiceRecord, Vehicle, Customer } from "../../types";
-import { formatCurrency, cn } from "../../lib/utils";
+import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
 import { openCreateContactScreen } from "../../services/contactService";
 import { WhatsAppIcon, OlaWatermark } from "../ui/BrandIcons";
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+import { ServiceStatusBadge } from "../shared/ServiceStatusBadge";
 
 export interface ServiceRecordCardProps {
   record: ServiceRecord;
@@ -90,7 +82,7 @@ export const ServiceRecordCard = memo(({
       className={cn(
         "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-transparent shadow-sm overflow-hidden transition-all group cursor-pointer bg-clip-padding will-change-transform",
         record.status === "completed"
-          ? "hover:border-[#3B82F6]/30 hover:shadow-lg hover:shadow-[#3B82F6]/5"
+          ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
           : record.status === "in-progress"
             ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
             : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5",
@@ -126,20 +118,7 @@ export const ServiceRecordCard = memo(({
             </span>
           </div>
           <div className="flex-1 h-px bg-workshop-border/20" />
-          <span
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border",
-              record.status === "completed"
-                ? "bg-status-success/10 text-status-success border-status-success/20"
-                : record.status === "in-progress"
-                  ? "bg-status-pending/10 text-status-pending border-status-pending/20"
-                  : record.status === "cancelled"
-                    ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border/30"
-                    : "bg-status-urgent/10 text-status-urgent border-status-urgent/20",
-            )}
-          >
-            {record.status}
-          </span>
+          <ServiceStatusBadge status={record.status} />
         </div>
 
         <div className="flex flex-col gap-3.5">
@@ -156,20 +135,14 @@ export const ServiceRecordCard = memo(({
                 {/* ROW 1: Plate and Vehicle Model only */}
                 <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
                   {/* Plate Number in prominent Blue */}
-                  <span 
-                    style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
-                    className="text-[#3B82F6] font-sans font-black tracking-widest uppercase shrink-0 select-all"
-                  >
+                  <span className="text-secondary font-plate font-black tracking-widest uppercase shrink-0 select-all text-base">
                     {v?.plateNumber || "NO PLATE"}
                   </span>
 
                   <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
 
                   {/* Make & Model */}
-                  <span 
-                    style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
-                    className="text-workshop-text font-black uppercase tracking-tight"
-                  >
+                  <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base">
                     {v?.make} {v?.model}
                   </span>
                 </div>
@@ -179,14 +152,13 @@ export const ServiceRecordCard = memo(({
                   {/* Mileage Badge */}
                   <div className="flex items-center gap-1.5">
                     <span
-                      style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
                       className={cn(
-                        "whitespace-nowrap shrink-0 font-black",
+                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
                         record.isDeadVehicle
                           ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
                           : record.isUnknownMileage
                             ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                            : "text-status-pending font-sans",
+                            : "text-status-pending",
                       )}
                     >
                       {record.isDeadVehicle
@@ -198,10 +170,7 @@ export const ServiceRecordCard = memo(({
                     {!!record.completionMileage && (
                       <>
                         <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
-                        <span 
-                          style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
-                          className="text-status-success font-sans font-black whitespace-nowrap shrink-0"
-                        >
+                        <span className="text-status-success font-google-sans font-black whitespace-nowrap shrink-0 text-base">
                           {record.completionMileage.toLocaleString()} KM
                         </span>
                       </>
@@ -215,18 +184,12 @@ export const ServiceRecordCard = memo(({
                         {v.passwordOrPin.toLowerCase() === "key" ? (
                           <>
                             <Key className="w-4 h-4" />
-                            <span 
-                              style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
-                              className="font-black tracking-[0.1em] font-sans"
-                            >
+                            <span className="font-google-sans font-black tracking-[0.1em] text-base">
                               KEY
                             </span>
                           </>
                         ) : (
-                          <span 
-                            style={{ fontFamily: "'Google Sans', sans-serif", fontSize: "16px" }}
-                            className="font-sans font-black tracking-wider text-status-success"
-                          >
+                          <span className="font-numeric font-black tracking-wider text-status-success text-base">
                             # {v.passwordOrPin}
                           </span>
                         )}
@@ -301,7 +264,7 @@ export const ServiceRecordCard = memo(({
             <div className="flex items-center gap-1.5 text-workshop-muted/90">
               <User className="w-3.5 h-3.5 opacity-60 text-workshop-accent shrink-0" />
               <span className="text-xs font-black uppercase tracking-widest leading-none">
-                Advisor: <span className="text-orange-500 font-black">{record.technicianName}</span>
+                Advisor: <span className="text-workshop-accent font-black">{record.technicianName}</span>
               </span>
             </div>
           </div>
@@ -336,7 +299,7 @@ export const ServiceRecordCard = memo(({
                   e.stopPropagation();
                   onWhatsAppClick(record, customer, v);
                 }}
-                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-[#128C7E] hover:border-[#128C7E]/40 hover:bg-[#128C7E]/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-whatsapp hover:border-whatsapp/40 hover:bg-whatsapp/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
                 title={`WhatsApp Options (${customer.phone})`}
               >
                 <WhatsAppIcon className="w-4 h-4 shrink-0" />

@@ -70,6 +70,8 @@ function syncColoursPlugin() {
           themeBlock = replaceVar(themeBlock, 'color-secondary', colours.secondary);
           themeBlock = replaceVar(themeBlock, 'color-destructive', colours.destructive);
           themeBlock = replaceVar(themeBlock, 'color-workshop-warning', colours.warning);
+          themeBlock = replaceVar(themeBlock, 'color-whatsapp', colours.whatsapp);
+          themeBlock = replaceVar(themeBlock, 'color-whatsapp-dark', colours.whatsapp_dark);
           css = css.replace(themeBlockRegex, `@theme {${themeBlock}}`);
         }
 

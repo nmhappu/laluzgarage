@@ -29,9 +29,9 @@ Loaded via Google Fonts CDN (`index.html` & `src/index.css`):
 
 | Font Family | CSS Variable / Token | Role & Usage in UI |
 | :--- | :--- | :--- |
-| **Google Sans & Google Sans Text** | `--font-sans`, `--font-google-sans`, `--font-logo`, `.google-sans` | Primary brand display typography. Used for headings, page titles, card headers, stat numbers, and dialog headers. |
+| **Google Sans & Google Sans Text** | `--font-sans`, `--font-google-sans`, `--font-numeric`, `--font-logo`, `.google-sans`, `.font-numeric`, `.font-plate` | Primary brand display & numeric typography. Used for headings, page titles, card headers, stat numbers, dialog headers, and all standardized numerical figures (phone numbers, odometers, PINs, monetary figures, metrics) with OpenType tabular figures (`tabular-nums`), as well as vehicle registration plate numbers (`font-plate`). |
 | **Plus Jakarta Sans** | Fallback in `--font-sans` | Secondary high-legibility sans-serif. Used for body text, button labels, dropdown options, and metadata labels. |
-| **JetBrains Mono** | `--font-mono` | Technical monospace typography. Used strictly for vehicle registration plate numbers (e.g., `MH12 AB 1234`), odometer readings, screen PINs/passwords, part SKUs, and monetary figures. |
+| **JetBrains Mono** | `--font-mono` | Monospace typography. Reserved for system identifiers, database project IDs, and raw message template editing areas. |
 
 ### 2.2 Icon Systems
 The codebase employs two distinct icon libraries plus custom SVG assets:

@@ -15,16 +15,7 @@ import { Portal } from "../Portal";
 import { MaterialCalendar } from "../ui/MaterialCalendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/CustomSelect";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../../types";
-import { formatCurrency, cn } from "../../lib/utils";
-
-const capitalizeName = (name?: string) => {
-  if (!name) return "";
-  return name
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
 
 export interface AddRecordModalProps {
   showAddModal: boolean;
@@ -207,9 +198,7 @@ export function AddRecordModal({
           status: newRecord.status || "pending",
           laborCost: Number(newRecord.laborCost) || 0,
           expectedDeliveryDate: newRecord.expectedDeliveryDate ?? "",
-          date:
-            newRecord.date ||
-            new Date().toISOString().split("T")[0] + "T" + new Date().toISOString().split("T")[1],
+          date: newRecord.date || new Date().toISOString(),
           isDeadVehicle: !!newRecord.isDeadVehicle,
           isUnknownMileage: !!newRecord.isUnknownMileage,
           partsUsed: newRecord.partsUsed || [],

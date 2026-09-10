@@ -66,7 +66,7 @@ export function AccountsView({
               <div className="flex items-center gap-4 shrink-0">
                 <div className="flex items-center gap-1.5 bg-workshop-surface border border-workshop-border/40 px-2.5 py-1 rounded-lg">
                   <Key className="w-3.5 h-3.5 text-workshop-muted" />
-                  <span className="text-[11px] font-mono font-bold text-workshop-text">
+                  <span className="text-[11px] font-numeric font-bold text-workshop-text">
                     {u.pin ? u.pin : "None"}
                   </span>
                 </div>

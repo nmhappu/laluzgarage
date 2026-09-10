@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Portal } from '../Portal';
+import { WhatsAppIcon } from '../ui/BrandIcons';
 import type { CreatedJobSummary } from '../../hooks/useServiceIntake';
 
 export interface IntakeSuccessModalProps {
@@ -80,14 +81,9 @@ export function IntakeSuccessModal({
                 onClick={() => {
                   window.open(createdJob.waUrl, '_blank', 'noopener,noreferrer');
                 }}
-                className="w-full py-4 bg-[#128C7E] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:bg-[#0e7065] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-4 bg-whatsapp text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:bg-whatsapp-dark active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <img
-                  src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg"
-                  alt="WhatsApp"
-                  className="w-5 h-5 shrink-0"
-                  referrerPolicy="no-referrer"
-                />
+                <WhatsAppIcon className="w-5 h-5 shrink-0" />
                 Share via WhatsApp
               </button>
             )}

@@ -19,3 +19,8 @@
 }
 -keep class com.getcapacitor.** { *; }
 -keep interface com.getcapacitor.** { *; }
+
+# Capawesome Firebase Authentication
+-dontwarn com.facebook.**
+-dontwarn com.facebook.login.**
+

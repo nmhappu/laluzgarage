@@ -1,56 +1,21 @@
-LIMITED USE AND MANDATORY ATTRIBUTION LICENSE
+MIT License
 
-Copyright (c) 2026 nmhappu. All Rights Reserved.
+Copyright (c) 2026 Prince Santhosh
 
-1. DEFINITIONS
-"Licensor" refers to the copyright holder, nmhappu.
-"Software" refers to the source code, documentation, assets, and compiled forms 
-of the LaluZ Garage application and associated projects.
-"You" (or "Your") refers to an individual or legal entity accessing or receiving the Software.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-2. RESTRICTIONS ON PUBLIC USE
-The Software is proprietary. It is NOT licensed for public use, public SaaS hosting, 
-or unauthorized commercial deployment. 
-Except as explicitly authorized in writing by the Licensor:
-(a) You may NOT host, deploy, run, or offer the Software as a public-facing service 
-    or commercial workshop/garage platform.
-(b) You may NOT sell, lease, rent, sublicense, or commercially exploit the Software.
-(c) Any rights not expressly granted herein are reserved exclusively by the Licensor.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-3. MANDATORY ATTRIBUTION AND REDISTRIBUTION TERMS
-In any instance where You are authorized to distribute, copy, fork, share, or create 
-derivative works of the Software, You MUST strictly comply with the following conditions:
-
-(a) Retention of Notices:
-    You must retain all original copyright, patent, trademark, and author attribution 
-    notices in all copies of the source code and documentation.
-
-(b) Conspicuous UI & Documentation Attribution:
-    Any derivative work, deployment, or redistributed copy must display a prominent, 
-    clearly visible credit to the original creator in both:
-    (i)  The application user interface (e.g., footer, "About" dialog, or login screen):
-         "Original Software & Architecture created by nmhappu"
-    (ii) The repository README and documentation files.
-
-(c) Notice of Modifications:
-    If You modify the Software, You must cause the modified files to carry prominent 
-    notices stating that You altered the files and detailing the date of modification.
-
-4. TRADEMARKS
-This License does not grant permission to use the trade names, trademarks, service marks, 
-or product logos of the Licensor (including "LaluZ Garage"), except as strictly necessary 
-for customary attribution describing the origin of the Work.
-
-5. DISCLAIMER OF WARRANTY
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
-PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, 
-DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, 
-ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-IN THE SOFTWARE.
-
-6. LIMITATION OF LIABILITY
-UNDER NO CIRCUMSTANCES SHALL NMHAPPU BE LIABLE FOR ANY DIRECT, INDIRECT, 
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING LOSS OF PROFITS, 
-DATA, BUSINESS INTERRUPTION, OR WORKSHOP DISRUPTIONS) ARISING IN ANY WAY OUT OF 
-THE USE OF THIS SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

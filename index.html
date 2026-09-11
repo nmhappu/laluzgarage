@@ -4,13 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="color-scheme" content="dark" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com ws: wss:; frame-src 'self' https://*.firebaseapp.com;" />
     <title>LaluZ Garage</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:ital,wght@0,400;0,500;0,700;1,400&family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0; background-color: #0B0D11;">
+    <div id="root">
+      <div style="min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0B0D11; font-family: 'Google Sans', sans-serif; user-select: none;">
+        <div style="position: relative; width: 96px; aspect-ratio: 808 / 418; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 100px; height: 100px; background-color: rgba(16, 185, 129, 0.2); filter: blur(24px); border-radius: 9999px;"></div>
+          <svg viewBox="223 422 808 418" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; display: block; position: relative; z-index: 1;">
+            <path d="M375.641 735.346l43.365-97.683 60.698-135.652 34.841-76.253-125.363-.084-39.464 93.3-122.504 286.466c8.79 3.751 14.553 10.396 16.521 19.408l219.693-.06 6.242-14.069 32.138-75.097-126.166-.276Z" fill="#FFFFFF"/>
+            <path d="M627.609 634.262l-77.582-.455 43.503-78.677 12.708-22.83-18.02 16.779-67.552 64.621-60.47 58.776 87.812.281-46.923 114.255h0l-14.986 37.971c8.805-8.289 14.953-18.188 22.253-28.141h0s119.257-162.58 119.257-162.58Z" fill="#78DF22"/>
+            <path d="M785.248 567.462c-15.687.021-29.883 8.313-41.359 18.259-29.852 25.871-44.948 76.418-24.659 111.322 8.58 14.76 23.145 24.62 40.276 24.681l99.279.353-10.893 24.145c-1.95 4.323-6.017 8.74-11.497 8.747l-167.805.199c-6.387.008-12.105-4.179-14.607-7.814-3.666-5.325-4.519-11.869-1.989-17.879l57.783-137.282 18.511-43.542c6.197-14.576 21.436-24.818 37.595-24.845l172.088-.284 25.992-49.088 24.357-47.035-243.897.117c-46.053.022-91.915 31.626-111.18 72.898l-55.912 119.778 75.051.345-111.359 159.929c7.098 32.906 36.766 47.867 69.693 47.833l220.52-.228c.012.067.029.132.041.199l81.01.054h1.338c7.438-18.471 15.323-38.115 15.338-38.154 0 0 0-.002 0-.002l.003-.008 1.488-3.345s.004.006.007.009l1.619-3.666 42.954-97.28 51.751-118.746-241.539.328ZM900.15 660.689l-59.526.086c-6.527.009-5.626 11.073-19.682 21.091-18.631 13.277-45.563 7.596-56.015-13.849l32.252-2.583 10.046-17.597-10.238-17.504-31.715-2.368c8.258-19.429 31.088-27.646 49.931-18.433 11.732 5.736 19.02 16.276 22.712 28.714l72.004.402-9.769 22.042Z" fill="#FFFFFF"/>
+            <path d="M930.705 787.139c-.082-.104-.16-.21-.242-.314l-.022.05c.089.088.176.176.264.264Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+    </div>
     <div id="modal-root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

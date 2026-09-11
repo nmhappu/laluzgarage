@@ -12,6 +12,18 @@ export interface AddToContactsOptions {
 /**
  * Builds RFC 2426 vCard 3.0 formatted text with CRLF line terminators.
  */
+/**
+ * Escapes characters with special syntactic meaning in vCard 3.0 (RFC 2426).
+ */
+export function escapeVCardValue(val?: string): string {
+  if (!val) return '';
+  return val
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
 export function generateVCard(options: AddToContactsOptions): string {
   const { name, phone, email, vehicleInfo, notes } = options;
   const formattedName = capitalizeName(name).trim() || 'Customer';
@@ -30,12 +42,12 @@ export function generateVCard(options: AddToContactsOptions): string {
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
-    `N:${lastName};${firstName};;;`,
-    `FN:${formattedName}`,
-    `ORG:${WORKSHOP_DETAILS.name}`,
+    `N:${escapeVCardValue(lastName)};${escapeVCardValue(firstName)};;;`,
+    `FN:${escapeVCardValue(formattedName)}`,
+    `ORG:${escapeVCardValue(WORKSHOP_DETAILS.name)}`,
     `TEL;TYPE=CELL,VOICE:${cleanPhone}`,
     email ? `EMAIL;TYPE=INTERNET:${email.trim()}` : '',
-    fullNotes ? `NOTE:${fullNotes}` : '',
+    fullNotes ? `NOTE:${escapeVCardValue(fullNotes)}` : '',
     'END:VCARD',
   ].filter(Boolean);
 

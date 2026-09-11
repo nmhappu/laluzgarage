@@ -229,6 +229,22 @@
   will-change: transform, opacity;
 }
 
+@utility canvas-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.canvas-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+[data-theme="light"] .canvas-grid {
+  background-image: radial-gradient(rgba(100, 116, 139, 0.22) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+
 /* Zero-Cost Offscreen Rendering for Long Lists (DOM & Paint containment) */
 @utility content-visibility-auto {
   content-visibility: auto;

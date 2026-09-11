@@ -375,6 +375,53 @@ When making UI adjustments or adding new views, follow these engineering standar
    - Always format currency using `formatCurrency(val)` from `src/lib/utils.ts` (renders Indian Rupee symbol `₹`).
    - Always format dates using `date-fns` (`format(date, 'dd MMM yyyy')`).
 
+### 6.1 Seamless Dialog, Popup & Screen Design System
+
+For pending approval screens, informational popups, status overlays, and upcoming modals, use the clean **Seamless Canvas Style**:
+
+1. **Canvas Architecture (No Card Enclosures)**:
+   - Avoid heavy enclosed card boxes (`bg-workshop-card rounded-2xl shadow-2xl border border-workshop-border`) or nested cards that box content into floating tiles.
+   - Elements render cleanly directly on top of the canvas background (`bg-workshop-bg`), fully responsive with `safe-top` and `safe-bottom`.
+
+2. **Left-Aligned Hierarchy**:
+   - The hero icon, headings, and descriptions must be left-aligned (`items-start text-left w-full`).
+   - **Title**: `font-logo font-bold text-2xl sm:text-3xl text-workshop-text tracking-tight`.
+   - **Description**: `text-workshop-muted text-xs sm:text-sm leading-relaxed text-left`.
+
+3. **Borderless Icons with Ambient Halo**:
+   - Never enclose hero icons in border boxes or background pills (`no bg-*-10 border border-*-30 rounded-2xl`).
+   - Render the icon freely (`w-12 h-12 stroke-[1.75]`) with an ambient backlight glow:
+     ```tsx
+     <div className="relative text-status-pending">
+       <div className="absolute -inset-2 bg-status-pending/20 blur-2xl rounded-full pointer-events-none" />
+       <ShieldAlert className="relative w-12 h-12 stroke-[1.75]" />
+     </div>
+     ```
+
+4. **Screen-Wide Ambient Lighting**:
+   - Add a soft 5% radial glow bloom behind the hero area:
+     ```tsx
+     <div className="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center">
+       <div className="w-[500px] h-[500px] bg-status-pending/5 rounded-full blur-3xl -translate-y-12" />
+     </div>
+     ```
+   - Color reflects context: `bg-status-pending/5` (pending/warning), `bg-workshop-accent/5` (success/intake), `bg-status-urgent/5` (destructive), `bg-secondary/5` (info).
+
+5. **Detail Rows (Divider-Based on Canvas)**:
+   - Render metadata rows directly on the background using subtle horizontal dividers:
+     ```tsx
+     <div className="w-full divide-y divide-workshop-border/60 border-y border-workshop-border/60 text-left py-1">
+       <div className="flex items-center justify-between py-3 text-xs sm:text-sm">
+         <span className="text-workshop-muted font-medium">Label</span>
+         <span className="text-workshop-text font-semibold">Value</span>
+       </div>
+     </div>
+     ```
+
+6. **Action Buttons**:
+   - Primary: `w-full bg-workshop-accent text-workshop-bg hover:bg-workshop-accent/90 px-5 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md active:scale-[0.98]`.
+   - Secondary / Ghost: `w-full bg-workshop-surface/60 hover:bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text px-5 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider active:scale-[0.98]`.
+
 ---
 
 ## 7. Future Considerations & Roadmap

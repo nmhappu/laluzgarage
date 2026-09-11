@@ -7,7 +7,7 @@ import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 export interface InventoryListProps {
   parts: Part[];
   loading: boolean;
-  onAddClick: () => void;
+  onAddClick?: () => void;
   onPartClick: (part: Part) => void;
 }
 
@@ -40,13 +40,15 @@ export function InventoryList({
             Track and manage shop supplies and spare parts.
           </p>
         </div>
-        <button
-          onClick={onAddClick}
-          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>ADD PART</span>
-        </button>
+        {onAddClick && (
+          <button
+            onClick={onAddClick}
+            className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>ADD PART</span>
+          </button>
+        )}
       </header>
 
       <div className="-mx-4 md:-mx-8 lg:-mx-10 overflow-hidden">

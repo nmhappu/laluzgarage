@@ -35,6 +35,7 @@ export interface EditRecordSheetProps {
   customers: Customer[];
   parts: Part[];
   onWhatsAppClick: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
+  readOnly?: boolean;
 }
 
 export function EditRecordSheet({
@@ -47,6 +48,7 @@ export function EditRecordSheet({
   customers,
   parts,
   onWhatsAppClick,
+  readOnly = false,
 }: EditRecordSheetProps) {
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [editPartSearchQuery, setEditPartSearchQuery] = useState("");
@@ -839,27 +841,39 @@ export function EditRecordSheet({
 
               {/* Fixed Material Sticky Bottom Action Footer Bar */}
               <div className="px-6 pt-5 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/40 flex items-center justify-end gap-3.5 shrink-0 z-20 shadow-lg">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 border border-workshop-border hover:border-workshop-muted-foreground/30 rounded-2xl text-xs font-bold text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface active:scale-[0.98] transition-all uppercase tracking-widest outline-none"
-                >
-                  DISCARD CHANGES
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="px-8 py-3 bg-workshop-accent text-workshop-bg rounded-2xl text-xs font-black shadow-lg hover:brightness-115 active:scale-[0.98] transition-all uppercase tracking-widest inline-flex items-center gap-2 disabled:opacity-55 outline-none"
-                >
-                  {isUpdating ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Updating...</span>
-                    </>
-                  ) : (
-                    <span>Update Record</span>
-                  )}
-                </button>
+                {readOnly ? (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-8 py-3 bg-workshop-surface border border-workshop-border rounded-2xl text-xs font-black text-workshop-text hover:bg-workshop-surface/80 active:scale-[0.98] transition-all uppercase tracking-widest outline-none"
+                  >
+                    Close
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-6 py-3 border border-workshop-border hover:border-workshop-muted-foreground/30 rounded-2xl text-xs font-bold text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface active:scale-[0.98] transition-all uppercase tracking-widest outline-none"
+                    >
+                      DISCARD CHANGES
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdating}
+                      className="px-8 py-3 bg-workshop-accent text-workshop-bg rounded-2xl text-xs font-black shadow-lg hover:brightness-115 active:scale-[0.98] transition-all uppercase tracking-widest inline-flex items-center gap-2 disabled:opacity-55 outline-none"
+                    >
+                      {isUpdating ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Updating...</span>
+                        </>
+                      ) : (
+                        <span>Update Record</span>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </motion.div>

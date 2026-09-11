@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   collection,
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
-import type { WorkshopUser } from "../types";
+import { type WorkshopUser, type UserRole, getUserRole } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import {
   fetchWhatsAppPresets,
@@ -37,7 +37,6 @@ import { TagsView } from "./settings/TagsView";
 import { PerformanceView } from "./settings/PerformanceView";
 import { DeleteUserModal } from "./settings/DeleteUserModal";
 import { LogoutModal } from "./nav/LogoutModal";
-import { STORAGE_KEYS } from "../lib/constants";
 
 export interface SettingsModalProps {
   isOpen?: boolean;
@@ -77,31 +76,41 @@ export function SettingsPage() {
     return "categories";
   });
 
+  const { user, profile, logout } = useAuth();
+  const isAdmin = Boolean(profile?.tags?.includes("admin"));
+
   useEffect(() => {
-    if (
-      tabParam &&
-      [
-        "accounts",
-        "edit_account",
-        "general",
-        "system",
-        "whatsapp_presets",
-        "tags",
-        "performance",
-      ].includes(tabParam)
-    ) {
-      setViewState((prev) => (prev !== tabParam ? tabParam : prev));
-      if (tabParam === "performance") {
-        setPerformanceRevealed(true);
+    if (tabParam) {
+      if ((tabParam === "accounts" || tabParam === "edit_account" || tabParam === "performance") && !isAdmin) {
+        setViewState("categories");
+        setSearchParams({}, { replace: true });
+        return;
       }
-    } else if (!tabParam) {
+      if (
+        [
+          "accounts",
+          "edit_account",
+          "general",
+          "system",
+          "whatsapp_presets",
+          "tags",
+          "performance",
+        ].includes(tabParam)
+      ) {
+        setViewState((prev) => (prev !== tabParam ? tabParam : prev));
+      }
+    } else {
       setViewState((prev) =>
         prev !== "edit_account" && prev !== "categories" ? "categories" : prev
       );
     }
-  }, [tabParam]);
+  }, [tabParam, isAdmin, setSearchParams]);
 
   const handleSelectTab = (tab: SettingsView) => {
+    if ((tab === "accounts" || tab === "edit_account" || tab === "performance") && !isAdmin) {
+      setError("Admin access required for this section.");
+      return;
+    }
     setError(null);
     setViewState(tab);
     if (tab === "categories") {
@@ -117,7 +126,6 @@ export function SettingsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -137,6 +145,7 @@ export function SettingsPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formStatus, setFormStatus] = useState<"online" | "offline">("offline");
   const [formPin, setFormPin] = useState("");
+  const [formRole, setFormRole] = useState<UserRole | "">("");
   const [formTags, setFormTags] = useState<string[]>([]);
 
   // Tags states & custom persistence
@@ -216,49 +225,6 @@ export function SettingsPage() {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  // Easter Egg States
-  const [accountsRevealed, setAccountsRevealed] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.ACCOUNTS_REVEALED) === "true";
-  });
-  const [performanceRevealed, setPerformanceRevealed] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.PERFORMANCE_REVEALED) === "true";
-  });
-  const [clickCount, setClickCount] = useState(0);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [holdProgress, setHoldProgress] = useState(false);
-
-  const handleSettingsHeadingClick = () => {
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    if (newCount === 3 && !accountsRevealed) {
-      setAccountsRevealed(true);
-      localStorage.setItem(STORAGE_KEYS.ACCOUNTS_REVEALED, "true");
-      setSuccessMessage("Admin Mode Activated: Accounts view unlocked.");
-      setTimeout(() => setSuccessMessage(null), 3500);
-    }
-  };
-
-  const startTitleHold = () => {
-    setHoldProgress(true);
-    holdTimerRef.current = setTimeout(() => {
-      if (!performanceRevealed) {
-        setPerformanceRevealed(true);
-        localStorage.setItem(STORAGE_KEYS.PERFORMANCE_REVEALED, "true");
-        setSuccessMessage("Analytics Dashboard Unlocked: Performance view revealed.");
-        setTimeout(() => setSuccessMessage(null), 3500);
-      }
-      setHoldProgress(false);
-    }, 2000);
-  };
-
-  const cancelTitleHold = () => {
-    setHoldProgress(false);
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-  };
-
   // Load WhatsApp presets
   useEffect(() => {
     fetchWhatsAppPresets().then((presets) => {
@@ -328,6 +294,7 @@ export function SettingsPage() {
     setIsCreating(false);
     setFormName(u.name || "");
     setFormEmail(u.email || "");
+    setFormRole(getUserRole(u) || "");
     setFormStatus(u.status || "offline");
     setFormPin(u.pin || "");
     setFormTags(u.tags || []);
@@ -340,6 +307,7 @@ export function SettingsPage() {
     setIsCreating(true);
     setFormName("");
     setFormEmail("");
+    setFormRole("technician");
     setFormStatus("offline");
     setFormPin("");
     setFormTags([]);
@@ -365,17 +333,30 @@ export function SettingsPage() {
     try {
       const newName = formName.trim() || formEmail.split("@")[0];
 
+      const mergedTags = new Set(
+        (formTags || []).filter((t) => !["admin", "tech", "technician", "assistant"].includes(t))
+      );
+      if (formRole === "admin") {
+        mergedTags.add("admin");
+      } else if (formRole === "technician") {
+        mergedTags.add("tech");
+      } else if (formRole === "assistant") {
+        mergedTags.add("assistant");
+      }
+      const finalTags = Array.from(mergedTags);
+
       if (isCreating) {
         await addDoc(collection(db, "users"), {
           name: newName,
           email: formEmail.trim().toLowerCase(),
+          role: formRole || null,
           status: formStatus,
           pin: formPin || null,
-          tags: formTags,
+          tags: finalTags,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        setSuccessMessage(`New advisor "${newName}" created successfully!`);
+        setSuccessMessage(`New team member "${newName}" created successfully!`);
         await fetchUsers();
         setViewState("accounts");
       } else if (selectedUser) {
@@ -383,9 +364,10 @@ export function SettingsPage() {
         await updateDoc(userRef, {
           name: newName,
           email: formEmail.trim().toLowerCase(),
+          role: formRole || null,
           status: formStatus,
           pin: formPin || null,
-          tags: formTags,
+          tags: finalTags,
           updatedAt: serverTimestamp(),
         });
 
@@ -478,19 +460,7 @@ export function SettingsPage() {
 
             <div className="min-w-0">
               {viewState === "categories" && (
-                <h2
-                  onClick={handleSettingsHeadingClick}
-                  onMouseDown={startTitleHold}
-                  onMouseUp={cancelTitleHold}
-                  onMouseLeave={cancelTitleHold}
-                  onTouchStart={startTitleHold}
-                  onTouchEnd={cancelTitleHold}
-                  onTouchCancel={cancelTitleHold}
-                  className={cn(
-                    "text-base font-black tracking-tight uppercase leading-none cursor-pointer select-none active:scale-95 transition-transform",
-                    holdProgress && "text-cyan-400"
-                  )}
-                >
+                <h2 className="text-base font-black tracking-tight uppercase leading-none text-workshop-text">
                   Settings
                 </h2>
               )}
@@ -597,8 +567,7 @@ export function SettingsPage() {
           <AnimatePresence mode="wait">
             {viewState === "categories" && (
               <CategoriesView
-                accountsRevealed={accountsRevealed}
-                performanceRevealed={performanceRevealed}
+                isAdmin={isAdmin}
                 user={user}
                 onSelectTab={handleSelectTab}
                 onLogoutClick={() => setShowLogoutConfirm(true)}
@@ -627,6 +596,8 @@ export function SettingsPage() {
                 setFormName={setFormName}
                 formEmail={formEmail}
                 setFormEmail={setFormEmail}
+                formRole={formRole}
+                setFormRole={setFormRole}
                 formPin={formPin}
                 setFormPin={setFormPin}
                 formTags={formTags}

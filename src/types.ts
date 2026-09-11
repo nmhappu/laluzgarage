@@ -64,15 +64,40 @@ export interface ServiceRecord {
   updatedAt: FieldValue | Timestamp;
 }
 
+export type UserRole = 'admin' | 'technician' | 'assistant';
+
 export interface WorkshopUser {
   id: string;
   name: string;
   email: string;
   status: 'online' | 'offline';
+  role?: UserRole;
   pin?: string;
   tags?: string[];
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
+}
+
+/**
+ * Resolves the effective role of a workshop user, inspecting both
+ * the explicit `role` field and legacy `tags` array for backward compatibility.
+ */
+export function getUserRole(user: WorkshopUser | null | undefined): UserRole | null {
+  if (!user) return null;
+
+  // 1. Explicit formal role
+  if (user.role === 'admin' || user.role === 'technician' || user.role === 'assistant') {
+    return user.role;
+  }
+
+  // 2. Legacy tags taxonomy fallback
+  if (Array.isArray(user.tags)) {
+    if (user.tags.includes('admin')) return 'admin';
+    if (user.tags.includes('tech') || user.tags.includes('technician')) return 'technician';
+    if (user.tags.includes('assistant')) return 'assistant';
+  }
+
+  return null;
 }
 
 

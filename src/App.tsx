@@ -5,9 +5,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
 import { LoginPage } from './components/LoginPage';
+import { PendingApprovalPage } from './components/PendingApprovalPage';
 import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { getUserRole } from './types';
+import { AppLoadingScreen } from './components/auth/AppLoadingScreen';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ default: m.Dashboard })));
 const VehicleHistory = lazy(() => import('./components/VehicleHistory').then((m) => ({ default: m.VehicleHistory })));
@@ -74,6 +78,7 @@ function MainLayout() {
   const { user, profile } = useAuth();
   const location = useLocation();
   const isFullScreen = ['/settings', '/intake'].includes(location.pathname);
+  const role = getUserRole(profile);
 
   if (isFullScreen) {
     return (
@@ -95,8 +100,12 @@ function MainLayout() {
         <footer className="hidden md:flex h-10 bg-workshop-surface border-t border-workshop-border px-8 items-center justify-between text-[10px] text-workshop-muted shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-colors">
           <div className="flex items-center gap-8 h-full">
             <div className="flex items-center gap-3">
-              <span className="opacity-40 uppercase tracking-[0.2em] font-bold">Advisor:</span>
-              <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">{profile?.name || user?.displayName || user?.email}</span>
+              <span className="opacity-40 uppercase tracking-[0.2em] font-bold">
+                {role ? `${role}:` : 'User:'}
+              </span>
+              <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">
+                {profile?.name || user?.displayName || user?.email}
+              </span>
             </div>
           </div>
         </footer>
@@ -106,30 +115,73 @@ function MainLayout() {
 }
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Dismiss native splash screen smoothly into the web loading view
   useEffect(() => {
-    if (!user && location.pathname !== '/') {
+    SplashScreen.hide({ fadeOutDuration: 400 }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !user && location.pathname !== '/') {
       navigate('/', { replace: true });
     }
-  }, [user, location.pathname, navigate]);
+  }, [loading, user, location.pathname, navigate]);
 
-  if (!user) {
-    return (
-      <>
-        <SystemBars />
-        <LoginPage />
-      </>
-    );
-  }
+  const role = getUserRole(profile);
 
   return (
     <>
       <SystemBars />
-      <BackButtonHandler />
-      <MainLayout />
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <AppLoadingScreen key="app-loading-screen" />
+        ) : !user ? (
+          <motion.div
+            key="app-login-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              transition: { duration: 0.2, ease: [0.2, 0, 0, 1] },
+            }}
+            transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+            className="w-full min-h-screen"
+          >
+            <LoginPage />
+          </motion.div>
+        ) : !role ? (
+          <motion.div
+            key="app-pending-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              transition: { duration: 0.2, ease: [0.2, 0, 0, 1] },
+            }}
+            transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+            className="w-full min-h-screen"
+          >
+            <PendingApprovalPage />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="app-main-layout"
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+            className="w-full h-full"
+          >
+            <BackButtonHandler />
+            <MainLayout />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

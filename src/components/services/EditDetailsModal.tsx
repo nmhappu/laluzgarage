@@ -11,6 +11,7 @@ export interface EditDetailsModalProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   isUpdating: boolean;
+  readOnly?: boolean;
 }
 
 export function EditDetailsModal({
@@ -19,6 +20,7 @@ export function EditDetailsModal({
   onClose,
   onSubmit,
   isUpdating,
+  readOnly = false,
 }: EditDetailsModalProps) {
   return (
     <AnimatePresence>
@@ -43,7 +45,7 @@ export function EditDetailsModal({
 
               <div className="flex-1 pl-2">
                 <h2 className="text-lg sm:text-2xl font-black text-workshop-accent tracking-tight uppercase leading-none font-sans">
-                  Edit Service Details
+                  {readOnly ? "Service Details (Read Only)" : "Edit Service Details"}
                 </h2>
               </div>
             </div>
@@ -105,24 +107,36 @@ export function EditDetailsModal({
 
               {/* Bottom Sticky Action Bar */}
               <div className="pt-4 px-6 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/30 flex justify-end gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3.5 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-all active:scale-[0.98]"
-                >
-                  Discard
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating || !detailsRecord.description || !detailsRecord.expectedDeliveryDate}
-                  className="px-8 py-3.5 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
-                >
-                  {isUpdating ? (
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
-                  ) : (
-                    "Save Details"
-                  )}
-                </button>
+                {readOnly ? (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-8 py-3.5 bg-workshop-surface border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-text hover:bg-workshop-surface/80 transition-all active:scale-[0.98]"
+                  >
+                    Close
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-6 py-3.5 border border-workshop-border rounded-xl text-xs font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface transition-all active:scale-[0.98]"
+                    >
+                      Discard
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdating || !detailsRecord.description || !detailsRecord.expectedDeliveryDate}
+                      className="px-8 py-3.5 bg-workshop-accent text-workshop-bg rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-workshop-accent/20 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale font-black"
+                    >
+                      {isUpdating ? (
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
+                      ) : (
+                        "Save Details"
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </motion.div>

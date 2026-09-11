@@ -10,6 +10,8 @@ import { VehicleLedgerDrawer } from './vehicle/VehicleLedgerDrawer';
 import { WhatsAppPopup } from './WhatsAppPopup';
 import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { useAuth } from '../contexts/AuthContext';
+import { getUserRole } from '../types';
 
 export function VehicleHistory() {
   const {
@@ -50,6 +52,10 @@ export function VehicleHistory() {
   });
 
   const [whatsAppRedirect, setWhatsAppRedirect] = useState<{ name: string; phone: string; url: string } | null>(null);
+  const { profile } = useAuth();
+  const role = getUserRole(profile);
+  const isAdmin = role === "admin";
+  const isTechnician = role === "technician" || role === "admin";
 
   return (
     <div className="space-y-6 pb-24 md:pb-0 font-sans">
@@ -58,14 +64,16 @@ export function VehicleHistory() {
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase font-sans">Vehicle Registry</h1>
           <p className="text-workshop-muted text-sm font-medium font-sans">Manage workshop vehicles.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-workshop-accent/25 shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Register Vehicle</span>
-        </button>
+        {isTechnician && (
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-workshop-accent/25 shrink-0 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Register Vehicle</span>
+          </button>
+        )}
       </header>
 
       <AnimatePresence mode="wait">
@@ -144,6 +152,8 @@ export function VehicleHistory() {
                   setVehicleToDelete(v);
                   setShowDeleteConfirm(true);
                 }}
+                canDelete={isAdmin}
+                canEdit={isTechnician}
                 onWhatsApp={(info) => setWhatsAppRedirect(info)}
               />
             ))}

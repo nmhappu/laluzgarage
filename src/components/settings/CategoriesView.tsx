@@ -12,8 +12,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { WhatsAppIcon } from "../ui/BrandIcons";
 
 export interface CategoriesViewProps {
-  accountsRevealed: boolean;
-  performanceRevealed: boolean;
+  isAdmin: boolean;
   user: FirebaseUser | null;
   onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system") => void;
   onLogoutClick: () => void;
@@ -21,8 +20,7 @@ export interface CategoriesViewProps {
 }
 
 export function CategoriesView({
-  accountsRevealed,
-  performanceRevealed,
+  isAdmin,
   user,
   onSelectTab,
   onLogoutClick,
@@ -39,7 +37,7 @@ export function CategoriesView({
     >
       <div className="divide-y divide-workshop-border/30 border-b border-workshop-border/30">
         {/* Accounts Category */}
-        {accountsRevealed && (
+        {isAdmin && (
           <button
             type="button"
             id="settings-category-accounts"
@@ -113,7 +111,7 @@ export function CategoriesView({
         </button>
 
         {/* Technician Performance Category */}
-        {performanceRevealed && (
+        {isAdmin && (
           <button
             type="button"
             id="settings-category-performance"

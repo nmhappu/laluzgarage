@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "70866316727",
+    "project_id": "gen-lang-client-0601889915",
+    "storage_bucket": "gen-lang-client-0601889915.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70866316727:android:5b368e6197604f48b08c32",
+        "android_client_info": {
+          "package_name": "dev.appu.laluzgarage"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "70866316727-hlnk000t344rolcebq2e8fm292k2l0mp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.appu.laluzgarage",
+            "certificate_hash": "af5708d4a2549b17051982c6626e1a8e3e7a2819"
+          }
+        },
+        {
+          "client_id": "70866316727-njlo0pbq2bhh1e2tfr3gmijquk90krik.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.appu.laluzgarage",
+            "certificate_hash": "07f8dff37157f438b3ef62a13b061f0a6d9198ab"
+          }
+        },
+        {
+          "client_id": "70866316727-m610kubcupkttuip3choqt4gg846tdqa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlR3lo_C1mQGenl3VyZwtiZNxV_-eHbnA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "70866316727-m610kubcupkttuip3choqt4gg846tdqa.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

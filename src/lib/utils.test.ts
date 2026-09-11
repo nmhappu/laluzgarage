@@ -133,3 +133,29 @@ Regular checkup`);
     expect(result).not.toContain('{total_cost}');
   });
 });
+
+describe('Contact vCard Service', () => {
+  it('escapes special vCard characters properly', async () => {
+    const { escapeVCardValue, generateVCard } = await import('../services/contactService');
+    expect(escapeVCardValue('Smith;John,Jr.')).toBe('Smith\\;John\\,Jr.');
+    expect(escapeVCardValue('Line 1\nLine 2')).toBe('Line 1\\nLine 2');
+    expect(escapeVCardValue('C:\\Path\\File')).toBe('C:\\\\Path\\\\File');
+    expect(escapeVCardValue('')).toBe('');
+
+    const vcard = generateVCard({
+      name: 'Dr. John;Doe, MD',
+      phone: '+91 98765 43210',
+      email: 'john@example.com',
+      vehicleInfo: 'Ola S1 Pro; Black',
+      notes: 'Helmet left in trunk\nCall before 5PM',
+    });
+
+    expect(vcard).toContain('BEGIN:VCARD');
+    expect(vcard).toContain('VERSION:3.0');
+    expect(vcard).toContain('TEL;TYPE=CELL,VOICE:919876543210');
+    expect(vcard).toContain('EMAIL;TYPE=INTERNET:john@example.com');
+    expect(vcard).toContain('\\; Black');
+    expect(vcard).toContain('\\nCall before 5PM');
+    expect(vcard).toContain('END:VCARD');
+  });
+});

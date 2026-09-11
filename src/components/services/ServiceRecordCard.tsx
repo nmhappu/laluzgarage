@@ -25,6 +25,8 @@ export interface ServiceRecordCardProps {
   onClick: (r: ServiceRecord) => void;
   onUpdateDetails: (r: ServiceRecord) => void;
   onDelete: (r: ServiceRecord) => void;
+  canDelete?: boolean;
+  canEdit?: boolean;
   onWhatsAppClick: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
 }
 
@@ -35,6 +37,8 @@ export const ServiceRecordCard = memo(({
   onClick,
   onUpdateDetails,
   onDelete,
+  canDelete = false,
+  canEdit = true,
   onWhatsAppClick,
 }: ServiceRecordCardProps) => {
   const formattedDate = useMemo(() => {
@@ -326,26 +330,30 @@ export const ServiceRecordCard = memo(({
                 <UserPlus className="w-4 h-4" />
               </button>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onUpdateDetails(record);
-              }}
-              className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
-              title="Edit Details"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(record);
-              }}
-              className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-status-urgent/60 hover:text-status-urgent hover:border-status-urgent/20 transition-all active:scale-95 shadow-sm"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {canEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateDetails(record);
+                }}
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/20 transition-all active:scale-95 shadow-sm"
+                title="Edit Details"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(record);
+                }}
+                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-status-urgent/60 hover:text-status-urgent hover:border-status-urgent/20 transition-all active:scale-95 shadow-sm"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

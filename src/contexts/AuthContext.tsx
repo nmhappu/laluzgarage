@@ -3,15 +3,16 @@ import '@material/web/progress/circular-progress.js';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
   signOut,
-  User,
-  updateProfile
+  User
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, onSnapshot, arrayUnion } from 'firebase/firestore';
 import { WorkshopUser } from '../types';
 
 interface AuthContextType {
@@ -20,19 +21,25 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-import { CircularProgress } from '../components/ui/CircularProgress';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<WorkshopUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authResolved, setAuthResolved] = useState(false);
+  const [minHoldDone, setMinHoldDone] = useState(false);
   const unsubscribeProfileRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    // Deliberate minimum hold to prevent sub-second flicker on fast cache/network
+    const timer = setTimeout(() => {
+      setMinHoldDone(true);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -44,45 +51,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authUser) {
         try {
           const userRef = doc(db, 'users', authUser.uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists() && authUser.email) {
-            const emailLower = authUser.email.toLowerCase();
-            // Check if there is an existing user profile document in the database with this email
+          let userSnap = await getDoc(userRef);
+          const emailLower = authUser.email ? authUser.email.toLowerCase() : '';
+
+          if (!userSnap.exists() && emailLower) {
+            // Check if there is a pre-registered profile doc with this email (e.g., added by manager)
             const q = query(collection(db, 'users'), where('email', '==', emailLower));
             const qSnap = await getDocs(q);
             
             if (!qSnap.empty) {
-              // Found pre-existing profile document(s) with matching email
               const oldDoc = qSnap.docs[0];
               const oldData = oldDoc.data();
               
-              // Migrate/copy old data to a new document keyed by the actual Auth UID
               await setDoc(userRef, {
                 ...oldData,
                 id: authUser.uid,
-                name: oldData.name || authUser.displayName || emailLower.split('@')[0] || 'Unnamed Advisor',
+                name: oldData.name || authUser.displayName || emailLower.split('@')[0] || 'Team Member',
                 email: emailLower,
                 status: oldData.status || 'offline',
                 createdAt: oldData.createdAt || serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
               
-              // If the old document had a different ID, delete the old document
               if (oldDoc.id !== authUser.uid) {
                 await deleteDoc(doc(db, 'users', oldDoc.id));
-                console.log(`Migrated user profile for ${authUser.email} from temp document ${oldDoc.id} to UID ${authUser.uid}`);
               }
             } else {
-              // No existing profile found, create a new one
+              // New user registration - create initial base profile
               await setDoc(userRef, {
                 id: authUser.uid,
-                name: authUser.displayName || emailLower.split('@')[0] || 'Unnamed Advisor',
+                name: authUser.displayName || emailLower.split('@')[0] || 'Team Member',
                 email: emailLower,
                 status: 'offline',
+                tags: [],
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
-              console.log(`Created new profile document for ${authUser.email} with UID ${authUser.uid}`);
+            }
+
+            userSnap = await getDoc(userRef);
+          }
+
+          // Check if any admin exists across the entire workshop
+          const allUsersSnap = await getDocs(collection(db, 'users'));
+          const hasAdmin = allUsersSnap.docs.some(d => {
+            const data = d.data();
+            return data.role === 'admin' || (Array.isArray(data.tags) && data.tags.includes('admin'));
+          });
+
+          // Zero-Admin Bootstrap: If NO admin exists in the entire database, promote this user
+          if (!hasAdmin && userSnap.exists()) {
+            console.log(`Zero-Admin condition detected. Bootstrapping ${emailLower} as initial workshop Admin.`);
+            try {
+              // Create admin lock setting document
+              await setDoc(doc(db, 'settings', 'admin_lock'), {
+                adminUid: authUser.uid,
+                adminEmail: emailLower,
+                bootstrappedAt: serverTimestamp()
+              }, { merge: true });
+
+              // Promote active user to admin
+              await updateDoc(userRef, {
+                role: 'admin',
+                tags: arrayUnion('admin'),
+                updatedAt: serverTimestamp()
+              });
+            } catch (bootstrapErr) {
+              console.warn('Bootstrap admin lock notice:', bootstrapErr);
             }
           }
         } catch (e) {
@@ -90,11 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             handleFirestoreError(e, 'write', `users/${authUser.uid}`);
           } catch {
-            // Error captured and formatted
+            // Captured
           }
         }
 
-        // Setup real-time listener for the active user profile
+        // Setup real-time listener for active user profile
         unsubscribeProfileRef.current = onSnapshot(doc(db, 'users', authUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as WorkshopUser);
@@ -106,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             handleFirestoreError(err, 'get', `users/${authUser.uid}`);
           } catch {
-            // Error captured and formatted
+            // Captured
           }
         });
       } else {
@@ -114,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(authUser);
-      setLoading(false);
+      setAuthResolved(true);
     });
 
     return () => {
@@ -131,33 +166,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
-  }, []);
-
-  const register = useCallback(async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      await updateProfile(userCredential.user, { displayName });
-      
-      // Add to users collection
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        id: userCredential.user.uid,
-        name: displayName,
-        email: email,
-        status: 'offline',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      // Force user state refresh to include displayName
-      setUser({ ...userCredential.user, displayName });
+    if (Capacitor.isNativePlatform()) {
+      // Native Android Google Sign-In via system account picker
+      const result = await FirebaseAuthentication.signInWithGoogle();
+      const idToken = result.credential?.idToken;
+      if (!idToken) {
+        throw new Error('Google Sign-In was cancelled or failed to return credentials.');
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+    } else {
+      // Web browser popup flow
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithPopup(auth, provider);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    // 1. Unsubscribe profile snapshot listener first to prevent permission-denied errors
+    // 1. Unsubscribe profile snapshot listener first
     if (unsubscribeProfileRef.current) {
       try {
         unsubscribeProfileRef.current();
@@ -181,17 +208,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 3. Sign out of Firebase Auth
+    // 3. Sign out of Firebase Auth and native Capacitor session
     try {
+      if (Capacitor.isNativePlatform()) {
+        await FirebaseAuthentication.signOut().catch((nativeErr) => {
+          console.debug('Native signOut notice:', nativeErr);
+        });
+      }
       await signOut(auth);
     } catch (err) {
       console.error('Firebase signOut error:', err);
     } finally {
-      // 4. Guaranteed state cleanup
       setUser(null);
       setProfile(null);
     }
   }, []);
+
+  const loading = !authResolved || !minHoldDone;
 
   const contextValue = useMemo(() => ({
     user,
@@ -199,29 +232,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     loginWithGoogle,
-    register,
     logout
-  }), [user, profile, loading, login, loginWithGoogle, register, logout]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-workshop-bg">
-        <div className="text-center space-y-6">
-          <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
-            <div className="absolute inset-0 bg-workshop-accent/15 blur-2xl rounded-full scale-110" />
-            <CircularProgress
-              size={48}
-              color="var(--color-workshop-accent)"
-            />
-          </div>
-          <div className="space-y-2">
-            <p className="text-workshop-text font-logo font-semibold text-xs tracking-tight animate-pulse">Laluz Garage</p>
-            <p className="text-workshop-muted font-bold text-[10px] uppercase tracking-[0.2em] opacity-40">Waking up workshop systems...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }), [user, profile, loading, login, loginWithGoogle, logout]);
 
   return (
     <AuthContext.Provider value={contextValue}>

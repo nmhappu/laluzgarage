@@ -10,13 +10,17 @@ const config: CapacitorConfig = {
       style: 'DARK'
     },
     SplashScreen: {
-      launchShowDuration: 0,
-      launchAutoHide: true,
+      launchShowDuration: 3000,
+      launchAutoHide: false,
       backgroundColor: "#0B0D11",
       androidScaleType: "CENTER_INSIDE",
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true
+    },
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ['google.com']
     }
   }
 };

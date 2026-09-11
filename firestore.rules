@@ -20,16 +20,45 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return hasUserDoc() ? (
+        ('role' in getUserData() && getUserData().role is string) ? getUserData().role :
+        ('tags' in getUserData() && getUserData().tags is list && 'admin' in getUserData().tags) ? 'admin' :
+        ('tags' in getUserData() && getUserData().tags is list && ('tech' in getUserData().tags || 'technician' in getUserData().tags)) ? 'technician' :
+        ('tags' in getUserData() && getUserData().tags is list && 'assistant' in getUserData().tags) ? 'assistant' :
+        'unassigned'
+      ) : 'unassigned';
+    }
+
+    function isBootstrapAllowed() {
+      return !exists(/databases/$(database)/documents/settings/admin_lock);
+    }
+
     function isAdmin() {
-      return isSignedIn();
+      return isSignedIn() && (
+        (request.auth.token != null && 'admin' in request.auth.token && request.auth.token.admin == true) ||
+        (getUserRole() == 'admin')
+      );
     }
 
-    function isManager() {
-      return isSignedIn();
+    function isTechnician() {
+      return isAdmin() || (getUserRole() == 'technician');
     }
 
-    function isVerified() {
-      return isSignedIn();
+    function isAssistant() {
+      return getUserRole() == 'assistant';
+    }
+
+    function hasActiveRole() {
+      return isAdmin() || isTechnician() || isAssistant();
     }
 
     function isValidId(id) {
@@ -39,6 +68,16 @@ service cloud.firestore {
     // --- Entity Validations ---
     function isImmutable(field) {
       return !(field in incoming().keys()) || !(field in existing().keys()) || incoming()[field] == existing()[field];
+    }
+
+    function isRoleUnchanged() {
+      return (!('role' in incoming().keys()) && !('role' in existing().keys())) ||
+             (('role' in incoming().keys()) && ('role' in existing().keys()) && incoming().role == existing().role);
+    }
+
+    function isTagsUnchanged() {
+      return (!('tags' in incoming().keys()) && !('tags' in existing().keys())) ||
+             (('tags' in incoming().keys()) && ('tags' in existing().keys()) && incoming().tags == existing().tags);
     }
 
     function isValidCustomer(data) {
@@ -79,6 +118,7 @@ service cloud.firestore {
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
              data.status in ['online', 'offline'] &&
+             (!('role' in data.keys()) || data.role == null || data.role in ['admin', 'technician', 'assistant']) &&
              (!('pin' in data.keys()) || data.pin == null || (data.pin is string && data.pin.size() <= 10)) &&
              (!('tags' in data.keys()) || (data.tags is list && (data.tags.size() == 0 || (data.tags.size() > 0 && data.tags[0] is string))));
     }
@@ -87,36 +127,44 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) && (incoming().createdAt == request.time || incoming().createdAt is timestamp || incoming().createdAt is string) && (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
-      allow update: if isSignedIn() && isValidWorkshopUser(incoming()) && isImmutable('createdAt') && (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
-      allow delete: if isSignedIn();
+      allow create: if isSignedIn() && isValidWorkshopUser(incoming()) &&
+                    (request.auth.uid == userId || isAdmin()) &&
+                    (isAdmin() || isBootstrapAllowed() || ((!('role' in incoming().keys()) || incoming().role != 'admin') && (!('tags' in incoming().keys()) || !('admin' in incoming().tags)))) &&
+                    (incoming().createdAt == request.time || incoming().createdAt is timestamp || incoming().createdAt is string) &&
+                    (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
+      allow update: if isSignedIn() && isValidWorkshopUser(incoming()) && isImmutable('createdAt') &&
+                    (isAdmin() ||
+                     (request.auth.uid == userId && isRoleUnchanged() && isTagsUnchanged()) ||
+                     (isBootstrapAllowed() && request.auth.uid == userId)) &&
+                    (incoming().updatedAt == request.time || incoming().updatedAt is timestamp || incoming().updatedAt is string);
+      allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /customers/{customerId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidCustomer(incoming());
-      allow update: if isSignedIn() && isValidCustomer(incoming()) && isImmutable('createdAt');
-      allow delete: if isSignedIn();
+      allow read: if hasActiveRole();
+      allow create: if (isTechnician() || isAssistant()) && isValidCustomer(incoming());
+      allow update: if isTechnician() && isValidCustomer(incoming()) && isImmutable('createdAt');
+      allow delete: if isAdmin();
     }
 
     match /vehicles/{vehicleId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidVehicle(incoming());
-      allow update: if isSignedIn() && isValidVehicle(incoming()) && isImmutable('createdAt');
-      allow delete: if isSignedIn();
+      allow read: if hasActiveRole();
+      allow create: if (isTechnician() || isAssistant()) && isValidVehicle(incoming());
+      allow update: if isTechnician() && isValidVehicle(incoming()) && isImmutable('createdAt');
+      allow delete: if isAdmin();
     }
 
     match /parts/{partId} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && isValidPart(incoming());
-      allow delete: if isSignedIn();
+      allow read: if hasActiveRole();
+      allow create, update: if isTechnician() && isValidPart(incoming());
+      allow delete: if isAdmin();
     }
 
     match /serviceRecords/{recordId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidServiceRecord(incoming());
-      allow update: if isSignedIn() && isValidServiceRecord(incoming()) && isImmutable('createdAt');
-      allow delete: if isSignedIn();
+      allow read: if hasActiveRole();
+      allow create: if (isTechnician() || isAssistant()) && isValidServiceRecord(incoming());
+      allow update: if isTechnician() && isValidServiceRecord(incoming()) && isImmutable('createdAt');
+      allow delete: if isAdmin();
     }
 
     match /test/{docId} {
@@ -124,7 +172,8 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow read, write: if isSignedIn();
+      allow read: if hasActiveRole();
+      allow write: if isAdmin() || (settingId == 'admin_lock' && isBootstrapAllowed());
     }
   }
 }

@@ -12,6 +12,7 @@ export interface PartFormModalProps {
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
   onDelete?: () => void;
+  readOnly?: boolean;
 }
 
 export function PartFormModal({
@@ -22,11 +23,12 @@ export function PartFormModal({
   onSubmit,
   onClose,
   onDelete,
+  readOnly = false,
 }: PartFormModalProps) {
   if (!isOpen) return null;
 
   const isEdit = mode === 'edit';
-  const title = isEdit ? 'Edit Asset' : 'New Asset';
+  const title = readOnly ? 'View Asset' : isEdit ? 'Edit Asset' : 'New Asset';
   const subtitle = isEdit ? 'REGISTRY REF' : 'INVENTORY LOG';
   const subValue = isEdit ? `ID: ${(partData.id || '').substring(0, 8)}` : 'REGISTRATION';
   const submitText = isEdit ? 'Update Asset Info' : 'Register New Asset';
@@ -229,10 +231,10 @@ export function PartFormModal({
             {/* Action Bar Footer */}
             <div
               className={`px-6 pt-5 sheet-footer-safe bg-workshop-bg border-t border-workshop-border/40 flex items-center shrink-0 z-20 shadow-lg select-none font-sans ${
-                isEdit && onDelete ? 'justify-between' : 'justify-end gap-4'
+                !readOnly && isEdit && onDelete ? 'justify-between' : 'justify-end gap-4'
               }`}
             >
-              {isEdit && onDelete && (
+              {!readOnly && isEdit && onDelete && (
                 <button
                   type="button"
                   onClick={onDelete}
@@ -244,19 +246,31 @@ export function PartFormModal({
               )}
 
               <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-5 py-3 border border-workshop-border rounded-xl text-[10px] font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface/50 transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  Discard
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-secondary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/25 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  {submitText}
-                </button>
+                {readOnly ? (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-6 py-3 bg-workshop-surface border border-workshop-border rounded-xl text-[10px] font-black uppercase tracking-widest text-workshop-text hover:bg-workshop-surface/80 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    Close
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-5 py-3 border border-workshop-border rounded-xl text-[10px] font-black uppercase tracking-widest text-workshop-muted hover:bg-workshop-surface/50 transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      Discard
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-secondary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/25 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      {submitText}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </form>

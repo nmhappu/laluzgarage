@@ -6,8 +6,6 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   WHATSAPP_PRESETS: 'whatsapp_message_presets_v1',
   CUSTOM_TAGS: 'workshop_custom_tags',
-  ACCOUNTS_REVEALED: 'workshop_accounts_revealed',
-  PERFORMANCE_REVEALED: 'workshop_performance_revealed',
 } as const;
 
 export const DEFAULT_ADVISOR_PIN = '1234';

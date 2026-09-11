@@ -14,6 +14,8 @@ import { db, handleFirestoreError } from "../lib/firebase";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
+import { getUserRole } from "../types";
+import { useAuth } from "../contexts/AuthContext";
 import { cn, capitalizeName, cleanPhoneNumber, buildWhatsAppUrl } from "../lib/utils";
 import { WhatsAppPopup } from "./WhatsAppPopup";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -42,6 +44,11 @@ const contentVariants = {
 export function ServiceHistory() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const role = getUserRole(profile);
+  const isAdmin = role === "admin";
+  const isTechnician = role === "technician" || role === "admin";
+  const isAssistant = role === "assistant";
 
   // --- State: Core Data ---
   const [records, setRecords] = useState<ServiceRecord[]>([]);
@@ -679,6 +686,8 @@ export function ServiceHistory() {
                     onClick={handleCardClick}
                     onUpdateDetails={handleCardUpdateDetails}
                     onDelete={handleCardDelete}
+                    canDelete={isAdmin}
+                    canEdit={isTechnician}
                     onWhatsAppClick={(rec, cust, veh) => {
                       const cleanPhone = (cust?.phone || "").replace(/[^0-9]/g, "");
                       setWhatsAppRedirect({
@@ -738,6 +747,7 @@ export function ServiceHistory() {
         vehicleMap={vehicleMap}
         customers={customers}
         parts={parts}
+        readOnly={isAssistant}
         onWhatsAppClick={(rec, cust, veh) => {
           const cleanPhone = cleanPhoneNumber(cust?.phone || "");
           setWhatsAppRedirect({
@@ -757,6 +767,7 @@ export function ServiceHistory() {
         onClose={() => setDetailsRecord(null)}
         onSubmit={handleUpdateDetails}
         isUpdating={isUpdating}
+        readOnly={isAssistant}
       />
 
       {/* Delete Confirmation Modal */}

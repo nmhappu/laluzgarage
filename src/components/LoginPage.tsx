@@ -1,17 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Wrench, ChevronRight, Mail, Lock, AlertCircle, User as UserIcon } from 'lucide-react';
-import { motion } from 'motion/react';
+import {
+  Mail,
+  Lock,
+  AlertCircle,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ThemeToggle } from './ThemeToggle';
+import { LaluzLogo } from './ui/LaluzLogo';
+
+const tapSpringTransition = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 25,
+};
+
 
 export function LoginPage() {
-  const { login, loginWithGoogle, register } = useAuth();
-  const [isRegistering, setIsRegistering] = useState(false);
+  const { login, loginWithGoogle } = useAuth();
+  const [authMethod, setAuthMethod] = useState<'idle' | 'email'>('idle');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus email input when revealing credentials form
+  useEffect(() => {
+    if (authMethod === 'email') {
+      const timer = setTimeout(() => {
+        emailInputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [authMethod]);
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -20,15 +48,21 @@ export function LoginPage() {
       await loginWithGoogle();
     } catch (err: unknown) {
       console.error('Google sign-in error:', err);
-      const error = err as { code?: string; message?: string };
-      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      const errorObj = err as { code?: string; message?: string };
+      const message = err instanceof Error ? err.message : String(err);
+      if (
+        errorObj.code === 'auth/popup-closed-by-user' ||
+        errorObj.code === 'auth/cancelled-popup-request' ||
+        message.toLowerCase().includes('cancel') ||
+        errorObj.code === '12501'
+      ) {
         return;
       }
-      if (error.code === 'auth/popup-blocked') {
+      if (errorObj.code === 'auth/popup-blocked') {
         setError('Popup was blocked by your browser. Please allow popups and try again.');
         return;
       }
-      if (error.code === 'auth/account-exists-with-different-credential') {
+      if (errorObj.code === 'auth/account-exists-with-different-credential') {
         setError('An account already exists with this email using another sign-in method.');
         return;
       }
@@ -48,28 +82,22 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      if (isRegistering) {
-        if (!displayName.trim()) {
-          throw new Error('Please enter your full name');
-        }
-        await register(email, password, displayName);
-      } else {
-        await login(email, password);
-      }
+      await login(email, password);
     } catch (err: unknown) {
       console.error('Auth action failed:', err);
       if (err instanceof Error) {
         setError(err.message);
         return;
       }
-      const error = err as { code?: string };
-      // Friendly error mapping
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        setError('Invalid credentials. Please try again.');
-      } else if (error.code === 'auth/email-already-in-use') {
-        setError('This email is already associated with an account.');
-      } else if (error.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
+      const errorObj = err as { code?: string };
+      if (
+        errorObj.code === 'auth/user-not-found' ||
+        errorObj.code === 'auth/wrong-password' ||
+        errorObj.code === 'auth/invalid-credential'
+      ) {
+        setError('Invalid credentials. Please verify your email and password.');
+      } else if (errorObj.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later.');
       } else {
         setError('Authentication failed. Check your data and try again.');
       }
@@ -79,131 +107,224 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-workshop-bg flex items-center justify-center p-4 safe-top safe-bottom relative">
-      <div className="max-w-md w-full">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-workshop-card rounded-xl shadow-2xl overflow-hidden p-8 md:p-10 space-y-8 border border-workshop-border"
-        >
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-16 h-16 bg-workshop-accent rounded-xl flex items-center justify-center shadow-lg shadow-workshop-accent/10 mb-2">
-              <Wrench className="w-8 h-8 text-workshop-bg" />
-            </div>
-            <h1 className="text-3xl font-logo font-semibold text-workshop-text tracking-tight">LaluZ Garage</h1>
-            <p className="text-workshop-muted text-xs font-bold uppercase tracking-[0.2em] opacity-60">Workshop Management Core</p>
-          </div>
+    <div className="min-h-screen bg-workshop-bg flex flex-col justify-between p-6 sm:p-8 safe-top safe-bottom relative overflow-x-hidden">
+      {/* Precision Canvas Dot Grid Background */}
+      <div
+        className="canvas-grid pointer-events-none absolute inset-0 opacity-60 dark:opacity-40"
+        style={{
+          maskImage: 'radial-gradient(ellipse 85% 85% at 50% 50%, #000 40%, transparent 95%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 85% 85% at 50% 50%, #000 40%, transparent 95%)',
+        }}
+      />
 
-          <div className="space-y-4">
-            <button
-              type="button"
-              disabled={googleLoading || loading}
-              onClick={handleGoogleSignIn}
-              className="w-full flex items-center justify-center gap-3 bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text hover:bg-workshop-surface/80 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
-            >
-              {googleLoading ? (
-                <div className="w-4 h-4 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
-              ) : (
-                <img
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt="Google"
-                  className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
-            </button>
-
-            <div className="flex items-center gap-4 py-1">
-              <div className="flex-1 h-px bg-workshop-border/60" />
-              <span className="text-[10px] uppercase font-bold tracking-widest text-workshop-muted/60 select-none">
-                Or with credentials
-              </span>
-              <div className="flex-1 h-px bg-workshop-border/60" />
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              {isRegistering && (
-                <div className="relative group">
-                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="Full Name / Advisor Name"
-                    required
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full bg-workshop-surface border border-workshop-border rounded-xl py-4 pl-12 pr-4 text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent/30 focus:border-workshop-accent/50 transition-all font-bold text-sm"
-                  />
-                </div>
-              )}
-
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
-                <input
-                  type="email"
-                  placeholder="Technician Email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-workshop-surface border border-workshop-border rounded-xl py-4 pl-12 pr-4 text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent/30 focus:border-workshop-accent/50 transition-all font-bold text-sm"
-                />
-              </div>
-
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
-                <input
-                  type="password"
-                  placeholder="Security Password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-workshop-surface border border-workshop-border rounded-xl py-4 pl-12 pr-4 text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent/30 focus:border-workshop-accent/50 transition-all font-bold text-sm"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-2 p-4 bg-status-urgent/10 border border-status-urgent/20 text-status-urgent rounded-xl text-[10px] font-black uppercase tracking-widest"
-              >
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </motion.div>
-            )}
-
-            <button
-              disabled={loading}
-              type="submit"
-              className="w-full flex items-center justify-between bg-workshop-accent text-workshop-bg px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg shadow-workshop-accent/10 group"
-            >
-              <span>{loading ? 'Processing...' : isRegistering ? 'Initialize Account' : 'Authenticate Console'}</span>
-              {!loading && <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-            </button>
-          </form>
-
-          <div className="text-center pt-2">
-            <button
-              onClick={() => setIsRegistering(!isRegistering)}
-              className="text-[10px] font-black text-workshop-muted hover:text-workshop-accent uppercase tracking-[0.2em] transition-colors"
-            >
-              {isRegistering ? 'Already have access? Login' : 'Need new credentials? Register'}
-            </button>
-          </div>
-        </motion.div>
-        
-        <div className="mt-12 text-center text-workshop-muted text-[10px] flex flex-col gap-3">
-          <p className="font-bold opacity-30 uppercase tracking-[0.3em]">© 2026 LaluZ Garage Precision Workshop</p>
-          <div className="flex items-center justify-center gap-4 opacity-20 font-numeric">
-            <span>SECURE-NODE-AUTH</span>
-            <span className="w-1 h-1 bg-workshop-muted rounded-full" />
-            <span>v1.1.2-ALPHA</span>
-          </div>
-        </div>
+      {/* Ambient Background Glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center">
+        <div className="w-[500px] h-[500px] bg-workshop-accent/5 rounded-full blur-3xl -translate-y-12" />
       </div>
+
+      {/* Top Header */}
+      <motion.header
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.05, ease: [0.2, 0, 0, 1] }}
+        className="relative z-10 w-full max-w-lg mx-auto flex items-center justify-between py-2"
+      >
+        <span className="font-logo font-bold text-base tracking-tight text-workshop-text">
+          LaluZ Garage
+        </span>
+        <ThemeToggle />
+      </motion.header>
+
+      {/* Main Content - Displayed directly on top of background */}
+      <main className="relative z-10 max-w-md w-full mx-auto my-auto py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+          className="flex flex-col items-start text-left space-y-6 w-full"
+        >
+          {/* Brand Icon */}
+          <div className="relative text-workshop-text">
+            <div className="absolute -inset-3 bg-workshop-accent/15 blur-2xl rounded-full pointer-events-none" />
+            <LaluzLogo size={96} showGlow={false} />
+          </div>
+
+          {/* Heading & Subtitle */}
+          <div className="space-y-2 text-left">
+            <h1 className="text-2xl sm:text-3xl font-logo font-bold text-workshop-text tracking-tight">
+              Welcome to LaluZ Garage
+            </h1>
+            <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+              Sign in to manage vehicle records and inventory.
+            </p>
+            <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+              Internal use only.
+            </p>
+          </div>
+
+          {/* Interactive Actions Area */}
+          <AnimatePresence mode="wait" initial={false}>
+            {authMethod === 'idle' ? (
+              <motion.div
+                key="idle-view"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                className="w-full space-y-3 pt-2"
+              >
+                {/* Google Sign In */}
+                <motion.button
+                  type="button"
+                  disabled={googleLoading || loading}
+                  onClick={handleGoogleSignIn}
+                  whileTap={{ scale: 0.97 }}
+                  transition={tapSpringTransition}
+                  className="w-full flex items-center justify-start gap-3 bg-workshop-surface/60 hover:bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer text-left accelerate-gpu will-change-transform"
+                >
+                  {googleLoading ? (
+                    <div className="w-4 h-4 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <img
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                      alt="Google"
+                      className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <span>{googleLoading ? 'Connecting...' : 'Continue with Google'}</span>
+                </motion.button>
+
+                {/* Continue with mail button */}
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setAuthMethod('email');
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={tapSpringTransition}
+                  className="w-full flex items-center justify-start gap-3 bg-workshop-surface/60 hover:bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-sm cursor-pointer group text-left accelerate-gpu will-change-transform"
+                >
+                  <Mail className="w-4 h-4 text-workshop-accent shrink-0 transition-transform group-hover:scale-110" />
+                  <span>Continue with mail</span>
+                </motion.button>
+
+                {/* Error Banner */}
+                {error && (
+                  <div className="flex items-center gap-2.5 p-3.5 bg-status-urgent/10 border border-status-urgent/25 text-status-urgent rounded-xl text-xs font-semibold">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.form
+                key="email-view"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                onSubmit={handleSubmit}
+                className="w-full space-y-4 pt-1"
+              >
+                {/* Inputs */}
+                <div className="w-full space-y-3">
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+                      Email address
+                    </label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+                      <input
+                        ref={emailInputRef}
+                        type="email"
+                        placeholder="technician@laluzgarage.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+                      Password
+                    </label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-11 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+                      />
+                      <motion.button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        whileTap={{ scale: 0.85 }}
+                        transition={tapSpringTransition}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-workshop-muted hover:text-workshop-text p-1 transition-colors cursor-pointer"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error Banner */}
+                {error && (
+                  <div className="flex items-center gap-2.5 p-3.5 bg-status-urgent/10 border border-status-urgent/25 text-status-urgent rounded-xl text-xs font-semibold">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="w-full space-y-3 pt-2">
+                  <motion.button
+                    disabled={loading}
+                    type="submit"
+                    whileTap={{ scale: 0.97 }}
+                    transition={tapSpringTransition}
+                    className="w-full flex items-center justify-start gap-3 bg-workshop-accent text-workshop-bg hover:bg-workshop-accent/90 px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 text-left accelerate-gpu will-change-transform"
+                  >
+                    {loading && (
+                      <div className="w-4 h-4 border-2 border-workshop-bg border-t-transparent rounded-full animate-spin shrink-0" />
+                    )}
+                    <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+                  </motion.button>
+
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setAuthMethod('idle');
+                    }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={tapSpringTransition}
+                    className="w-full flex items-center justify-start gap-3 bg-workshop-surface/60 hover:bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-muted hover:text-workshop-text px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider cursor-pointer text-left accelerate-gpu will-change-transform"
+                  >
+                    <ArrowLeft className="w-4 h-4 shrink-0" />
+                    <span>Other Sign-In Options</span>
+                  </motion.button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </main>
     </div>
   );
 }
+
+

@@ -2,8 +2,16 @@ import { useInventory } from '../hooks/useInventory';
 import { InventoryList } from './inventory/InventoryList';
 import { PartFormModal } from './inventory/PartFormModal';
 import { DeletePartModal } from './inventory/DeletePartModal';
+import { useAuth } from '../contexts/AuthContext';
+import { getUserRole } from '../types';
 
 export function Inventory() {
+  const { profile } = useAuth();
+  const role = getUserRole(profile);
+  const isAdmin = role === 'admin';
+  const isTechnician = role === 'technician' || role === 'admin';
+  const isAssistant = role === 'assistant';
+
   const {
     filteredParts,
     loading,
@@ -29,36 +37,39 @@ export function Inventory() {
       <InventoryList
         parts={filteredParts}
         loading={loading}
-        onAddClick={() => setShowAddModal(true)}
+        onAddClick={isTechnician ? () => setShowAddModal(true) : undefined}
         onPartClick={(part) => {
           setEditingPart(part);
           setShowEditModal(true);
         }}
       />
 
-      {/* Add Modal */}
-      <PartFormModal
-        isOpen={showAddModal}
-        mode="add"
-        partData={newPart}
-        onChange={setNewPart}
-        onSubmit={(e) => {
-          e.preventDefault();
-          addPart(newPart);
-        }}
-        onClose={() => setShowAddModal(false)}
-      />
+      {/* Add Modal (Technicians & Admins) */}
+      {isTechnician && (
+        <PartFormModal
+          isOpen={showAddModal}
+          mode="add"
+          partData={newPart}
+          onChange={setNewPart}
+          onSubmit={(e) => {
+            e.preventDefault();
+            addPart(newPart);
+          }}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
 
-      {/* Edit Modal */}
+      {/* Edit / View Modal */}
       {editingPart && (
         <PartFormModal
           isOpen={showEditModal}
           mode="edit"
+          readOnly={isAssistant}
           partData={editingPart}
           onChange={(updated) => setEditingPart(updated as typeof editingPart)}
           onSubmit={(e) => {
             e.preventDefault();
-            if (editingPart?.id) {
+            if (isTechnician && editingPart?.id) {
               updatePart(editingPart.id, editingPart);
             }
           }}
@@ -66,27 +77,34 @@ export function Inventory() {
             setShowEditModal(false);
             setEditingPart(null);
           }}
-          onDelete={() => {
-            setPartToDelete(editingPart);
-            setShowEditModal(false);
-            setShowDeleteConfirm(true);
-          }}
+          onDelete={
+            isAdmin
+              ? () => {
+                  setPartToDelete(editingPart);
+                  setShowEditModal(false);
+                  setShowDeleteConfirm(true);
+                }
+              : undefined
+          }
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      <DeletePartModal
-        isOpen={showDeleteConfirm}
-        part={partToDelete}
-        onClose={() => {
-          setShowDeleteConfirm(false);
-          if (partToDelete) {
-            setEditingPart(partToDelete);
-            setShowEditModal(true);
-          }
-        }}
-        onConfirm={deletePart}
-      />
+      {/* Delete Confirmation Modal (Admin only) */}
+      {isAdmin && (
+        <DeletePartModal
+          isOpen={showDeleteConfirm}
+          part={partToDelete}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            if (partToDelete) {
+              setEditingPart(partToDelete);
+              setShowEditModal(true);
+            }
+          }}
+          onConfirm={deletePart}
+        />
+      )}
     </>
   );
 }
+export default Inventory;

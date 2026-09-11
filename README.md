@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚗 LaluZ Garage
+# LaluZ Garage
 
 **A high-performance, mobile-first workshop management application built for automotive garage technicians, service advisors, and workshop managers.**
 
@@ -14,21 +14,21 @@ Streamline vehicle intake, job card progression, real-time parts inventory deduc
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald?style=flat-square)](LICENSE)
 
-[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Getting Started](#-getting-started) • [Android Build](#-android--mobile-development) • [Architecture](#-project-architecture) • [Database](#-database-schema) • [Roadmap](#-roadmap)
+[Features](#key-features) • [Tech Stack](#tech-stack) • [Getting Started](#getting-started) • [Android Build](#android--mobile-development) • [Architecture](#project-architecture) • [Database](#database-schema) • [Roadmap](#roadmap--future-considerations)
 
 ---
 
 </div>
 
-## 📌 Overview
+## Overview
 
 **LaluZ Garage** is engineered from the ground up to replace paper job cards and fragmented workshop systems with a mobile-optimized, real-time workspace. Whether accessed on an advisor's smartphone on the garage floor or on a desktop workstation, LaluZ Garage delivers fluid animations, instant search, offline-tolerant data caching, and native mobile integrations.
 
 ---
 
-## ⚡ Key Features
+## Key Features
 
-### 1. 📋 Multi-Step Vehicle Intake Wizard
+### 1. Multi-Step Vehicle Intake Wizard
 - **Advisor PIN Verification**: Secure 4-digit PIN authentication before vehicle registration to log advisor accountability.
 - **Unified Live Search**: Instant fuzzy discovery across existing customer names, phone numbers, vehicle registration plates, and make/models.
 - **3-Step Intake Flow**:
@@ -37,31 +37,31 @@ Streamline vehicle intake, job card progression, real-time parts inventory deduc
   3. **Job Specification**: Checklist tasks with interactive markdown syntax (`[ ]` / `[x]`), odometer mileage input with toggles for "Dead Vehicle" or "Unknown Mileage", customer personal belongings tracking, and promised delivery dates.
 - **Animated Sinusoidal Progress Bar**: Custom `WavyProgress` visual indicator guiding advisors through intake stages.
 
-### 2. 🔧 Service Tracking & Job Cards
-- **Lifecycle Management**: Real-time status transitions across `Pending` ➔ `In-Progress` ➔ `Completed` / `Cancelled`.
+### 2. Service Tracking & Job Cards
+- **Lifecycle Management**: Real-time status transitions across `Pending` -> `In-Progress` -> `Completed` / `Cancelled`.
 - **Interactive Checklists**: Check off repair tasks directly inside job cards.
 - **Overdue Intelligence**: Automated delivery deadline tracking with status badges (`Due Today`, `X Days Overdue`, `X Days Left`).
 - **Vehicle Ledger Drawer**: Full-screen slide-over drawer displaying a vehicle's historical service records, lifetime spend, and chronological repairs.
 - **Job Completion Modal**: Validates final odometer progression (`completionMileage >= startMileage`), hand-over remarks, and generates final invoice tallies.
 
-### 3. 📦 Real-Time Parts Inventory & Billing
+### 3. Real-Time Parts Inventory & Billing
 - **Dynamic Stock Allocation**: Technicians allocate parts from the warehouse inventory directly into service records with quantity deduction.
 - **Automated Billing Engine**: Dynamically calculates `Total = Labor Charges + Parts Total`.
 - **Stock Safeguards**: Low-stock visual warning badges when inventory falls to or below `minStockLevel`.
 - **Item Categorization**: Tagging across Brakes, Engine, Electrical, Body, and warehouse shelf locations.
 
-### 4. 💬 WhatsApp & Native Contacts Automation
+### 4. WhatsApp & Native Contacts Automation
 - **Instant WhatsApp Alerts**: Pre-filled customer messages on vehicle intake and job delivery formatted via customizable template presets.
 - **Dynamic Template Placeholders**: Supports `{customer_name}`, `{vehicle_make}`, `{vehicle_model}`, `{vehicle_plate}`, `{job_description}`, `{parts_list}`, `{labor_cost}`, and `{total_cost}`.
 - **Native Android Contacts Export**: Dispatches `android.intent.action.INSERT` (`vnd.android.cursor.dir/contact`) intent to add customer contact details directly into the phone's address book with vehicle notes pre-filled.
 - **Universal vCard 3.0**: RFC 2426 `.vcf` fallback generation via `navigator.share` or file download for desktop and iOS browsers.
 
-### 5. 📊 Watchlist & Advisor Analytics
+### 5. Watchlist & Advisor Analytics
 - **Dashboard Stat Tiles**: Watchlist metrics for Total Services, Pending Work, Completed Jobs, and Issues Attended.
 - **Embedded Sparklines**: 14-day operational trend charts powered by `recharts`.
 - **Advisor Performance**: Revenue attribution breakdown per advisor (labor vs. parts revenue).
 
-### 6. 🎨 Google Material Design 3 (M3) Experience
+### 6. Google Material Design 3 (M3) Experience
 - **Fluid Typography**: Engineered with `Google Sans`, `Plus Jakarta Sans`, and tabular numeric monospace formatting for registration plates, odometers, and currency (`₹`).
 - **Seamless Canvas Design**: Clean, borderless layout architecture with subtle ambient backlight glows and divider-based detail rows.
 - **Shared Layout Animations**: Smooth glyph morphing page titles powered by `motion` (`MorphText`), spring-physics drawers, and tab backdrop pills.
@@ -69,7 +69,7 @@ Streamline vehicle intake, job card progression, real-time parts inventory deduc
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Domain | Technology / Library | Version | Usage |
 | :--- | :--- | :--- | :--- |
@@ -87,7 +87,7 @@ Streamline vehicle intake, job card progression, real-time parts inventory deduc
 
 ---
 
-## 📁 Project Architecture
+## Project Architecture
 
 ```text
 laluzgarage/
@@ -124,7 +124,7 @@ laluzgarage/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - **Node.js**: v20.x or higher
@@ -169,7 +169,7 @@ npm run lint    # Runs ESLint and TypeScript type checking
 
 ---
 
-## 📱 Android & Mobile Development
+## Android & Mobile Development
 
 LaluZ Garage is packaged with **Capacitor 8** for high-performance native Android distribution. It includes support for Android 15+ transparent system bars, edge-to-edge layout, hardware back button routing, and Google Native Auth.
 
@@ -186,7 +186,7 @@ LaluZ Garage is packaged with **Capacitor 8** for high-performance native Androi
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 The app uses Cloud Firestore with real-time listeners (`onSnapshot`):
 
@@ -209,9 +209,9 @@ Firestore
 
 ---
 
-## 💬 WhatsApp Template Syntax
+## WhatsApp Template Syntax
 
-Custom message templates are editable under **Settings ➔ WhatsApp Presets** and support the following runtime dynamic variables:
+Custom message templates are editable under **Settings -> WhatsApp Presets** and support the following runtime dynamic variables:
 
 | Placeholder | Description | Example Output |
 | :--- | :--- | :--- |
@@ -227,7 +227,7 @@ Custom message templates are editable under **Settings ➔ WhatsApp Presets** an
 
 ---
 
-## 🔮 Roadmap & Future Considerations
+## Roadmap & Future Considerations
 
 - [ ] **Role-Based Access Control (RBAC)**: Distinct permissions for `admin`, `service manager`, and `technician`.
 - [ ] **GST Billing Engine**: Automated CGST / SGST split computation, HSN code tagging on parts, and printable tax invoices.
@@ -236,7 +236,7 @@ Custom message templates are editable under **Settings ➔ WhatsApp Presets** an
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
 

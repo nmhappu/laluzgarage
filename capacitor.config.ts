@@ -15,8 +15,8 @@ const config: CapacitorConfig = {
       backgroundColor: "#0B0D11",
       androidScaleType: "CENTER_INSIDE",
       showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true
+      splashFullScreen: false,
+      splashImmersive: false
     },
     FirebaseAuthentication: {
       skipNativeAuth: false,

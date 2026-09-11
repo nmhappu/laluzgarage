@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useBackHandler } from '../contexts/UIContext';
 import type { Customer, Vehicle, WorkshopUser, ServiceRecord } from '../types';
 import { DEFAULT_ADVISOR_PIN } from '../lib/constants';
 import { formatIndianPhone, buildWhatsAppUrl, formatDateSafe } from '../lib/utils';
@@ -136,21 +137,22 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     }
   }, [step, selectedVehicle, selectedCustomer]);
 
-  // Hardware back-button handler
-  useEffect(() => {
-    const handleBackButton = (e: Event) => {
-      if (step > 1) {
-        handleBackStep();
-        e.preventDefault();
-      } else {
-        onClose();
-        e.preventDefault();
-      }
-    };
+  // Back navigation: Success modal (highest priority in intake)
+  useBackHandler(() => {
+    setCreatedJob(null);
+    onClose();
+    return true;
+  }, Boolean(createdJob), 70);
 
-    window.addEventListener('appBackButton', handleBackButton);
-    return () => window.removeEventListener('appBackButton', handleBackButton);
-  }, [step, onClose, handleBackStep]);
+  // Back navigation: Multi-step wizard progression
+  useBackHandler(() => {
+    if (step > 1) {
+      handleBackStep();
+      return true;
+    }
+    onClose();
+    return true;
+  }, !createdJob, 35);
 
   // Fetch initial lookup records
   useEffect(() => {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Portal } from '../Portal';
+import { useBackHandler } from '../../contexts/UIContext';
 
 // Helper function to format date strings for display (e.g. "Fri, May 22, 2026" or "May 22, 2026")
 const formatDateForDisplay = (dateStr: string): string => {
@@ -92,20 +93,11 @@ export function MaterialCalendar({
     }
   }, [value]);
 
-  // Support hardware/app back button to close open calendar popover cleanly
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleBackButton = (e: Event) => {
-      e.preventDefault();
-      setIsOpen(false);
-    };
-
-    window.addEventListener('appBackButton', handleBackButton);
-    return () => {
-      window.removeEventListener('appBackButton', handleBackButton);
-    };
-  }, [isOpen]);
+  // Support hardware/app back button to close open calendar popover cleanly with top priority
+  useBackHandler(() => {
+    setIsOpen(false);
+    return true;
+  }, isOpen, 100);
 
   const handleOpen = () => {
     // Reset temporary state when opening

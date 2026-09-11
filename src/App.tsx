@@ -135,6 +135,7 @@ function AppContent() {
   return (
     <>
       <SystemBars />
+      <BackButtonHandler />
       <AnimatePresence mode="wait">
         {loading ? (
           <AppLoadingScreen key="app-loading-screen" />
@@ -177,7 +178,6 @@ function AppContent() {
             transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
             className="w-full h-full"
           >
-            <BackButtonHandler />
             <MainLayout />
           </motion.div>
         )}

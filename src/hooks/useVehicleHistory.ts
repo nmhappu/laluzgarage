@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } fr
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, auth } from '../lib/firebase';
 import type { Customer, Vehicle, ServiceRecord } from '../types';
+import { useBackHandler } from '../contexts/UIContext';
 import { useResponsiveSearch } from './useResponsiveSearch';
 import { getWhatsAppPresetsSync, formatIntakeMessage } from '../services/whatsappPresetService';
 import { formatIndianPhone, cleanPhoneNumber, buildWhatsAppUrl } from '../lib/utils';
@@ -65,27 +66,26 @@ export function useVehicleHistory() {
     fetchData();
   }, []);
 
-  // Back button handling
-  useEffect(() => {
-    const handleBackButton = (e: Event) => {
-      if (showEditModal) {
-        setShowEditModal(false);
-        e.preventDefault();
-      } else if (showAddModal) {
-        setShowAddModal(false);
-        e.preventDefault();
-      } else if (showDeleteConfirm) {
-        setShowDeleteConfirm(false);
-        e.preventDefault();
-      } else if (selectedVehicleForLedger) {
-        setSelectedVehicleForLedger(null);
-        e.preventDefault();
-      }
-    };
+  // Back button handling with LIFO priority
+  useBackHandler(() => {
+    setShowDeleteConfirm(false);
+    return true;
+  }, showDeleteConfirm, 80);
 
-    window.addEventListener("appBackButton", handleBackButton);
-    return () => window.removeEventListener("appBackButton", handleBackButton);
-  }, [showEditModal, showAddModal, showDeleteConfirm, selectedVehicleForLedger]);
+  useBackHandler(() => {
+    setShowEditModal(false);
+    return true;
+  }, showEditModal, 70);
+
+  useBackHandler(() => {
+    setShowAddModal(false);
+    return true;
+  }, showAddModal, 70);
+
+  useBackHandler(() => {
+    setSelectedVehicleForLedger(null);
+    return true;
+  }, Boolean(selectedVehicleForLedger), 50);
 
   // Derived rich vehicles list
   const enrichedVehicles = useMemo(() => {

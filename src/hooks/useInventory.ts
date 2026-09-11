@@ -3,6 +3,7 @@ import type { Part } from '../types';
 import { inventoryService } from '../services/inventoryService';
 import { handleFirestoreError } from '../lib/firebase';
 import { useResponsiveSearch } from './useResponsiveSearch';
+import { useBackHandler } from '../contexts/UIContext';
 
 export function useInventory() {
   const [parts, setParts] = useState<Part[]>([]);
@@ -34,24 +35,26 @@ export function useInventory() {
     return () => unsubscribe();
   }, []);
 
-  // Hardware back-button handler
-  useEffect(() => {
-    const handleBackButton = (e: Event) => {
-      if (showEditModal) {
-        setShowEditModal(false);
-        e.preventDefault();
-      } else if (showAddModal) {
-        setShowAddModal(false);
-        e.preventDefault();
-      } else if (showDeleteConfirm) {
-        setShowDeleteConfirm(false);
-        e.preventDefault();
-      }
-    };
+  // Hardware & system back-button handlers
+  useBackHandler(() => {
+    setShowDeleteConfirm(false);
+    if (partToDelete) {
+      setEditingPart(partToDelete);
+      setShowEditModal(true);
+    }
+    return true;
+  }, showDeleteConfirm, 80);
 
-    window.addEventListener("appBackButton", handleBackButton);
-    return () => window.removeEventListener("appBackButton", handleBackButton);
-  }, [showEditModal, showAddModal, showDeleteConfirm]);
+  useBackHandler(() => {
+    setShowEditModal(false);
+    setEditingPart(null);
+    return true;
+  }, showEditModal, 70);
+
+  useBackHandler(() => {
+    setShowAddModal(false);
+    return true;
+  }, showAddModal, 70);
 
   const addPart = useCallback(async (partData: Partial<Part>) => {
     if (!partData.name) return;

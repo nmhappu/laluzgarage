@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { AlertTriangle } from "lucide-react";
 import { Portal } from "../Portal";
+import { useBackHandler } from "../../contexts/UIContext";
 import type { ServiceRecord } from "../../types";
 
 export interface DeleteRecordModalProps {
@@ -14,6 +15,11 @@ export function DeleteRecordModal({
   onClose,
   onConfirmDelete,
 }: DeleteRecordModalProps) {
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, Boolean(recordToDelete), 80);
+
   return (
     <AnimatePresence>
       {recordToDelete && (

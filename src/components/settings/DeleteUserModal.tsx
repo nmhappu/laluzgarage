@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Loader2 } from "lucide-react";
+import { Portal } from "../Portal";
+import { useBackHandler } from "../../contexts/UIContext";
 
 export interface DeleteUserModalProps {
   userToDelete: { id: string; name: string } | null;
@@ -16,10 +18,18 @@ export function DeleteUserModal({
   isDeleting,
   error,
 }: DeleteUserModalProps) {
+  useBackHandler(() => {
+    if (!isDeleting) {
+      onCancel();
+    }
+    return true;
+  }, Boolean(userToDelete), 85);
+
   return (
     <AnimatePresence>
       {userToDelete && (
-        <div className="fixed inset-0 bg-workshop-bg/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <Portal>
+          <div className="fixed inset-0 bg-workshop-bg/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -73,6 +83,7 @@ export function DeleteUserModal({
             </div>
           </motion.div>
         </div>
+      </Portal>
       )}
     </AnimatePresence>
   );

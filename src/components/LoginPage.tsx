@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBackHandler } from '../contexts/UIContext';
 import {
   Mail,
   Lock,
@@ -22,6 +23,13 @@ const tapSpringTransition = {
 export function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
   const [authMethod, setAuthMethod] = useState<'idle' | 'email'>('idle');
+
+  // Back handling: return to idle sign-in choices if in email mode
+  useBackHandler(() => {
+    setAuthMethod('idle');
+    return true;
+  }, authMethod === 'email', 50);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

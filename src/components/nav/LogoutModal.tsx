@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle } from 'lucide-react';
 import { Portal } from '../Portal';
+import { useBackHandler } from '../../contexts/UIContext';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -15,6 +16,14 @@ export function LogoutModal({
   onClose,
   onConfirm,
 }: LogoutModalProps) {
+  // Dismiss logout modal on back button press if not already logging out
+  useBackHandler(() => {
+    if (!isLoggingOut) {
+      onClose();
+    }
+    return true;
+  }, isOpen, 80);
+
   return (
     <AnimatePresence>
       {isOpen && (

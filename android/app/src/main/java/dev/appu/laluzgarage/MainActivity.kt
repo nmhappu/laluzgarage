@@ -26,7 +26,10 @@ class SystemBarsPlugin : Plugin() {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 window.isNavigationBarContrastEnforced = false
-                window.isStatusBarContrastEnforced = false
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT < 35) {
+                    window.isStatusBarContrastEnforced = false
+                }
             }
             call.resolve()
         }
@@ -51,7 +54,10 @@ class MainActivity : BridgeActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
-            window.isStatusBarContrastEnforced = false
+            @Suppress("DEPRECATION")
+            if (Build.VERSION.SDK_INT < 35) {
+                window.isStatusBarContrastEnforced = false
+            }
         }
     }
 }

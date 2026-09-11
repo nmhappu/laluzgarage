@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Receipt } from "lucide-react";
 import { Portal } from "../Portal";
+import { useBackHandler } from "../../contexts/UIContext";
 import type { ServiceRecord, Customer, Vehicle } from "../../types";
 import { formatCurrency, capitalizeName, cleanPhoneNumber, buildWhatsAppUrl, formatPartsListForWhatsApp } from "../../lib/utils";
 import { getWhatsAppPresetsSync, formatDeliveryMessage } from "../../services/whatsappPresetService";
@@ -21,6 +22,11 @@ export function DeliveryBillModal({
   completedJob,
   onClose,
 }: DeliveryBillModalProps) {
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, Boolean(completedJob), 85);
+
   return (
     <AnimatePresence>
       {completedJob && (() => {

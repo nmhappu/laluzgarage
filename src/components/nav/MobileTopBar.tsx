@@ -4,6 +4,7 @@ import { Settings, Search, SlidersHorizontal, LogOut, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
+import { useBackHandler } from '../../contexts/UIContext';
 import {
   getActiveTabLabel,
   getActiveTabM3Icon,
@@ -33,6 +34,19 @@ export function MobileTopBar({
   const location = useLocation();
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+
+  // Close sticky search bar on back button
+  useBackHandler(() => {
+    setShowStickySearch(false);
+    onMobileQueryChange('');
+    return true;
+  }, showStickySearch, 60);
+
+  // Close filter menu dropdown on back button
+  useBackHandler(() => {
+    setFilterMenuOpen(false);
+    return true;
+  }, filterMenuOpen, 60);
 
   useEffect(() => {
     setShowStickySearch(false);

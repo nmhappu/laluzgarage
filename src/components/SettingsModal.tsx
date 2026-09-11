@@ -1,31 +1,14 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  addDoc,
-  deleteDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { updateProfile } from "firebase/auth";
-import { db, auth } from "../lib/firebase";
-import {
-  ArrowLeft,
-  RefreshCw,
-  Plus,
-} from "lucide-react";
+import { auth } from "../lib/firebase";
+import { ArrowLeft, RefreshCw, Plus } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
-import { type WorkshopUser, type UserRole, getUserRole } from "../types";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  fetchWhatsAppPresets,
-  saveWhatsAppPresets,
-  DEFAULT_INTAKE_TEMPLATE,
-  DEFAULT_DELIVERY_TEMPLATE,
-} from "../services/whatsappPresetService";
+import { useUI, useBackHandler } from "../contexts/UIContext";
+import { useWorkshopUsers } from "../hooks/useWorkshopUsers";
+import { useWorkshopTags } from "../hooks/useWorkshopTags";
+import { useWhatsAppPresets } from "../hooks/useWhatsAppPresets";
 
 import { CategoriesView } from "./settings/CategoriesView";
 import { AccountsView } from "./settings/AccountsView";
@@ -53,6 +36,12 @@ type SettingsView =
   | "tags"
   | "performance";
 
+const pageVariants: Variants = {
+  initial: { opacity: 0, x: 10 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.2, 0, 0, 1.0] as const } },
+  exit: { opacity: 0, x: -10, transition: { duration: 0.16, ease: [0.2, 0, 0, 1.0] as const } },
+};
+
 export function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -79,6 +68,12 @@ export function SettingsPage() {
   const { user, profile, logout } = useAuth();
   const isAdmin = Boolean(profile?.tags?.includes("admin"));
 
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Tab routing sync
   useEffect(() => {
     if (tabParam) {
       if ((tabParam === "accounts" || tabParam === "edit_account" || tabParam === "performance") && !isAdmin) {
@@ -120,313 +115,107 @@ export function SettingsPage() {
     }
   };
 
-  const [users, setUsers] = useState<WorkshopUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+  // Domain Hooks
+  const {
+    users,
+    loading,
+    savingId,
+    deletingId,
+    userToDelete,
+    setUserToDelete,
+    selectedUser,
+    isCreating,
+    formName,
+    setFormName,
+    formEmail,
+    setFormEmail,
+    formStatus,
+    setFormStatus,
+    formPin,
+    setFormPin,
+    formRole,
+    setFormRole,
+    formTags,
+    setFormTags,
+    fetchUsers,
+    handleSelectUser,
+    handleStartCreate,
+    handleSaveUserProfile,
+    handleDeleteUser,
+    confirmDeleteUser,
+  } = useWorkshopUsers(setError, setSuccessMessage);
 
-  // WhatsApp Presets states
-  const [intakeTemplate, setIntakeTemplate] = useState(DEFAULT_INTAKE_TEMPLATE);
-  const [deliveryTemplate, setDeliveryTemplate] = useState(DEFAULT_DELIVERY_TEMPLATE);
-  const [presetTab, setPresetTab] = useState<"intake" | "delivery">("intake");
-  const [savingPresets, setSavingPresets] = useState(false);
+  const {
+    availableTags,
+    newTagInput,
+    setNewTagInput,
+    handleCreateTag,
+    handleDeleteTag,
+  } = useWorkshopTags(users, setError, setSuccessMessage, fetchUsers);
 
-  // Profile Editor states
-  const [selectedUser, setSelectedUser] = useState<WorkshopUser | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Editor form values
-  const [formName, setFormName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formStatus, setFormStatus] = useState<"online" | "offline">("offline");
-  const [formPin, setFormPin] = useState("");
-  const [formRole, setFormRole] = useState<UserRole | "">("");
-  const [formTags, setFormTags] = useState<string[]>([]);
-
-  // Tags states & custom persistence
-  const [customTags, setCustomTags] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("workshop_custom_tags");
-      return saved ? JSON.parse(saved) : ["tech"];
-    } catch {
-      return ["tech"];
-    }
-  });
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [newTagInput, setNewTagInput] = useState("");
-
-  // Dynamically calculate all tags in database + customTags
-  useEffect(() => {
-    const tagsSet = new Set<string>(customTags);
-    users.forEach((u) => {
-      if (u.tags && Array.isArray(u.tags)) {
-        u.tags.forEach((t) => {
-          if (t && typeof t === "string") {
-            tagsSet.add(t.trim().toLowerCase());
-          }
-        });
-      }
-    });
-    setAvailableTags(Array.from(tagsSet));
-  }, [users, customTags]);
-
-  const handleCreateTag = () => {
-    const trimmed = newTagInput.trim().toLowerCase();
-    if (!trimmed) return;
-    if (trimmed.length > 20) {
-      setError("Tag name must be 20 characters or less.");
-      return;
-    }
-    if (availableTags.includes(trimmed)) {
-      setError(`Tag "${trimmed}" already exists.`);
-      return;
-    }
-    const updated = Array.from(new Set([...customTags, trimmed]));
-    setCustomTags(updated);
-    try {
-      localStorage.setItem("workshop_custom_tags", JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-    setNewTagInput("");
-    setSuccessMessage(`Tag "${trimmed}" created.`);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  const handleDeleteTag = async (tagToDelete: string) => {
-    const updatedCustom = customTags.filter((t) => t !== tagToDelete);
-    setCustomTags(updatedCustom);
-    try {
-      localStorage.setItem("workshop_custom_tags", JSON.stringify(updatedCustom));
-    } catch (e) {
-      console.error(e);
-    }
-
-    const usersWithTag = users.filter((u) => u.tags?.includes(tagToDelete));
-    for (const u of usersWithTag) {
-      try {
-        const userRef = doc(db, "users", u.id);
-        const newTags = (u.tags || []).filter((t) => t !== tagToDelete);
-        await updateDoc(userRef, {
-          tags: newTags,
-          updatedAt: serverTimestamp(),
-        });
-      } catch (e) {
-        console.error("Error removing tag from user:", e);
-      }
-    }
-    await fetchUsers();
-    setSuccessMessage(`Tag "${tagToDelete}" deleted.`);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  // Load WhatsApp presets
-  useEffect(() => {
-    fetchWhatsAppPresets().then((presets) => {
-      setIntakeTemplate(presets.intakeTemplate);
-      setDeliveryTemplate(presets.deliveryTemplate);
-    });
-  }, []);
-
-  const handleSavePresets = async () => {
-    setSavingPresets(true);
-    setError(null);
-    try {
-      await saveWhatsAppPresets({
-        intakeTemplate,
-        deliveryTemplate,
-      });
-      setSuccessMessage("WhatsApp Message Presets saved successfully!");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e) {
-      console.error("Error saving whatsapp presets:", e);
-      setError("Failed to save WhatsApp message presets.");
-    } finally {
-      setSavingPresets(false);
-    }
-  };
-
-  const handleResetPresets = () => {
-    if (presetTab === "intake") {
-      setIntakeTemplate(DEFAULT_INTAKE_TEMPLATE);
-    } else {
-      setDeliveryTemplate(DEFAULT_DELIVERY_TEMPLATE);
-    }
-    setSuccessMessage(`Reset ${presetTab} message template to default.`);
-    setTimeout(() => setSuccessMessage(null), 2500);
-  };
-
-  const handleInsertVariable = (tag: string) => {
-    if (presetTab === "intake") {
-      setIntakeTemplate((prev) => prev + " " + tag);
-    } else {
-      setDeliveryTemplate((prev) => prev + " " + tag);
-    }
-  };
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      const userList = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WorkshopUser);
-      userList.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-      setUsers(userList);
-    } catch (e) {
-      console.error(e);
-      setError("Failed to fetch workshop team members.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const handleSelectUser = (u: WorkshopUser) => {
-    setSelectedUser(u);
-    setIsCreating(false);
-    setFormName(u.name || "");
-    setFormEmail(u.email || "");
-    setFormRole(getUserRole(u) || "");
-    setFormStatus(u.status || "offline");
-    setFormPin(u.pin || "");
-    setFormTags(u.tags || []);
-    setError(null);
-    setSuccessMessage(null);
-  };
-
-  const handleStartCreate = () => {
-    setSelectedUser(null);
-    setIsCreating(true);
-    setFormName("");
-    setFormEmail("");
-    setFormRole("technician");
-    setFormStatus("offline");
-    setFormPin("");
-    setFormTags([]);
-    setError(null);
-    setSuccessMessage(null);
-  };
-
-  const handleSaveUserProfile = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!formEmail.trim()) {
-      setError("Email address is required.");
-      return;
-    }
-    if (formPin && !/^\d{4}$/.test(formPin)) {
-      setError("Security PIN must be exactly 4 digits.");
-      return;
-    }
-
-    setSavingId(selectedUser?.id || "new");
-    setError(null);
-    setSuccessMessage(null);
-
-    try {
-      const newName = formName.trim() || formEmail.split("@")[0];
-
-      const mergedTags = new Set(
-        (formTags || []).filter((t) => !["admin", "tech", "technician", "assistant"].includes(t))
-      );
-      if (formRole === "admin") {
-        mergedTags.add("admin");
-      } else if (formRole === "technician") {
-        mergedTags.add("tech");
-      } else if (formRole === "assistant") {
-        mergedTags.add("assistant");
-      }
-      const finalTags = Array.from(mergedTags);
-
-      if (isCreating) {
-        await addDoc(collection(db, "users"), {
-          name: newName,
-          email: formEmail.trim().toLowerCase(),
-          role: formRole || null,
-          status: formStatus,
-          pin: formPin || null,
-          tags: finalTags,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        setSuccessMessage(`New team member "${newName}" created successfully!`);
-        await fetchUsers();
-        setViewState("accounts");
-      } else if (selectedUser) {
-        const userRef = doc(db, "users", selectedUser.id);
-        await updateDoc(userRef, {
-          name: newName,
-          email: formEmail.trim().toLowerCase(),
-          role: formRole || null,
-          status: formStatus,
-          pin: formPin || null,
-          tags: finalTags,
-          updatedAt: serverTimestamp(),
-        });
-
-        if (auth.currentUser && selectedUser.id === auth.currentUser.uid) {
-          try {
-            await updateProfile(auth.currentUser, { displayName: newName });
-          } catch (authError) {
-            console.error("Error syncing auth displayName:", authError);
-          }
-        }
-
-        setSuccessMessage(`User "${formName}" updated successfully!`);
-        await fetchUsers();
-        setViewState("accounts");
-      }
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e) {
-      console.error(e);
-      setError("Failed to save user profile.");
-    } finally {
-      setSavingId(null);
-    }
-  };
+  const {
+    intakeTemplate,
+    setIntakeTemplate,
+    deliveryTemplate,
+    setDeliveryTemplate,
+    presetTab,
+    setPresetTab,
+    savingPresets,
+    handleSavePresets,
+    handleResetPresets,
+    handleInsertVariable,
+  } = useWhatsAppPresets(setError, setSuccessMessage);
 
   const isCurrentUser = selectedUser?.id === auth.currentUser?.uid;
 
-  const handleDeleteUser = (userId: string, userName: string) => {
-    setUserToDelete({ id: userId, name: userName });
-  };
-
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
-    const { id, name } = userToDelete;
-
-    setDeletingId(id);
-    setError(null);
-    setSuccessMessage(null);
-
-    try {
-      await deleteDoc(doc(db, "users", id));
-      setSuccessMessage(`Advisor "${name}" deleted successfully.`);
-      setSelectedUser(null);
-      setUserToDelete(null);
-      await fetchUsers();
+  const onSaveUser = async (e: React.FormEvent) => {
+    const success = await handleSaveUserProfile(e);
+    if (success) {
       setViewState("accounts");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e) {
-      console.error(e);
-      setError("Failed to delete advisor.");
-    } finally {
-      setDeletingId(null);
     }
   };
 
-  const pageVariants: Variants = {
-    initial: { opacity: 0, x: 10 },
-    animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.2, 0, 0, 1.0] as const } },
-    exit: { opacity: 0, x: -10, transition: { duration: 0.16, ease: [0.2, 0, 0, 1.0] as const } },
+  const onDeleteConfirmUser = async () => {
+    const success = await confirmDeleteUser();
+    if (success) {
+      setViewState("accounts");
+    }
   };
+
+  // Back handling: DeleteUserModal
+  useBackHandler(() => {
+    setUserToDelete(null);
+    return true;
+  }, Boolean(userToDelete), 80);
+
+  // Back handling: Logout confirmation modal
+  useBackHandler(() => {
+    setShowLogoutConfirm(false);
+    return true;
+  }, showLogoutConfirm, 80);
+
+  // Back handling: sub-views in Settings
+  useBackHandler(() => {
+    setError(null);
+    handleSelectTab("accounts");
+    return true;
+  }, viewState === "edit_account", 50);
+
+  useBackHandler(() => {
+    setError(null);
+    handleSelectTab("categories");
+    return true;
+  }, viewState !== "categories" && viewState !== "edit_account", 40);
+
+  useBackHandler(() => {
+    setError(null);
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+    return true;
+  }, viewState === "categories", 30);
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans sheet-footer-safe pb-8">
@@ -605,7 +394,7 @@ export function SettingsPage() {
                 availableTags={availableTags}
                 savingId={savingId}
                 deletingId={deletingId}
-                onSave={handleSaveUserProfile}
+                onSave={onSaveUser}
                 onDelete={handleDeleteUser}
                 onCancel={() => setViewState("accounts")}
                 pageVariants={pageVariants}
@@ -659,7 +448,7 @@ export function SettingsPage() {
           setError(null);
           setUserToDelete(null);
         }}
-        onConfirm={confirmDeleteUser}
+        onConfirm={onDeleteConfirmUser}
         isDeleting={deletingId !== null}
         error={error}
       />

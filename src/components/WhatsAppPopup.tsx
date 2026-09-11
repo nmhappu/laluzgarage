@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, MessageCircle, FileText, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Car, Phone, User, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Portal } from './Portal';
+import { useBackHandler } from '../contexts/UIContext';
 import { WhatsAppIcon } from './ui/BrandIcons';
 import type { ServiceRecord, Vehicle } from '../types';
 import {
@@ -34,6 +35,12 @@ export function WhatsAppPopup({
 }: WhatsAppPopupProps) {
   const [presets, setPresets] = useState<WhatsAppPresets>(getWhatsAppPresetsSync());
   const [previewOpen, setPreviewOpen] = useState<'intake' | 'delivery' | null>(null);
+
+  // Close WhatsApp popup on system/browser back button
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, isOpen, 90);
 
   // Fetch updated presets from Firestore on open
   useEffect(() => {

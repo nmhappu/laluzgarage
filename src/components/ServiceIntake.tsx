@@ -168,8 +168,14 @@ export function ServiceIntakePage() {
   return (
     <div className="w-full max-w-4xl mx-auto py-2">
       <ServiceIntake
-        onClose={() => navigate('/')}
-        onSuccess={() => navigate('/services')}
+        onClose={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate('/', { replace: true });
+          }
+        }}
+        onSuccess={() => navigate('/services', { replace: true })}
         isPage={true}
       />
     </div>

@@ -77,7 +77,7 @@ export function WhatsAppPresetsView({
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold text-workshop-text uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-workshop-text tracking-wider">
               {presetTab === "intake"
                 ? "Vehicle Intake Registration Preset"
                 : "Service Delivery & Completion Preset"}

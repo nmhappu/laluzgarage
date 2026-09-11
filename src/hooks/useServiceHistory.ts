@@ -61,16 +61,75 @@ export function useServiceHistory(activeTab: string, deferredSearch: string) {
     return map;
   }, [customers]);
 
+  // Multi-field, multi-token, space-agnostic and format-tolerant search filter
+  const searchMatchingRecords = useMemo(() => {
+    const query = deferredSearch.trim().toLowerCase();
+    if (!query) return records;
+
+    const queryTokens = query.split(/\s+/).filter(Boolean);
+    if (queryTokens.length === 0) return records;
+
+    return records.filter((r) => {
+      const vehicle = vehicleMap.get(r.vehicleId);
+      const customer = customerMap.get(r.customerId);
+
+      const plateRaw = (vehicle?.plateNumber || "").toLowerCase();
+      const plateClean = plateRaw.replace(/[^a-z0-9]/g, "");
+
+      const phoneRaw = customer?.phone || "";
+      const phoneClean = phoneRaw.replace(/[^0-9]/g, "");
+      const phoneCleanNoCountry = phoneClean.replace(/^91/, "");
+
+      const vehicleText = `${vehicle?.make || ""} ${vehicle?.model || ""} ${vehicle?.color || ""}`.toLowerCase();
+      const customerName = (customer?.name || "").toLowerCase();
+      const pin = (vehicle?.passwordOrPin || "").toLowerCase();
+      const pinClean = pin.replace(/[^a-z0-9]/g, "");
+
+      const advisor = (r.technicianName || "").toLowerCase();
+      const description = (r.description || "").toLowerCase();
+      const personalItems = (r.personalItems || "").toLowerCase();
+      const remarks = `${r.remarks || ""} ${r.finalRemarks || ""}`.toLowerCase();
+      const partsNames = (r.partsUsed || []).map((p) => p.name.toLowerCase()).join(" ");
+      const dateStr = r.date || "";
+
+      // Check that every token matches at least one attribute of this service record
+      return queryTokens.every((token) => {
+        const tokenClean = token.replace(/[^a-z0-9]/g, "");
+        const tokenNumeric = token.replace(/[^0-9]/g, "");
+
+        return (
+          customerName.includes(token) ||
+          vehicleText.includes(token) ||
+          advisor.includes(token) ||
+          description.includes(token) ||
+          personalItems.includes(token) ||
+          remarks.includes(token) ||
+          partsNames.includes(token) ||
+          dateStr.includes(token) ||
+          plateRaw.includes(token) ||
+          (tokenClean.length >= 2 && plateClean.includes(tokenClean)) ||
+          phoneRaw.includes(token) ||
+          (tokenNumeric.length >= 3 &&
+            (phoneClean.includes(tokenNumeric) ||
+              (phoneCleanNoCountry.length > 0 && phoneCleanNoCountry.includes(tokenNumeric)))) ||
+          pin.includes(token) ||
+          (tokenClean.length >= 1 && pinClean.includes(tokenClean))
+        );
+      });
+    });
+  }, [records, deferredSearch, vehicleMap, customerMap]);
+
+  // Tab counts dynamically reflect search results when a search term is present
   const tabCounts = useMemo(() => {
-    const counts = { all: records.length, pending: 0, "in-progress": 0, completed: 0, cancelled: 0 };
-    records.forEach((r) => {
+    const counts = { all: searchMatchingRecords.length, pending: 0, "in-progress": 0, completed: 0, cancelled: 0 };
+    searchMatchingRecords.forEach((r) => {
       if (r.status === "pending") counts.pending++;
       else if (r.status === "in-progress") counts["in-progress"]++;
       else if (r.status === "completed") counts.completed++;
       else if (r.status === "cancelled") counts.cancelled++;
     });
     return counts;
-  }, [records]);
+  }, [searchMatchingRecords]);
 
   const tabs = useMemo(
     () => [
@@ -119,38 +178,9 @@ export function useServiceHistory(activeTab: string, deferredSearch: string) {
   );
 
   const filteredRecords = useMemo(() => {
-    return records.filter((r) => {
-      const matchesTab =
-        activeTab === "all" ||
-        deferredSearch.trim() !== "" ||
-        (activeTab === "pending" && r.status === "pending") ||
-        (activeTab === "in-progress" && r.status === "in-progress") ||
-        (activeTab === "completed" && r.status === "completed") ||
-        (activeTab === "cancelled" && r.status === "cancelled");
-
-      if (!matchesTab) return false;
-
-      if (deferredSearch.trim()) {
-        const query = deferredSearch.toLowerCase();
-        const vehicle = vehicleMap.get(r.vehicleId);
-        const customer = customerMap.get(r.customerId);
-
-        const vehicleName = `${vehicle?.make} ${vehicle?.model}`.toLowerCase();
-        const plateNumber = vehicle?.plateNumber?.toLowerCase() || "";
-        const customerName = customer?.name?.toLowerCase() || "";
-        const vehicleColor = vehicle?.color?.toLowerCase() || "";
-
-        const matchesSticky =
-          vehicleName.includes(query) ||
-          plateNumber.includes(query) ||
-          customerName.includes(query) ||
-          vehicleColor.includes(query);
-        if (!matchesSticky) return false;
-      }
-
-      return true;
-    });
-  }, [records, activeTab, deferredSearch, vehicleMap, customerMap]);
+    if (activeTab === "all") return searchMatchingRecords;
+    return searchMatchingRecords.filter((r) => r.status === activeTab);
+  }, [searchMatchingRecords, activeTab]);
 
   const confirmDelete = async (recordToDelete: ServiceRecord) => {
     if (!recordToDelete) return;
@@ -349,6 +379,8 @@ export function useServiceHistory(activeTab: string, deferredSearch: string) {
     tabCounts,
     tabs,
     filteredRecords,
+    searchMatchingRecordsCount: searchMatchingRecords.length,
+    isSearching: Boolean(deferredSearch.trim()),
     fetchData,
     confirmDelete,
     handleUpdateRecord,

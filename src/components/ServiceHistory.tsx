@@ -3,6 +3,7 @@ import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import { useResponsiveSearch } from "../hooks/useResponsiveSearch";
 import { useServiceHistory } from "../hooks/useServiceHistory";
 import { motion, AnimatePresence } from "motion/react";
+import { Search, X } from "lucide-react";
 import type { ServiceRecord, Vehicle, Customer } from "../types";
 import { getUserRole } from "../types";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,7 +33,7 @@ export function ServiceHistory() {
   const isAssistant = role === "assistant";
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const { searchTerm: stickySearchLogs, activeTab, setActiveTab } = useResponsiveSearch();
+  const { searchTerm: stickySearchLogs, setSearchTerm, activeTab, setActiveTab } = useResponsiveSearch();
   const deferredSearch = useDeferredValue(stickySearchLogs);
 
   // Sync activeTab from location state
@@ -64,6 +65,8 @@ export function ServiceHistory() {
     customerMap,
     tabs,
     filteredRecords,
+    searchMatchingRecordsCount,
+    isSearching,
     fetchData,
     confirmDelete,
     handleUpdateRecord,
@@ -212,16 +215,6 @@ export function ServiceHistory() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase">
-            Service History
-          </h1>
-          <p className="text-workshop-muted text-sm">
-            Track and manage vehicle maintenance history.
-          </p>
-        </div>
-      </header>
 
       {/* Status Tabs Controls */}
       <ServiceHistoryTabs
@@ -229,6 +222,26 @@ export function ServiceHistory() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
       />
+
+      {/* Active Search Summary */}
+      {isSearching && !loading && filteredRecords.length > 0 && (
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-workshop-surface/60 border border-workshop-border/40 rounded-xl text-xs">
+          <div className="flex items-center gap-2 text-workshop-muted min-w-0">
+            <Search className="w-3.5 h-3.5 text-workshop-accent shrink-0" />
+            <span className="truncate">
+              Results for <strong className="text-workshop-text font-bold">"{deferredSearch}"</strong> ({filteredRecords.length} {filteredRecords.length === 1 ? "match" : "matches"}{activeTab !== "all" ? ` in ${activeTab}` : ""})
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSearchTerm("")}
+            className="text-workshop-muted hover:text-workshop-text text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 ml-2 px-2 py-1 rounded-lg hover:bg-workshop-card/80 transition-colors cursor-pointer active:scale-95"
+          >
+            <X className="w-3 h-3" />
+            Clear
+          </button>
+        </div>
+      )}
 
       <div className="space-y-4">
         <AnimatePresence mode="wait">
@@ -256,19 +269,90 @@ export function ServiceHistory() {
               ))}
             </motion.div>
           ) : filteredRecords.length === 0 ? (
-            <motion.div
-              key="empty-state"
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-              className="text-center py-16 bg-workshop-surface/20 border border-workshop-border border-dashed rounded-xl"
-            >
-              <p className="text-workshop-muted text-sm font-medium">
-                No logs match your filter criteria.
-              </p>
-            </motion.div>
+            isSearching && searchMatchingRecordsCount > 0 ? (
+              <motion.div
+                key="empty-cross-tab-search-state"
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                className="text-center py-12 px-4 bg-workshop-surface/30 border border-workshop-border border-dashed rounded-xl space-y-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-workshop-surface border border-workshop-border flex items-center justify-center mx-auto text-workshop-muted">
+                  <Search className="w-5 h-5 text-workshop-accent" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-workshop-text font-bold text-sm">
+                    No <span className="capitalize">{activeTab}</span> logs match "{deferredSearch}"
+                  </p>
+                  <p className="text-workshop-muted text-xs">
+                    Found {searchMatchingRecordsCount} matching {searchMatchingRecordsCount === 1 ? "record" : "records"} in other status tabs.
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("all")}
+                    className="px-4 py-2 rounded-xl bg-workshop-accent text-workshop-bg font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    View all {searchMatchingRecordsCount} {searchMatchingRecordsCount === 1 ? "result" : "results"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              </motion.div>
+            ) : isSearching ? (
+              <motion.div
+                key="empty-search-state"
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                className="text-center py-16 px-4 bg-workshop-surface/20 border border-workshop-border border-dashed rounded-xl space-y-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-workshop-surface border border-workshop-border flex items-center justify-center mx-auto text-workshop-muted">
+                  <Search className="w-5 h-5 opacity-40" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-workshop-text font-bold text-sm">
+                    No logs match "{deferredSearch}"
+                  </p>
+                  <p className="text-workshop-muted text-xs max-w-sm mx-auto">
+                    Try searching by customer name, phone number, vehicle plate, model, advisor, problem, or spare parts.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-text hover:border-workshop-accent/50 hover:text-workshop-accent font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-sm"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty-state"
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                className="text-center py-16 bg-workshop-surface/20 border border-workshop-border border-dashed rounded-xl"
+              >
+                <p className="text-workshop-muted text-sm font-medium">
+                  No logs match your filter criteria.
+                </p>
+              </motion.div>
+            )
           ) : (
             <motion.div
               key="records-list"

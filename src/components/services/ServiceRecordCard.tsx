@@ -6,16 +6,12 @@ import {
   Edit2,
   ArrowRight,
   Package,
-  ScanHeart,
-  User,
-  UserPlus,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } from "date-fns";
 import type { ServiceRecord, Vehicle, Customer } from "../../types";
 import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
-import { openCreateContactScreen } from "../../services/contactService";
-import { WhatsAppIcon, OlaWatermark } from "../ui/BrandIcons";
+import { OlaWatermark } from "../ui/BrandIcons";
 import { ServiceStatusBadge } from "../shared/ServiceStatusBadge";
 
 export interface ServiceRecordCardProps {
@@ -27,7 +23,7 @@ export interface ServiceRecordCardProps {
   onDelete: (r: ServiceRecord) => void;
   canDelete?: boolean;
   canEdit?: boolean;
-  onWhatsAppClick: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
+  onWhatsAppClick?: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
 }
 
 export const ServiceRecordCard = memo(({
@@ -56,7 +52,12 @@ export const ServiceRecordCard = memo(({
   const descriptionLines = useMemo(() => {
     return (record.description || "")
       .split("\n")
-      .map((line) => line.replace(/^\[[x ]\]\s*/, "").trim())
+      .map((line) =>
+        line
+          .replace(/^\[[x ]\]\s*/, "")
+          .replace(/^(\d+[\.\)]|[-*•])\s*/, "")
+          .trim()
+      )
       .filter(Boolean);
   }, [record.description]);
 
@@ -113,7 +114,7 @@ export const ServiceRecordCard = memo(({
       />
 
       {isOla && (
-        <div className="absolute inset-y-0 left-0 w-1/3 pointer-events-none opacity-[0.035] [html[data-theme=light]_&]:opacity-[0.06] flex items-center pl-4 text-workshop-text overflow-hidden select-none">
+        <div className="absolute bottom-18 right-2 w-44 md:w-56 pointer-events-none opacity-[0.045] [html[data-theme=light]_&]:opacity-[0.07] flex items-end justify-end pr-4 pb-2 text-workshop-text overflow-hidden select-none">
           <OlaWatermark className="w-full h-auto" />
         </div>
       )}
@@ -132,96 +133,97 @@ export const ServiceRecordCard = memo(({
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <div className="flex-1 space-y-3.5">
-            <div className="flex flex-col bg-workshop-surface/20 p-3.5 rounded-xl border border-workshop-border/10">
-              
-              {/* Client Name at the top */}
-              <div className="pb-0.5 border-b border-workshop-border/10 text-workshop-text font-black text-base md:text-lg uppercase tracking-tight">
-                {capitalizeName(customer?.name) || "Unknown Client"}
+          <div className="flex-1 space-y-2 px-1">
+            {/* Client Name at the top */}
+            <div className="text-workshop-text font-black text-base md:text-lg uppercase tracking-tight">
+              {capitalizeName(customer?.name) || "Unknown Client"}
+            </div>
+
+            {/* Grouped Vehicle Details with even spacing */}
+            <div className="space-y-2">
+              {/* ROW 1: Plate and Vehicle Model only */}
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
+                {/* Plate Number in prominent Blue */}
+                <span className="text-secondary font-plate font-black tracking-widest uppercase shrink-0 select-all text-base">
+                  {v?.plateNumber || "NO PLATE"}
+                </span>
+
+                <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+
+                {/* Make & Model */}
+                <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base">
+                  {v?.make} {v?.model}
+                </span>
               </div>
 
-              {/* Grouped Vehicle Details with even spacing */}
-              <div className="pt-0.5 space-y-2">
-                {/* ROW 1: Plate and Vehicle Model only */}
-                <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
-                  {/* Plate Number in prominent Blue */}
-                  <span className="text-secondary font-plate font-black tracking-widest uppercase shrink-0 select-all text-base">
-                    {v?.plateNumber || "NO PLATE"}
-                  </span>
-
-                  <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
-
-                  {/* Make & Model */}
-                  <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base">
-                    {v?.make} {v?.model}
-                  </span>
-                </div>
-
-                {/* ROW 2: Mileage & Password / Key PIN on different lines/section */}
-                <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
-                  {/* Mileage Badge */}
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={cn(
-                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
-                        record.isDeadVehicle
-                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                          : record.isUnknownMileage
-                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                            : "text-status-pending",
-                      )}
-                    >
-                      {record.isDeadVehicle
-                        ? "DEAD"
+              {/* ROW 2: Mileage & Password / Key PIN on different lines/section */}
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
+                {/* Mileage Badge */}
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
+                      record.isDeadVehicle
+                        ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
                         : record.isUnknownMileage
-                          ? "LOCKED"
-                          : `${record.mileage.toLocaleString()} KM`}
-                    </span>
-                    {!!record.completionMileage && (
-                      <>
-                        <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
-                        <span className="text-status-success font-google-sans font-black whitespace-nowrap shrink-0 text-base">
-                          {record.completionMileage.toLocaleString()} KM
-                        </span>
-                      </>
+                          ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : "text-status-pending",
                     )}
-                  </div>
-
-                  {v?.passwordOrPin && (
+                  >
+                    {record.isDeadVehicle
+                      ? "DEAD"
+                      : record.isUnknownMileage
+                        ? "LOCKED"
+                        : `${record.mileage.toLocaleString()} KM`}
+                  </span>
+                  {!!record.completionMileage && (
                     <>
-                      <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
-                      <div className="flex items-center gap-1 text-status-success shrink-0">
-                        {v.passwordOrPin.toLowerCase() === "key" ? (
-                          <>
-                            <Key className="w-4 h-4" />
-                            <span className="font-google-sans font-black tracking-[0.1em] text-base">
-                              KEY
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-numeric font-black tracking-wider text-status-success text-base">
-                            # {v.passwordOrPin}
-                          </span>
-                        )}
-                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
+                      <span className="text-status-success font-google-sans font-black whitespace-nowrap shrink-0 text-base">
+                        {record.completionMileage.toLocaleString()} KM
+                      </span>
                     </>
                   )}
                 </div>
+
+                {v?.passwordOrPin && (
+                  <>
+                    <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
+                    <div className="flex items-center gap-1 text-status-success shrink-0">
+                      {v.passwordOrPin.toLowerCase() === "key" ? (
+                        <>
+                          <Key className="w-4 h-4" />
+                          <span className="font-google-sans font-black tracking-[0.1em] text-base">
+                            KEY
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-numeric font-black tracking-wider text-status-success text-base">
+                          # {v.passwordOrPin}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-
             </div>
           </div>
 
-          <div className="w-full bg-workshop-surface/30 rounded-xl p-3.5 border border-workshop-border/10">
-            <div className="text-workshop-text/90 whitespace-pre-wrap italic leading-relaxed space-y-1.5">
-              {descriptionLines.map((cleanLine, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs md:text-sm font-semibold">
-                  <span className="opacity-60 text-workshop-accent shrink-0 mt-0.5">•</span>
-                  <span className="flex-1">{cleanLine}</span>
-                </div>
-              ))}
+          {descriptionLines.length > 0 && (
+            <div className="space-y-1.5 px-1">
+              <p className="text-[10px] font-black uppercase text-workshop-muted tracking-widest font-sans">
+                Problems:
+              </p>
+              <div className="text-workshop-text/90 whitespace-pre-wrap italic leading-relaxed space-y-1.5 font-sans">
+                {descriptionLines.map((cleanLine, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs md:text-sm font-semibold">
+                    <span className="opacity-60 text-workshop-accent shrink-0 mt-0.5 select-none">•</span>
+                    <span className="flex-1">{cleanLine}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {record.personalItems && (
             <div className="w-full bg-status-success/5 rounded-xl p-3 border border-status-success/10 flex items-center gap-2.5">
@@ -244,12 +246,9 @@ export const ServiceRecordCard = memo(({
 
         {dueDateInfo && (
           <div className="flex items-center gap-4 px-1">
-            <div className="flex items-center gap-1.5 text-workshop-muted/90">
-              <ScanHeart className="w-3.5 h-3.5 opacity-60 text-workshop-accent" />
-              <span className="text-xs font-black uppercase tracking-widest leading-none">
-                Due: {dueDateInfo.formattedDate}
-              </span>
-            </div>
+            <span className="text-xs font-black uppercase tracking-widest leading-none text-workshop-muted/90">
+              Due: {dueDateInfo.formattedDate}
+            </span>
             <div
               className={cn(
                 "text-xs font-black uppercase tracking-widest leading-none",
@@ -271,12 +270,9 @@ export const ServiceRecordCard = memo(({
 
         {record.technicianName && (
           <div className="flex items-center justify-between gap-4 pt-1 mb-1 px-1">
-            <div className="flex items-center gap-1.5 text-workshop-muted/90">
-              <User className="w-3.5 h-3.5 opacity-60 text-workshop-accent shrink-0" />
-              <span className="text-xs font-black uppercase tracking-widest leading-none">
-                Advisor: <span className="text-workshop-accent font-black">{record.technicianName}</span>
-              </span>
-            </div>
+            <span className="text-xs font-black uppercase tracking-widest leading-none text-workshop-muted/90">
+              Advisor: <span className="text-workshop-accent font-black">{record.technicianName}</span>
+            </span>
           </div>
         )}
 
@@ -303,39 +299,7 @@ export const ServiceRecordCard = memo(({
                 <Phone className="w-4 h-4 fill-status-success/10" />
               </a>
             )}
-            {customer?.phone && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onWhatsAppClick(record, customer, v);
-                }}
-                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-whatsapp hover:border-whatsapp/40 hover:bg-whatsapp/5 transition-all active:scale-95 shadow-sm shrink-0 outline-none border-0"
-                title={`WhatsApp Options (${customer.phone})`}
-              >
-                <WhatsAppIcon className="w-4 h-4 shrink-0" />
-              </button>
-            )}
-            {customer?.phone && (
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const vehicleInfo = v
-                    ? `${v.make ? v.make + " " : ""}${v.model}${v.plateNumber ? ` (${v.plateNumber})` : ""}`
-                    : undefined;
-                  await openCreateContactScreen({
-                    name: customer.name,
-                    phone: customer.phone,
-                    vehicleInfo,
-                  });
-                }}
-                className="p-2.5 bg-workshop-surface border border-workshop-border/20 rounded-lg text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/30 transition-all active:scale-95 shadow-sm shrink-0"
-                title={`Add ${capitalizeName(customer.name)} to Contacts`}
-                id={`add-contact-btn-${record.id}`}
-              >
-                <UserPlus className="w-4 h-4" />
-              </button>
-            )}
+
             {canEdit && (
               <button
                 onClick={(e) => {

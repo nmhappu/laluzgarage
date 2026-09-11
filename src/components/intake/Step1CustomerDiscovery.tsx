@@ -1,8 +1,13 @@
 import React from 'react';
-import { UserPlus, ArrowLeft, ChevronRight, Key } from 'lucide-react';
-import { Search } from '../ui/SearchIcon';
-import { motion } from 'motion/react';
+import { UserPlus, ArrowLeft, ArrowRight, ChevronRight, Search, Key, User, Phone, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { Customer, Vehicle } from '../../types';
+
+const tapSpringTransition = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 25,
+};
 
 export interface Step1CustomerDiscoveryProps {
   key?: React.Key;
@@ -35,178 +40,225 @@ export function Step1CustomerDiscovery({
   return (
     <motion.div
       key="step1"
-      initial={{ opacity: 0, scale: 0.98, x: 15 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.98, x: -15 }}
-      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+      className="flex flex-col items-start text-left space-y-6 w-full"
     >
       {step === 1 ? (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
-              Identify Vehicle or Owner
-            </h3>
-            <p className="text-workshop-muted text-sm">
-              Locate existing records to streamline the intake process.
-            </p>
+        <div className="w-full space-y-6">
+          {/* Header Icon & Title */}
+          <div className="space-y-4 text-left">
+            <div className="relative text-workshop-accent">
+              <div className="absolute -inset-2 bg-workshop-accent/20 blur-2xl rounded-full pointer-events-none" />
+              <Search className="relative w-10 h-10 stroke-[1.75]" />
+            </div>
+
+            <div className="space-y-1.5 text-left">
+              <h1 className="text-2xl sm:text-3xl font-logo font-bold text-workshop-text tracking-tight">
+                Customer Discovery
+              </h1>
+              <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+                Search by phone number, vehicle plate, or customer name to locate records.
+              </p>
+            </div>
           </div>
 
-          <div className="relative flex items-center">
-            <Search className="absolute left-4 text-workshop-muted w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search anything!"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-workshop-surface border border-workshop-border pl-12 pr-4 py-4 rounded-xl text-base md:text-lg font-bold outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text uppercase placeholder:normal-case shadow-sm"
-            />
+          {/* Search Input Box */}
+          <div className="w-full space-y-1.5 text-left">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+              Search Database
+            </label>
+            <div className="relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+              <input
+                type="text"
+                placeholder="Plate number, phone, customer name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-10 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+              />
+              {searchQuery.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-workshop-muted hover:text-workshop-text transition-colors cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Search Results List */}
+          <div className="w-full space-y-2">
             {searchQuery.length > 0 && searchResults.length === 0 && (
-              <div className="p-8 text-center bg-workshop-surface/30 rounded-xl border border-workshop-border border-dashed">
-                <p className="text-workshop-muted text-sm font-medium opacity-50">
-                  Record does not exist
-                </p>
+              <div className="p-4 bg-workshop-surface/40 border border-workshop-border/60 rounded-xl text-left text-xs text-workshop-muted">
+                No matching customer or vehicle record found for{' '}
+                <span className="text-workshop-text font-semibold">"{searchQuery}"</span>.
               </div>
             )}
 
-            {searchResults.map((res, i) => (
-              <button
-                key={`${res.customer.id}-${res.vehicle?.id || i}`}
-                onClick={() => onSelectResult(res.customer, res.vehicle)}
-                className="w-full flex items-center justify-between p-4 bg-workshop-card hover:border-workshop-accent/30 border border-workshop-border rounded-xl transition-all group text-left shadow-sm cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-workshop-bg rounded-xl flex items-center justify-center font-black text-workshop-text uppercase text-xs border border-workshop-border shadow-inner">
-                    {res.vehicle
-                      ? res.vehicle.plateNumber.slice(-4)
-                      : res.customer.name[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm md:text-base font-bold text-workshop-accent uppercase leading-tight mb-0.5">
-                      {res.vehicle
-                        ? `${res.vehicle.make} ${res.vehicle.model}`
-                        : "New Vehicle Entry Needed"}
-                    </p>
-                    <p className="text-sm md:text-base font-bold text-workshop-text leading-tight uppercase">
-                      {res.customer.name}
-                    </p>
-                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
-                      <div className="flex items-center gap-1.5 text-workshop-muted">
-                        <p className="text-sm md:text-base font-bold uppercase tracking-tight">
-                          {res.customer.phone}
-                        </p>
+            {searchResults.length > 0 && (
+              <div className="w-full divide-y divide-workshop-border/60 border-y border-workshop-border/60 text-left py-1">
+                {searchResults.map((res, i) => (
+                  <button
+                    key={`${res.customer.id}-${res.vehicle?.id || i}`}
+                    type="button"
+                    onClick={() => onSelectResult(res.customer, res.vehicle)}
+                    className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-workshop-surface/60 rounded-xl transition-colors group cursor-pointer text-left"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 pr-3">
+                      <div className="w-10 h-10 rounded-xl bg-workshop-surface border border-workshop-border flex items-center justify-center font-plate font-bold text-xs text-workshop-text shrink-0">
+                        {res.vehicle
+                          ? res.vehicle.plateNumber.slice(-4)
+                          : res.customer.name.charAt(0).toUpperCase()}
                       </div>
-                      {res.vehicle && (
-                        <>
-                          <div className="flex items-center gap-1.5 text-workshop-secondary">
-                            <span className="w-1.5 h-1.5 bg-workshop-border rounded-full shrink-0" />
-                            <p className="text-sm md:text-base font-bold uppercase tracking-tight">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors truncate">
+                            {res.customer.name}
+                          </p>
+                          {res.vehicle && (
+                            <span className="font-plate text-xs font-bold text-workshop-accent px-1.5 py-0.5 rounded bg-workshop-accent/10 border border-workshop-accent/20 uppercase">
                               {res.vehicle.plateNumber}
-                            </p>
-                          </div>
-                          {res.vehicle.passwordOrPin && (
-                            <div className="flex items-center gap-1.5 text-status-success">
-                              <Key className="w-3.5 h-3.5 shrink-0" />
-                              <span className="text-sm md:text-base font-google-sans font-bold uppercase tracking-tight">
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-workshop-muted flex-wrap">
+                          <span className="font-numeric">{res.customer.phone}</span>
+                          {res.vehicle && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                {res.vehicle.make} {res.vehicle.model}
+                              </span>
+                            </>
+                          )}
+                          {res.vehicle?.passwordOrPin && (
+                            <>
+                              <span>•</span>
+                              <span className="inline-flex items-center gap-1 text-workshop-accent font-numeric">
+                                <Key className="w-3 h-3" />
                                 {res.vehicle.passwordOrPin}
                               </span>
-                            </div>
+                            </>
                           )}
-                        </>
-                      )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                  <div className="text-right">
-                    <span className="text-[10px] md:text-xs font-bold text-workshop-muted block uppercase tracking-tight">
-                      Last Serviced
-                    </span>
-                    <span className="text-xs md:text-sm font-black text-workshop-text uppercase tracking-tight">
-                      {getLastServicedDate(res.customer, res.vehicle)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-workshop-muted uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">
-                      Select
-                    </span>
-                    <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-accent translate-x-0 group-hover:translate-x-1 transition-all" />
-                  </div>
-                </div>
-              </button>
-            ))}
 
-            <button
-              onClick={onCreateNewCustomer}
-              className="w-full flex items-center gap-4 p-5 border-2 border-dashed border-workshop-border rounded-xl text-workshop-muted hover:border-workshop-accent/50 hover:text-workshop-accent transition-all font-black text-xs uppercase tracking-widest bg-workshop-surface/30 cursor-pointer"
-            >
-              <UserPlus className="w-5 h-5 opacity-50" />
-              <span>REGISTER NEW CUSTOMER RECORD</span>
-            </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <span className="text-[10px] uppercase font-mono text-workshop-muted block">
+                          Last Service
+                        </span>
+                        <span className="text-xs text-workshop-text font-medium">
+                          {getLastServicedDate(res.customer, res.vehicle)}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-accent group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* New Customer Button */}
+            <div className="pt-2">
+              <motion.button
+                type="button"
+                onClick={onCreateNewCustomer}
+                whileTap={{ scale: 0.97 }}
+                transition={tapSpringTransition}
+                className="w-full flex items-center justify-start gap-3 bg-workshop-surface/60 hover:bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-sm cursor-pointer text-left accelerate-gpu will-change-transform"
+              >
+                <UserPlus className="w-4 h-4 text-workshop-accent shrink-0" />
+                <span>Register New Customer Record</span>
+              </motion.button>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
-          <button
+        /* Step 1.5: Inline New Customer Form */
+        <div className="w-full space-y-6">
+          <motion.button
+            type="button"
             onClick={onBackToSearch}
-            className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest cursor-pointer"
+            whileTap={{ scale: 0.97 }}
+            transition={tapSpringTransition}
+            className="flex items-center gap-2 text-xs font-semibold text-workshop-muted hover:text-workshop-text transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Search
-          </button>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
-              New Client Entry
-            </h3>
-            <p className="text-workshop-muted text-sm">
-              Register a new client into the workshop system.
-            </p>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Search</span>
+          </motion.button>
+
+          <div className="space-y-4 text-left">
+            <div className="relative text-workshop-accent">
+              <div className="absolute -inset-2 bg-workshop-accent/20 blur-2xl rounded-full pointer-events-none" />
+              <UserPlus className="relative w-10 h-10 stroke-[1.75]" />
+            </div>
+
+            <div className="space-y-1.5 text-left">
+              <h1 className="text-2xl sm:text-3xl font-logo font-bold text-workshop-text tracking-tight">
+                New Customer
+              </h1>
+              <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+                Enter customer contact details to establish a workshop profile.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-                Full Name
+          <div className="w-full space-y-4">
+            {/* Customer Name */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+                Customer Full Name
               </label>
-              <input
-                value={customerForm.name}
-                onChange={(e) =>
-                  setCustomerForm({
-                    ...customerForm,
-                    name: e.target.value,
-                  })
-                }
-                className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-                placeholder="e.g. John Doe"
-              />
+              <div className="relative group">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+                <input
+                  type="text"
+                  placeholder="e.g. John Doe"
+                  required
+                  value={customerForm.name}
+                  onChange={(e) =>
+                    setCustomerForm({
+                      ...customerForm,
+                      name: e.target.value,
+                    })
+                  }
+                  autoFocus
+                  className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+                />
+              </div>
             </div>
-            <div className="relative pt-2.5">
-              <div className="flex items-center w-full bg-workshop-surface border-2 border-secondary rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-secondary/30 transition-all">
-                {/* Floating notched label */}
-                <span className="absolute left-4 top-0 bg-workshop-bg px-2 text-[11px] font-google-sans font-black uppercase tracking-wider text-secondary select-none">
-                  Phone number
-                </span>
 
-                {/* Prefix */}
-                <span className="text-workshop-text font-numeric font-bold text-base select-none pr-3 shrink-0">
-                  +91
-                </span>
-
-                {/* Separator / Divider Line */}
-                <div className="h-6 w-px bg-workshop-border/40 mr-3.5 shrink-0" />
-
-                {/* Actual Input */}
+            {/* Phone Number */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+                Mobile Number
+              </label>
+              <div className="relative group flex items-center">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                  <Phone className="w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+                  <span className="text-xs font-numeric font-semibold text-workshop-text pl-1">
+                    +91
+                  </span>
+                  <div className="h-4 w-px bg-workshop-border/60 mx-1" />
+                </div>
                 <input
                   type="tel"
                   inputMode="tel"
+                  placeholder="98765 43210"
+                  required
                   value={customerForm.phone}
                   onChange={(e) => {
-                    let val = e.target.value;
-                    if (val.startsWith("+91")) {
-                      val = val.substring(3);
-                    } else if (val.startsWith("91") && val.length > 10) {
+                    let val = e.target.value.replace(/[^\d\s]/g, '');
+                    if (val.startsWith('91') && val.length > 10) {
                       val = val.substring(2);
                     }
                     setCustomerForm({
@@ -214,20 +266,26 @@ export function Step1CustomerDiscovery({
                       phone: val,
                     });
                   }}
-                  className="w-full bg-transparent border-none p-0 outline-none focus:ring-0 text-workshop-text font-numeric font-bold text-base tracking-wide placeholder-workshop-muted/40"
-                  placeholder="85471 87345"
+                  className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-24 pr-4 text-workshop-text font-numeric placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
                 />
               </div>
             </div>
           </div>
 
-          <button
-            onClick={onProceedToVehicle}
-            disabled={!customerForm.name || !customerForm.phone}
-            className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale cursor-pointer"
-          >
-            PROCEED TO VEHICLE DETAILS
-          </button>
+          {/* Action CTA */}
+          <div className="w-full pt-2">
+            <motion.button
+              type="button"
+              disabled={!customerForm.name.trim() || !customerForm.phone.trim()}
+              onClick={onProceedToVehicle}
+              whileTap={{ scale: 0.97 }}
+              transition={tapSpringTransition}
+              className="w-full flex items-center justify-start gap-3 bg-workshop-accent text-workshop-bg hover:bg-workshop-accent/90 px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left accelerate-gpu will-change-transform"
+            >
+              <ArrowRight className="w-4 h-4 shrink-0" />
+              <span>Continue to Vehicle Details</span>
+            </motion.button>
+          </div>
         </div>
       )}
     </motion.div>

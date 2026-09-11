@@ -39,7 +39,7 @@ export function DeleteUserModal({
             <div className="w-12 h-12 bg-status-urgent/10 rounded-full flex items-center justify-center mx-auto mb-4 text-status-urgent border border-status-urgent/20">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-black text-workshop-text uppercase tracking-tight mb-2">
+            <h3 className="text-base font-black text-workshop-text tracking-tight mb-2">
               Delete Advisor?
             </h3>
             <p className="text-workshop-muted text-xs mb-6 leading-relaxed">

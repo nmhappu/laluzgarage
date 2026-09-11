@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
-import { ArrowLeft, RefreshCw, Plus, Shield } from "lucide-react";
+import { ArrowLeft, RefreshCw, Plus, Search, Calendar, X } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
-import { useUI, useBackHandler } from "../contexts/UIContext";
+import { useBackHandler } from "../contexts/UIContext";
 import { ThemeToggle } from "./ThemeToggle";
 import { useWorkshopUsers } from "../hooks/useWorkshopUsers";
 import { useWorkshopTags } from "../hooks/useWorkshopTags";
@@ -19,6 +19,7 @@ import { SystemView } from "./settings/SystemView";
 import { WhatsAppPresetsView } from "./settings/WhatsAppPresetsView";
 import { TagsView } from "./settings/TagsView";
 import { PerformanceView } from "./settings/PerformanceView";
+import { DateWiseHistoryView } from "./settings/DateWiseHistoryView";
 import { DeleteUserModal } from "./settings/DeleteUserModal";
 import { LogoutModal } from "./nav/LogoutModal";
 
@@ -35,7 +36,8 @@ type SettingsView =
   | "system"
   | "whatsapp_presets"
   | "tags"
-  | "performance";
+  | "performance"
+  | "date_history";
 
 const pageVariants: Variants = {
   initial: { opacity: 0, x: 10 },
@@ -59,6 +61,7 @@ export function SettingsPage() {
         "whatsapp_presets",
         "tags",
         "performance",
+        "date_history",
       ].includes(tabParam)
     ) {
       return tabParam;
@@ -73,6 +76,33 @@ export function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Date-wise History Search and Filter state (for top nav bar)
+  const [dateSearchQuery, setDateSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [showStickySearch, setShowStickySearch] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const stickySearchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenDateFilter = () => {
+    if (dateInputRef.current) {
+      if ("showPicker" in HTMLInputElement.prototype) {
+        try {
+          dateInputRef.current.showPicker();
+        } catch {
+          dateInputRef.current.focus();
+        }
+      } else {
+        dateInputRef.current.focus();
+      }
+    }
+  };
+
+  // Reset scroll to top on tab/view switch
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [viewState]);
 
   // Tab routing sync
   useEffect(() => {
@@ -91,6 +121,7 @@ export function SettingsPage() {
           "whatsapp_presets",
           "tags",
           "performance",
+          "date_history",
         ].includes(tabParam)
       ) {
         setViewState((prev) => (prev !== tabParam ? tabParam : prev));
@@ -130,8 +161,6 @@ export function SettingsPage() {
     setFormName,
     formEmail,
     setFormEmail,
-    formStatus,
-    setFormStatus,
     formPin,
     setFormPin,
     formRole,
@@ -189,6 +218,13 @@ export function SettingsPage() {
     return true;
   }, Boolean(userToDelete), 80);
 
+  // Back handling: Sticky search bar for Date-wise History
+  useBackHandler(() => {
+    setShowStickySearch(false);
+    setDateSearchQuery("");
+    return true;
+  }, viewState === "date_history" && showStickySearch, 70);
+
   // Back handling: Logout confirmation modal
   useBackHandler(() => {
     setShowLogoutConfirm(false);
@@ -219,9 +255,9 @@ export function SettingsPage() {
   }, viewState === "categories", 30);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans sheet-footer-safe pb-8">
+    <div className="w-full max-w-4xl mx-auto flex flex-col h-full min-h-0 text-workshop-text font-sans bg-workshop-bg">
       {/* Header Bar */}
-      <div className="bg-workshop-bg sticky top-0 z-20 border-b border-workshop-border/20">
+      <div className="bg-workshop-bg shrink-0 border-b border-workshop-border/20 z-20 relative">
         <div className="safe-top" />
         <div className="h-16 flex items-center justify-between px-5">
           <div className="flex items-center gap-4 min-w-0">
@@ -250,44 +286,48 @@ export function SettingsPage() {
 
             <div className="min-w-0">
               {viewState === "categories" && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface border border-workshop-border/80 text-xs font-bold text-workshop-muted shadow-sm">
-                  <Shield className="w-3.5 h-3.5 text-workshop-accent" />
-                  <span>{isAdmin ? "Workshop Admin" : "Service Advisor"}</span>
-                </div>
+                <h2 className="text-base font-black tracking-tight leading-none text-workshop-text">
+                  Settings
+                </h2>
               )}
               {viewState === "accounts" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-status-success">
+                <h2 className="text-base font-black tracking-tight leading-none text-status-success">
                   Accounts
                 </h2>
               )}
               {viewState === "edit_account" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-status-success">
+                <h2 className="text-base font-black tracking-tight leading-none text-status-success">
                   {isCreating ? "Create Advisor" : "Edit Advisor"}
                 </h2>
               )}
               {viewState === "general" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-workshop-secondary">
+                <h2 className="text-base font-black tracking-tight leading-none text-workshop-secondary">
                   General Settings
                 </h2>
               )}
               {viewState === "whatsapp_presets" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-emerald-500">
+                <h2 className="text-base font-black tracking-tight leading-none text-emerald-500">
                   WhatsApp Presets
                 </h2>
               )}
               {viewState === "tags" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-indigo-400">
+                <h2 className="text-base font-black tracking-tight leading-none text-indigo-400">
                   Tags
                 </h2>
               )}
               {viewState === "system" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-amber-500 font-black">
+                <h2 className="text-base font-black tracking-tight leading-none text-amber-500">
                   System Diagnostics
                 </h2>
               )}
               {viewState === "performance" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-cyan-400">
+                <h2 className="text-base font-black tracking-tight leading-none text-cyan-400">
                   Technician Performance
+                </h2>
+              )}
+              {viewState === "date_history" && (
+                <h2 className="text-base font-black tracking-tight leading-none text-workshop-accent">
+                  Date-wise Service History
                 </h2>
               )}
             </div>
@@ -323,8 +363,98 @@ export function SettingsPage() {
                 </button>
               </>
             )}
+            {viewState === "date_history" && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  id="date-history-search-btn"
+                  onClick={() => {
+                    setShowStickySearch(true);
+                    setTimeout(() => stickySearchInputRef.current?.focus(), 50);
+                  }}
+                  className={cn(
+                    "p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg cursor-pointer relative",
+                    (dateSearchQuery || dateFilter) && "text-workshop-accent"
+                  )}
+                  title="Search"
+                >
+                  <Search className="w-5 h-5" />
+                  {(dateSearchQuery || dateFilter) && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-workshop-accent" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  id="date-history-calendar-btn"
+                  onClick={handleOpenDateFilter}
+                  className={cn(
+                    "p-2 transition-colors rounded-lg cursor-pointer relative",
+                    dateFilter
+                      ? "text-workshop-accent bg-workshop-accent/10"
+                      : "text-workshop-muted hover:text-workshop-text"
+                  )}
+                  title="Filter by date"
+                >
+                  <Calendar className="w-5 h-5" />
+                  {dateFilter && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-workshop-accent" />
+                  )}
+                </button>
+
+                {/* Hidden native Date Picker Input */}
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={dateFilter || ""}
+                  onChange={(e) => setDateFilter(e.target.value || null)}
+                  className="sr-only"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Expanded Sticky Search Bar for Date-wise History (Matches Home Screens Spec) */}
+        <AnimatePresence>
+          {viewState === "date_history" && showStickySearch && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="absolute inset-x-0 top-0 bg-workshop-surface flex flex-col z-50 border-b border-workshop-border shadow-md"
+            >
+              <div className="safe-top" />
+              <div className="h-16 flex items-center justify-between px-5 sm:px-6">
+                <div className="flex items-center gap-3 flex-1 mr-4">
+                  <Search className="w-5 h-5 text-workshop-muted shrink-0" />
+                  <input
+                    ref={stickySearchInputRef}
+                    type="text"
+                    value={dateSearchQuery}
+                    onChange={(e) => setDateSearchQuery(e.target.value)}
+                    placeholder="Search plate, vehicle, customer, or date..."
+                    className="w-full bg-transparent border-none outline-none text-sm text-workshop-text placeholder:text-workshop-muted/50 font-medium py-2"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateSearchQuery("");
+                    setShowStickySearch(false);
+                  }}
+                  className="p-2 text-workshop-muted hover:text-workshop-text transition-colors shrink-0 cursor-pointer"
+                  title="Close search"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Global Alert Banners */}
@@ -334,7 +464,7 @@ export function SettingsPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-status-urgent/10 text-status-urgent border-b border-status-urgent/20"
+            className="shrink-0 bg-status-urgent/10 text-status-urgent border-b border-status-urgent/20"
           >
             <div className="max-w-4xl mx-auto w-full px-6 py-3.5 text-xs font-bold leading-normal">
               {error}
@@ -346,7 +476,7 @@ export function SettingsPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-status-success/10 text-status-success border-b border-status-success/20"
+            className="shrink-0 bg-status-success/10 text-status-success border-b border-status-success/20"
           >
             <div className="max-w-4xl mx-auto w-full px-6 py-3.5 text-xs font-bold leading-normal">
               {successMessage}
@@ -356,8 +486,8 @@ export function SettingsPage() {
       </AnimatePresence>
 
       {/* Page Content Panel Container */}
-      <div className="flex-1 overflow-y-auto bg-workshop-bg">
-        <div className={cn("w-full max-w-4xl mx-auto pt-0 pb-8 md:pb-12", viewState === "categories" ? "px-0" : "px-5 sm:px-6")}>
+      <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto bg-workshop-bg scroll-smooth">
+        <div className={cn("w-full max-w-4xl mx-auto pt-0 pb-12 sheet-footer-safe", viewState === "categories" ? "px-0" : "px-5 sm:px-6")}>
           <AnimatePresence mode="wait">
             {viewState === "categories" && (
               <CategoriesView
@@ -442,6 +572,16 @@ export function SettingsPage() {
             {viewState === "performance" && (
               <PerformanceView users={users} pageVariants={pageVariants} />
             )}
+
+            {viewState === "date_history" && (
+              <DateWiseHistoryView
+                pageVariants={pageVariants}
+                searchQuery={dateSearchQuery}
+                onClearSearch={() => setDateSearchQuery("")}
+                dateFilter={dateFilter}
+                onClearDateFilter={() => setDateFilter(null)}
+              />
+            )}
           </AnimatePresence>
         </div>
       </div>
@@ -466,11 +606,13 @@ export function SettingsPage() {
         onConfirm={async () => {
           try {
             setIsLoggingOut(true);
-            setShowLogoutConfirm(false);
             await logout();
+            navigate('/', { replace: true });
           } catch (err) {
             console.error("Logout error:", err);
+          } finally {
             setIsLoggingOut(false);
+            setShowLogoutConfirm(false);
           }
         }}
       />

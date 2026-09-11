@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "motion/react";
 import {
   User,
@@ -9,19 +8,21 @@ import {
   Info,
   LogOut,
   ChevronRight,
-  Plus,
+  Shield,
   Wrench,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 import type { User as FirebaseUser } from "firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { getHighQualityAvatarUrl } from "../../lib/avatar";
 import { WhatsAppIcon } from "../ui/BrandIcons";
+import { getUserRole } from "../../types";
 
 export interface CategoriesViewProps {
   isAdmin: boolean;
   user: FirebaseUser | null;
-  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system") => void;
+  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system" | "date_history") => void;
   onLogoutClick: () => void;
   pageVariants?: Variants;
 }
@@ -33,16 +34,34 @@ export function CategoriesView({
   onLogoutClick,
   pageVariants,
 }: CategoriesViewProps) {
-  const navigate = useNavigate();
   const { profile } = useAuth();
   const [imgError, setImgError] = useState(false);
 
-  const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
+  const rawPhoto = user?.photoURL || profile?.photoURL;
   const avatarUrl = !imgError ? getHighQualityAvatarUrl(rawPhoto, 384) : null;
 
   const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "Advisor";
   const displayEmail = user?.email || (profile?.tags?.length ? profile.tags.join(" • ") : "LaluZ Garage");
   const initialLetter = (displayName?.[0] || "A").toUpperCase();
+
+  const userRole = getUserRole(profile);
+  const isUserAdmin = userRole === "admin" || isAdmin;
+
+  const roleLabel = isUserAdmin
+    ? "Workshop Admin"
+    : userRole === "technician"
+    ? "Technician"
+    : userRole === "assistant"
+    ? "Assistant"
+    : "Service Advisor";
+
+  const RoleIcon = isUserAdmin
+    ? Shield
+    : userRole === "technician"
+    ? Wrench
+    : userRole === "assistant"
+    ? User
+    : Shield;
 
   return (
     <motion.div
@@ -136,36 +155,16 @@ export function CategoriesView({
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-workshop-text font-sans">
               {displayName}
             </h1>
-            <p className="text-xs text-workshop-muted font-medium mt-1">
-              {displayEmail}
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Action / Shift Status Row (Reference: ₹0.00 Stocks row + Add money button) */}
-        <div className="mt-6 pt-5 px-5 sm:px-6 border-t border-workshop-border/20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-workshop-surface flex items-center justify-center text-workshop-muted border border-workshop-border/50 shrink-0">
-              <Wrench className="w-4 h-4 text-workshop-accent" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-workshop-text leading-tight truncate">
-                Active Shift
+            <div className="flex items-center justify-between gap-3 mt-1.5">
+              <p className="text-xs text-workshop-muted font-medium truncate min-w-0">
+                {displayEmail}
               </p>
-              <p className="text-xs text-workshop-muted mt-0.5 truncate">
-                LaluZ Operations • Ready
-              </p>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface border border-workshop-border/80 text-xs font-bold text-workshop-muted shadow-sm shrink-0">
+                <RoleIcon className="w-3.5 h-3.5 text-workshop-accent" />
+                <span>{roleLabel}</span>
+              </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate("/intake")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Intake</span>
-          </button>
         </div>
       </div>
 
@@ -185,7 +184,7 @@ export function CategoriesView({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-workshop-text group-hover:text-status-success transition-colors">
-                  Accounts & Team
+                  Team Management
                 </p>
                 <p className="text-xs text-workshop-muted mt-0.5 truncate">
                   Advisors, technicians & role permissions
@@ -221,7 +220,35 @@ export function CategoriesView({
           </button>
         )}
 
-        {/* WhatsApp Presets */}
+        {/* Date-wise Service History (Preview) */}
+        <button
+          type="button"
+          id="settings-category-date-history"
+          onClick={() => onSelectTab("date_history")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors">
+                  Date-wise Service History
+                </p>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-workshop-accent/10 text-workshop-accent border border-workshop-accent/20">
+                  Preview
+                </span>
+              </div>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Timeline view of service history records grouped by date
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* WhatsApp */}
         <button
           type="button"
           id="settings-category-whatsapp"
@@ -234,7 +261,7 @@ export function CategoriesView({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-workshop-text group-hover:text-whatsapp transition-colors">
-                WhatsApp Presets
+                WhatsApp
               </p>
               <p className="text-xs text-workshop-muted mt-0.5 truncate">
                 Vehicle intake & delivery notification templates
@@ -303,7 +330,7 @@ export function CategoriesView({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-workshop-text group-hover:text-amber-400 transition-colors">
-                System Diagnostics
+                Backend Information
               </p>
               <p className="text-xs text-workshop-muted mt-0.5 truncate">
                 Database sync, connection latency & diagnostics

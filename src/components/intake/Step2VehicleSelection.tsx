@@ -1,9 +1,17 @@
 import React from 'react';
-import { ArrowLeft, Key } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Car, Key, Shield, Hash, Palette } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { DEFAULT_PLATE_PLACEHOLDER } from '../../lib/constants';
 import type { Customer } from '../../types';
+
+const tapSpringTransition = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 25,
+};
+
+const POPULAR_MAKES = ['Ola', 'Ather', 'Honda', 'TVS', 'Yamaha', 'Suzuki'];
 
 export interface Step2VehicleSelectionProps {
   key?: React.Key;
@@ -39,129 +47,213 @@ export function Step2VehicleSelection({
   onBackStep,
   onProceedToJob,
 }: Step2VehicleSelectionProps) {
+  const isFormValid =
+    Boolean(vehicleForm.make.trim()) &&
+    Boolean(vehicleForm.model.trim()) &&
+    Boolean(vehicleForm.plateNumber.trim()) &&
+    Boolean(useKey || vehicleForm.passwordOrPin.trim());
+
   return (
     <motion.div
       key="step2"
-      initial={{ opacity: 0, scale: 0.98, x: 15 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.98, x: -15 }}
-      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+      className="flex flex-col items-start text-left space-y-6 w-full"
     >
-      <button
-        onClick={onBackStep}
-        className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" /> {selectedCustomer ? "Back to Search" : "Client Info"}
-      </button>
-      <div className="space-y-1">
-        <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
-          Vehicle Identification
-        </h3>
-        <p className="text-workshop-muted text-sm">
-          Record technical specifications for the service entry.
-        </p>
+      {/* Header Icon & Title */}
+      <div className="space-y-4 text-left">
+        <div className="relative text-workshop-accent">
+          <div className="absolute -inset-2 bg-workshop-accent/20 blur-2xl rounded-full pointer-events-none" />
+          <Car className="relative w-12 h-12 stroke-[1.75]" />
+        </div>
+
+        <div className="space-y-1.5 text-left">
+          <h1 className="text-2xl sm:text-3xl font-logo font-bold text-workshop-text tracking-tight">
+            Vehicle Specification
+          </h1>
+          <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+            Record vehicle specifications and security details for this intake card.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Manufacturer
-          </label>
-          <input
-            value={vehicleForm.make}
-            onChange={(e) =>
-              setVehicleForm({ ...vehicleForm, make: e.target.value })
-            }
-            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-            placeholder="e.g. Ola"
-          />
+      {/* Customer Summary Table (PendingApproval style) */}
+      {selectedCustomer && (
+        <div className="w-full divide-y divide-workshop-border/60 border-y border-workshop-border/60 text-left py-1">
+          <div className="flex items-center justify-between py-2.5 text-xs sm:text-sm">
+            <span className="text-workshop-muted font-medium">Customer</span>
+            <span className="text-workshop-text font-semibold truncate max-w-[220px]">
+              {selectedCustomer.name}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-2.5 text-xs sm:text-sm">
+            <span className="text-workshop-muted font-medium">Phone</span>
+            <span className="text-workshop-text font-numeric text-xs truncate max-w-[220px]">
+              {selectedCustomer.phone}
+            </span>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
-            Model
-            <span className="text-status-urgent">*</span>
-          </label>
-          <input
-            value={vehicleForm.model}
-            onChange={(e) =>
-              setVehicleForm({ ...vehicleForm, model: e.target.value })
-            }
-            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-            placeholder="e.g. S1 +"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Registration Plate
-          </label>
-          <div className="relative">
+      )}
+
+      {/* Form Fields Grid */}
+      <div className="w-full space-y-4">
+        {/* Manufacturer / Make */}
+        <div className="space-y-1.5 text-left">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+              Manufacturer / Brand
+            </label>
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {POPULAR_MAKES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setVehicleForm((prev) => ({ ...prev, make: m }))}
+                  className={cn(
+                    'px-2 py-0.5 text-[10px] font-google-sans font-medium rounded-md transition-colors cursor-pointer',
+                    vehicleForm.make.toLowerCase() === m.toLowerCase()
+                      ? 'bg-workshop-accent/20 text-workshop-accent border border-workshop-accent/40'
+                      : 'bg-workshop-surface text-workshop-muted hover:text-workshop-text border border-workshop-border/60'
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="relative group">
+            <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
             <input
-              disabled={vehicleForm.plateNumber === "U/R"}
+              type="text"
+              placeholder="e.g. Ola, Ather, Honda..."
+              value={vehicleForm.make}
+              onChange={(e) => setVehicleForm({ ...vehicleForm, make: e.target.value })}
+              className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Model */}
+        <div className="space-y-1.5 text-left">
+          <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+            Model Variant
+          </label>
+          <div className="relative group">
+            <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+            <input
+              type="text"
+              placeholder="e.g. S1 Pro Gen 2, Activa 6G, 450X..."
+              value={vehicleForm.model}
+              onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
+              className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Plate Number & U/R Toggle */}
+        <div className="space-y-1.5 text-left">
+          <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+            Registration Plate Number
+          </label>
+          <div className="relative group flex items-center">
+            <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+            <input
+              type="text"
+              disabled={vehicleForm.plateNumber === 'U/R'}
               value={vehicleForm.plateNumber}
               onChange={(e) =>
                 setVehicleForm({
                   ...vehicleForm,
-                  plateNumber: e.target.value.replace(/\s+/g, "").toUpperCase(),
+                  plateNumber: e.target.value.replace(/\s+/g, '').toUpperCase(),
                 })
               }
+              placeholder={
+                vehicleForm.plateNumber === 'U/R' ? 'UNREGISTERED' : DEFAULT_PLATE_PLACEHOLDER
+              }
               className={cn(
-                "w-full bg-workshop-surface border border-workshop-border pl-4 pr-16 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-plate font-bold uppercase transition-all",
-                vehicleForm.plateNumber === "U/R"
-                  ? "text-status-urgent bg-workshop-surface/40"
-                  : "text-workshop-accent"
+                'w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-20 text-workshop-text font-plate font-bold tracking-wider placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors text-sm uppercase',
+                vehicleForm.plateNumber === 'U/R' && 'text-status-urgent bg-workshop-surface/30'
               )}
-              placeholder={vehicleForm.plateNumber === "U/R" ? "UNREGISTERED" : DEFAULT_PLATE_PLACEHOLDER}
             />
             <button
               type="button"
               onClick={() => {
                 setVehicleForm((prev) => ({
                   ...prev,
-                  plateNumber: prev.plateNumber === "U/R" ? "" : "U/R",
+                  plateNumber: prev.plateNumber === 'U/R' ? '' : 'U/R',
                 }));
               }}
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-[10px] font-sans font-black tracking-widest uppercase transition-all cursor-pointer border border-status-urgent",
-                vehicleForm.plateNumber === "U/R"
-                  ? "bg-status-urgent text-white shadow-lg shadow-status-urgent/30"
-                  : "bg-workshop-surface text-status-urgent hover:bg-status-urgent/10"
+                'absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold tracking-wider uppercase transition-colors cursor-pointer border',
+                vehicleForm.plateNumber === 'U/R'
+                  ? 'bg-status-urgent/15 border-status-urgent/30 text-status-urgent'
+                  : 'bg-workshop-surface border-workshop-border text-workshop-muted hover:text-workshop-text'
               )}
-              title="Toggle Unregistered (U/R) Status"
             >
               U/R
             </button>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Vehicle Colour
+
+        {/* Color */}
+        <div className="space-y-1.5 text-left">
+          <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+            Exterior Vehicle Colour
           </label>
-          <input
-            value={vehicleForm.color}
-            onChange={(e) =>
-              setVehicleForm({ ...vehicleForm, color: e.target.value })
-            }
-            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 text-workshop-text font-bold"
-            placeholder="e.g. Red"
-          />
+          <div className="relative group">
+            <Palette className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
+            <input
+              type="text"
+              placeholder="e.g. Midnight Black, Pearl White, Coral Red..."
+              value={vehicleForm.color}
+              onChange={(e) => setVehicleForm({ ...vehicleForm, color: e.target.value })}
+              className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
+            />
+          </div>
         </div>
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
-            Security
-            <span className="text-status-urgent">*</span>
-          </label>
-          <div className="relative">
+
+        {/* Security: Screen PIN or Physical Key */}
+        <div className="space-y-1.5 text-left">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+              Unlock Security / Access
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const newMode = !useKey;
+                setUseKey(newMode);
+                setVehicleForm((prev) => ({
+                  ...prev,
+                  passwordOrPin: newMode ? 'Key' : '',
+                }));
+              }}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium font-google-sans uppercase tracking-wider transition-colors cursor-pointer border',
+                useKey
+                  ? 'bg-workshop-accent/15 border-workshop-accent/40 text-workshop-accent'
+                  : 'bg-workshop-surface border-workshop-border text-workshop-muted hover:text-workshop-text'
+              )}
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>{useKey ? 'Physical Key Selected' : 'Use Physical Key'}</span>
+            </button>
+          </div>
+
+          <div className="relative group">
+            <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
             <input
               disabled={useKey}
               type="text"
               inputMode="numeric"
               maxLength={6}
-              value={useKey ? "Key" : vehicleForm.passwordOrPin}
+              placeholder={useKey ? 'Physical Key on Hand' : '4-6 digit passcode (e.g. 1234)'}
+              value={useKey ? 'Physical Key' : vehicleForm.passwordOrPin}
               onChange={(e) => {
                 const val = e.target.value;
-                if (useKey) return;
-                if (val === "" || (/^\d+$/.test(val) && val.length <= 6)) {
+                if (!useKey && (val === '' || (/^\d+$/.test(val) && val.length <= 6))) {
                   setVehicleForm({
                     ...vehicleForm,
                     passwordOrPin: val,
@@ -169,54 +261,28 @@ export function Step2VehicleSelection({
                 }
               }}
               className={cn(
-                "w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-sans text-workshop-text uppercase transition-all",
-                useKey && "opacity-50 font-bold"
+                'w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-4 text-workshop-text font-numeric placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm',
+                useKey && 'opacity-60 font-medium'
               )}
-              placeholder={useKey ? "" : "••••••"}
             />
-            <button
-              type="button"
-              onClick={() => {
-                const newMode = !useKey;
-                setUseKey(newMode);
-                if (newMode) {
-                  setVehicleForm({
-                    ...vehicleForm,
-                    passwordOrPin: "Key",
-                  });
-                } else {
-                  setVehicleForm({
-                    ...vehicleForm,
-                    passwordOrPin: "",
-                  });
-                }
-              }}
-              className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all cursor-pointer",
-                useKey
-                  ? "bg-workshop-accent text-workshop-bg shadow-lg"
-                  : "bg-workshop-surface text-workshop-muted hover:text-workshop-text"
-              )}
-              title="Toggle between Pin and physical Key"
-            >
-              <Key className={cn("w-4 h-4", useKey && "animate-pulse")} />
-            </button>
           </div>
         </div>
       </div>
 
-      <button
-        onClick={onProceedToJob}
-        disabled={
-          !vehicleForm.make ||
-          !vehicleForm.model ||
-          !vehicleForm.plateNumber ||
-          !vehicleForm.passwordOrPin
-        }
-        className="w-full py-4 bg-workshop-accent text-workshop-bg rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale cursor-pointer"
-      >
-        SET JOB REQUIREMENTS
-      </button>
+      {/* Primary Action Button */}
+      <div className="w-full pt-2">
+        <motion.button
+          type="button"
+          disabled={!isFormValid}
+          onClick={onProceedToJob}
+          whileTap={{ scale: 0.97 }}
+          transition={tapSpringTransition}
+          className="w-full flex items-center justify-start gap-3 bg-workshop-accent text-workshop-bg hover:bg-workshop-accent/90 px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left accelerate-gpu will-change-transform"
+        >
+          <ArrowRight className="w-4 h-4 shrink-0" />
+          <span>Continue to Job Specification</span>
+        </motion.button>
+      </div>
     </motion.div>
   );
 }

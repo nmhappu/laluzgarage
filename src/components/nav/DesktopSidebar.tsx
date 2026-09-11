@@ -6,7 +6,18 @@ import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHighQualityAvatarUrl } from '../../lib/avatar';
-import { navItems, getActiveTabLabel, getActiveTabM3Icon, getActiveTabColor } from './types';
+import { getUserRole } from '../../types';
+import {
+  navItems,
+  getNavTitle,
+  getActiveTabLabel,
+  getActiveTabM3Icon,
+  getActiveTabColor,
+  getRoleRingClass,
+  getRoleFallbackStyle,
+  getRoleLabel,
+} from './types';
+import { MorphText } from '../ui/MorphText';
 
 interface DesktopSidebarProps {
   isModalOpen: boolean;
@@ -23,11 +34,15 @@ export function DesktopSidebar({
 }: DesktopSidebarProps) {
   const { user, profile } = useAuth();
   const location = useLocation();
-  const pageTitle = 'LaluZ Garage';
 
   const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
   const avatarUrl = getHighQualityAvatarUrl(rawPhoto, 256);
   const initialLetter = (profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0] || 'A').toUpperCase();
+
+  const role = getUserRole(profile);
+  const roleRingClass = getRoleRingClass(role);
+  const roleFallbackStyle = getRoleFallbackStyle(role);
+  const roleLabel = getRoleLabel(role);
 
   return (
     <aside
@@ -39,18 +54,12 @@ export function DesktopSidebar({
       <div className="p-8 h-32 font-sans">
         <div className="flex items-center justify-between">
           <NavLink to="/" className="flex items-center gap-3 group hover:no-underline font-sans flex-1 min-w-0">
-            <AnimatePresence mode="wait">
-              <motion.h1
-                key={pageTitle}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 15 }}
-                transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-                className="text-workshop-text text-xl font-sans font-semibold tracking-tight transition-colors group-hover:text-workshop-accent truncate"
-              >
-                {pageTitle}
-              </motion.h1>
-            </AnimatePresence>
+            <MorphText
+              as="h1"
+              className="text-workshop-text text-xl font-sans font-semibold tracking-tight transition-colors group-hover:text-workshop-accent truncate"
+            >
+              {getNavTitle(location.pathname)}
+            </MorphText>
             <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
               <AnimatePresence mode="wait">
                 <motion.span
@@ -72,11 +81,20 @@ export function DesktopSidebar({
           </NavLink>
           <NavLink
             to="/settings"
-            className="p-0.5 ring-2 ring-workshop-border/80 hover:ring-workshop-accent/70 rounded-full transition-all ml-2 flex items-center justify-center focus:outline-none active:scale-95 shrink-0"
-            title="Profile & Settings"
-            aria-label="Profile & Settings"
+            className={cn(
+              "p-0.5 ring-2 rounded-full transition-all ml-2 flex items-center justify-center focus:outline-none active:scale-95 shrink-0",
+              roleRingClass
+            )}
+            title={`Profile & Settings (${roleLabel})`}
+            aria-label={`Profile & Settings (${roleLabel})`}
           >
-            <div className="w-7 h-7 rounded-full overflow-hidden bg-workshop-surface flex items-center justify-center text-xs font-bold text-workshop-accent">
+            <div
+              className={cn(
+                "w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-colors",
+                roleFallbackStyle.bg,
+                roleFallbackStyle.text
+              )}
+            >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -85,7 +103,7 @@ export function DesktopSidebar({
                   className="w-full h-full object-cover rounded-full"
                 />
               ) : (
-                <span className="font-bold uppercase text-[10px] text-workshop-text">
+                <span className="font-bold uppercase text-[10px]">
                   {initialLetter}
                 </span>
               )}
@@ -179,8 +197,15 @@ export function DesktopSidebar({
       </motion.nav>
 
       <div className="p-6 bg-workshop-bg flex flex-col gap-4 border-t border-workshop-border">
-        <NavLink to="/settings" className="flex items-center gap-3 group hover:no-underline" title="Profile & Settings">
-          <div className="w-8 h-8 rounded-full bg-workshop-accent/20 ring-1 ring-workshop-border group-hover:ring-workshop-accent/70 transition-all flex items-center justify-center text-[10px] font-bold text-workshop-accent uppercase overflow-hidden shrink-0">
+        <NavLink to="/settings" className="flex items-center gap-3 group hover:no-underline" title={`Profile & Settings (${roleLabel})`}>
+          <div
+            className={cn(
+              "w-8 h-8 rounded-full ring-2 transition-all flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden shrink-0",
+              roleRingClass,
+              roleFallbackStyle.bg,
+              roleFallbackStyle.text
+            )}
+          >
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -196,7 +221,9 @@ export function DesktopSidebar({
             <p className="text-xs text-workshop-text font-bold truncate max-w-[120px] group-hover:text-workshop-accent transition-colors">
               {profile?.name || user?.displayName || user?.email}
             </p>
-            <p className="text-[10px] uppercase text-workshop-muted font-black tracking-widest opacity-60">Active session</p>
+            <p className="text-[10px] uppercase text-workshop-muted font-black tracking-widest opacity-60">
+              {roleLabel} • Active session
+            </p>
           </div>
         </NavLink>
 

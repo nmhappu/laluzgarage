@@ -4,26 +4,45 @@ import type { ServiceRecord } from '../../types';
 export interface ServiceStatusBadgeProps {
   status: ServiceRecord['status'] | string;
   className?: string;
+  showDot?: boolean;
 }
 
-export function ServiceStatusBadge({ status, className }: ServiceStatusBadgeProps) {
+export function ServiceStatusBadge({
+  status,
+  className,
+  showDot = true,
+}: ServiceStatusBadgeProps) {
   const normalizedStatus = status?.toLowerCase() || 'pending';
 
   return (
     <span
       className={cn(
-        "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border inline-flex items-center justify-center select-none font-sans",
+        "text-xs font-black uppercase tracking-widest inline-flex items-center gap-1.5 select-none font-sans",
         normalizedStatus === "completed"
-          ? "bg-status-success/10 text-status-success border-status-success/20"
+          ? "text-status-success"
           : normalizedStatus === "in-progress"
-            ? "bg-status-pending/10 text-status-pending border-status-pending/20"
+            ? "text-status-pending"
             : normalizedStatus === "cancelled"
-              ? "bg-workshop-muted/10 text-workshop-muted border-workshop-border/30"
-              : "bg-status-urgent/10 text-status-urgent border-status-urgent/20",
+              ? "text-workshop-muted"
+              : "text-status-urgent",
         className
       )}
     >
-      {status}
+      {showDot && (
+        <span
+          className={cn(
+            "w-1.5 h-1.5 rounded-full shrink-0",
+            normalizedStatus === "completed"
+              ? "bg-status-success shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+              : normalizedStatus === "in-progress"
+                ? "bg-status-pending shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                : normalizedStatus === "cancelled"
+                  ? "bg-workshop-muted"
+                  : "bg-status-urgent shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+          )}
+        />
+      )}
+      <span>{status}</span>
     </span>
   );
 }

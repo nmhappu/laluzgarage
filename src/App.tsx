@@ -12,6 +12,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { getUserRole } from './types';
 import { AppLoadingScreen } from './components/auth/AppLoadingScreen';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { cn } from './lib/utils';
 
 const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ default: m.Dashboard })));
 const VehicleHistory = lazy(() => import('./components/VehicleHistory').then((m) => ({ default: m.VehicleHistory })));
@@ -46,6 +47,7 @@ function RouteLoadingFallback() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const isFullScreen = ['/settings', '/intake'].includes(location.pathname);
   
   return (
     <AnimatePresence mode="wait">
@@ -57,7 +59,7 @@ function AnimatedRoutes() {
         exit="exit"
         transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
         style={{ willChange: "transform, opacity" }}
-        className="w-full max-w-7xl mx-auto"
+        className={cn("w-full max-w-7xl mx-auto", isFullScreen && "h-full flex flex-col min-h-0")}
       >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
@@ -82,7 +84,7 @@ function MainLayout() {
 
   if (isFullScreen) {
     return (
-      <div className="h-mobile-screen overflow-y-auto bg-workshop-bg text-workshop-text">
+      <div className="h-mobile-screen flex flex-col overflow-hidden bg-workshop-bg text-workshop-text">
         <AnimatedRoutes />
       </div>
     );

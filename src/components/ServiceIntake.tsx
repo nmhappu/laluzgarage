@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
 import { Portal } from './Portal';
 import { useServiceIntake } from '../hooks/useServiceIntake';
 import { AdvisorVerification } from './intake/AdvisorVerification';
 import { IntakeSuccessModal } from './intake/IntakeSuccessModal';
-import { IntakeStepProgress } from './intake/IntakeStepProgress';
+import { IntakeTopBar } from './intake/IntakeTopBar';
 import { Step1CustomerDiscovery } from './intake/Step1CustomerDiscovery';
 import { Step2VehicleSelection } from './intake/Step2VehicleSelection';
 import { Step3JobSpecification } from './intake/Step3JobSpecification';
@@ -53,7 +52,15 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
 
   const Wrapper = isPage ? React.Fragment : Portal;
 
-  // 1. Success Modal State
+  const handleTopBack = useCallback(() => {
+    if (step > 1) {
+      handleBackStep();
+    } else {
+      onClose();
+    }
+  }, [step, handleBackStep, onClose]);
+
+  // 1. Success Screen State
   if (createdJob) {
     return (
       <IntakeSuccessModal
@@ -83,32 +90,40 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
     );
   }
 
-  // 3. Multi-Step Intake Flow
+  // 3. Multi-Step Intake Experience (Consistent Top Navbar & Left-Aligned Content)
   return (
     <Wrapper>
       <motion.div
-        initial={isPage ? { opacity: 0, y: 15 } : { x: "100%", opacity: 0.95 }}
-        animate={isPage ? { opacity: 1, y: 0 } : { x: 0, opacity: 1 }}
-        exit={isPage ? { opacity: 0, y: -10 } : { x: "100%", opacity: 0.95 }}
-        transition={
+        initial={isPage ? { opacity: 0, y: 8 } : { opacity: 0 }}
+        animate={isPage ? { opacity: 1, y: 0 } : { opacity: 1 }}
+        exit={isPage ? { opacity: 0, y: -8 } : { opacity: 0 }}
+        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+        className={
           isPage
-            ? { duration: 0.25, ease: [0.2, 0, 0, 1.0] }
-            : { type: "spring", stiffness: 350, damping: 30 }
+            ? 'min-h-screen w-full bg-workshop-bg flex flex-col text-workshop-text relative overflow-x-hidden'
+            : 'fixed inset-0 z-[100] min-h-screen w-full bg-workshop-bg flex flex-col text-workshop-text relative overflow-x-hidden'
         }
-        className={cn(
-          isPage
-            ? "w-full max-w-4xl mx-auto flex flex-col text-workshop-text font-sans bg-workshop-bg h-full min-h-0"
-            : "fixed inset-0 z-[100] bg-workshop-bg flex flex-col w-full h-full overflow-hidden"
-        )}
       >
-        <div className="w-full flex-1 flex flex-col h-full bg-workshop-bg text-workshop-text relative overflow-hidden">
-          <IntakeStepProgress
-            step={step}
-            authenticatedAdvisor={authenticatedAdvisor}
-            onClose={onClose}
-          />
+        {/* Precision Canvas Dot Grid Background */}
+        <div
+          className="canvas-grid pointer-events-none absolute inset-0 opacity-60 dark:opacity-40"
+          style={{
+            maskImage: 'radial-gradient(ellipse 85% 85% at 50% 50%, #000 40%, transparent 95%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 85% 85% at 50% 50%, #000 40%, transparent 95%)',
+          }}
+        />
 
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-workshop-bg/30">
+        {/* Ambient Background Glow */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center">
+          <div className="w-[500px] h-[500px] bg-workshop-accent/5 rounded-full blur-3xl -translate-y-12" />
+        </div>
+
+        {/* Standard App Top Navbar */}
+        <IntakeTopBar onBack={handleTopBack} title="Vehicle Intake" m3Icon="assignment" />
+
+        {/* Scrollable Main Step Content Area - Left Aligned with standard padding */}
+        <main className="relative z-10 flex-1 overflow-y-auto px-5 sm:px-6 py-6 sheet-footer-safe">
+          <div className="max-w-xl w-full mx-auto flex flex-col items-start text-left">
             <AnimatePresence mode="wait">
               {Math.floor(step) === 1 && (
                 <Step1CustomerDiscovery
@@ -155,9 +170,8 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
                 />
               )}
             </AnimatePresence>
-            <div className="sheet-footer-safe" />
           </div>
-        </div>
+        </main>
       </motion.div>
     </Wrapper>
   );
@@ -166,7 +180,7 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
 export function ServiceIntakePage() {
   const navigate = useNavigate();
   return (
-    <div className="w-full max-w-4xl mx-auto py-2">
+    <div className="w-full min-h-screen flex flex-col">
       <ServiceIntake
         onClose={() => {
           if (window.history.length > 1) {

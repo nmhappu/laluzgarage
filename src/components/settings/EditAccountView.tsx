@@ -62,7 +62,7 @@ export function EditAccountView({
     >
       <form onSubmit={onSave} className="space-y-6">
         <div className="space-y-1">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-workshop-muted">
+          <h3 className="text-sm font-bold tracking-wider text-workshop-muted">
             {isCreating ? "Create Team Account" : "Edit Team Account"}
           </h3>
         </div>

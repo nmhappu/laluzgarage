@@ -249,7 +249,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
           {/* Performance Chart */}
           <div className="bg-workshop-surface border border-workshop-border/30 p-5 rounded-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-workshop-text uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-xs font-bold text-workshop-text tracking-wider flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-cyan-400" />
                 <span>Jobs Completed vs Active per Technician</span>
               </h3>
@@ -311,7 +311,7 @@ export function PerformanceView({ users, pageVariants }: PerformanceViewProps) {
 
           {/* Technician Detailed Breakdown */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-workshop-muted uppercase tracking-wider block">
+            <h3 className="text-xs font-bold text-workshop-muted tracking-wider block">
               Detailed Performance Breakdown
             </h3>
 

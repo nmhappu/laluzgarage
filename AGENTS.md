@@ -57,6 +57,7 @@ The codebase employs two distinct icon libraries plus custom SVG assets:
    - **WavyProgress (`src/components/WavyProgress.tsx`)**: Custom animated SVG sinusoidal wave indicator displaying active progress during the 3-step vehicle intake wizard.
    - **LaluZ Garage Brand Icon**: Vector assets located at `/LALUZ GARAGE ICON.svg`, `/app_icon.svg`, and `/public/icon.png`.
    - **Custom Search Icon (`src/components/ui/SearchIcon.tsx`)**: Material Symbols search glyph loaded from `/external-items/` replacing generic search icons across navigation, intake discovery, and service drawer pickers.
+   - **MorphText (`src/components/ui/MorphText.tsx`)**: Shared-layout glyph morphing component for titles (shadcn.io / Motion-Primitives pattern). Decomposes words into occurrence-indexed characters (`generateKeys`), dynamically slides matching glyphs across screen headers via `layoutId`, and dissolves non-matching characters with spring physics (`stiffness: 280, damping: 22`) and pop-layout blur/scale transitions.
 
 ### 2.3 Third-Party Libraries & Dependencies
 
@@ -64,7 +65,7 @@ The codebase employs two distinct icon libraries plus custom SVG assets:
 | :--- | :--- | :--- |
 | **`react` & `react-dom`** | `^19.0.0` | Core UI engine (functional components, hooks, concurrent rendering). |
 | **`react-router-dom`** | `^7.14.1` | Client-side routing (`BrowserRouter`, `Routes`, `Route`, `useLocation`, `useNavigate`). URL query parameters (`qm`) synchronize active search queries with mobile search headers. |
-| **`motion`** | `^12.23.24` | Animation engine (`motion/react`, `AnimatePresence`). Drives M3 page transitions, sliding drawers (`VehicleLedgerDrawer.tsx`), layout indicators (`layoutId="mobileActivePill"` and `layoutId="desktopActiveTabBackdrop"`), and modal spring physics. |
+| **`motion`** | `^12.23.24` | Animation engine (`motion/react`, `AnimatePresence`). Drives M3 page transitions, sliding drawers (`VehicleLedgerDrawer.tsx`), layout indicators (`layoutId="mobileActivePill"` and `layoutId="desktopActiveTabBackdrop"`), modal spring physics, and shared-layout glyph morphing (`MorphText.tsx`). |
 | **`@material/web`** | `^2.4.1` | Google Material 3 Web Components. Imports `@material/web/progress/circular-progress.js` to render `<md-circular-progress indeterminate>` loaders in `AuthContext.tsx` and `IntakeStepProgress.tsx`. |
 | **`recharts`** | `^3.8.1` | Data visualization. Renders embedded SVG sparkline area charts in `StatTile.tsx` (14-day trends) and advisor revenue bar charts in `SettingsModal.tsx`. |
 | **`@radix-ui/react-select`** | `^2.2.6` | Accessible headless select primitive wrapped in `src/components/ui/CustomSelect.tsx`. |
@@ -269,12 +270,12 @@ The app uses a dual layout structure:
 - **Main App Layout**:
   - **Desktop (md+)**:
     - Sticky left sidebar (`Navigation.tsx`, width `w-64`, `bg-workshop-surface`).
-    - Top branding header with dynamic Material Symbol icon that changes according to current page.
+    - Top branding header with animated glyph morphing title (`MorphText`) and dynamic Material Symbol icon that changes according to current page.
     - Context-aware desktop search bar (appears on `/vehicles`, `/inventory`, `/services`).
     - Navigation menu with motion spring indicator (`desktopActiveTabBackdrop`).
     - Active session footer with advisor avatar, name, and logout prompt.
   - **Mobile (<md)**:
-    - **Top Bar**: Fixed header with `safe-top` padding, blur-on-scroll background, logo, search expand trigger, filter log toggle, theme toggle, and settings/logout icons.
+    - **Top Bar**: Fixed header with `safe-top` padding, blur-on-scroll background, animated glyph morphing title (`MorphText`), dynamic Material Symbol icon, search expand trigger, filter log toggle, and account avatar.
     - **Expandable Sticky Search Bar**: Slides down from top bar when search icon is clicked; syncs search query with URL search param `qm`.
     - **Bottom Navigation Bar**: Fixed bottom bar with `safe-bottom` padding, pill indicators (`layoutId="mobileActivePill"`), and 4 main tabs:
       1. Dashboard (`/`) -> icon: `grid_view`

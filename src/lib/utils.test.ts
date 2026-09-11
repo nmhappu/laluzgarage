@@ -17,6 +17,13 @@ import {
   DEFAULT_INTAKE_TEMPLATE,
   DEFAULT_DELIVERY_TEMPLATE,
 } from '../services/whatsappPresetService';
+import {
+  getNavTitle,
+  getRoleRingClass,
+  getRoleFallbackStyle,
+  getRoleLabel,
+} from '../components/nav/types';
+import { extractFirstIssues } from '../components/settings/DateWiseHistoryView';
 
 describe('Utility Functions', () => {
   it('cn merges Tailwind classes correctly without conflicts', () => {
@@ -174,6 +181,95 @@ describe('Ola Brand Identification', () => {
     expect(isOlaVehicle({ make: 'Electric', model: 'Ola S1' })).toBe(true);
     expect(isOlaVehicle({ make: 'Honda', model: 'Activa 6G' })).toBe(false);
     expect(isOlaVehicle(undefined)).toBe(false);
+  });
+});
+
+describe('Navigation Title Mapping', () => {
+  it('keeps LaluZ Garage on dashboard', () => {
+    expect(getNavTitle('/')).toBe('LaluZ Garage');
+  });
+
+  it('changes to respective screen title on others', () => {
+    expect(getNavTitle('/vehicles')).toBe('Vehicle Registry');
+    expect(getNavTitle('/inventory')).toBe('Parts Inventory');
+    expect(getNavTitle('/services')).toBe('Service History');
+    expect(getNavTitle('/settings')).toBe('Settings');
+    expect(getNavTitle('/intake')).toBe('Vehicle Intake');
+  });
+
+  it('handles subpaths and query strings gracefully', () => {
+    expect(getNavTitle('/vehicles?q=test')).toBe('Vehicle Registry');
+    expect(getNavTitle('/services?status_m=pending')).toBe('Service History');
+    expect(getNavTitle('/inventory/edit')).toBe('Parts Inventory');
+  });
+});
+
+describe('User Profile Role Circle Styling', () => {
+  it('returns appropriate ring color classes for each role', () => {
+    expect(getRoleRingClass('admin')).toContain('ring-status-urgent');
+    expect(getRoleRingClass('technician')).toContain('ring-status-success');
+    expect(getRoleRingClass('assistant')).toContain('ring-sky-400');
+    expect(getRoleRingClass(null)).toContain('ring-workshop-border');
+    expect(getRoleRingClass(undefined)).toContain('ring-workshop-border');
+  });
+
+  it('returns matching fallback background and text styles', () => {
+    expect(getRoleFallbackStyle('admin').text).toBe('text-status-urgent');
+    expect(getRoleFallbackStyle('technician').text).toBe('text-status-success');
+    expect(getRoleFallbackStyle('assistant').text).toBe('text-sky-400');
+    expect(getRoleFallbackStyle(null).text).toBe('text-workshop-accent');
+  });
+
+  it('returns human-readable role labels', () => {
+    expect(getRoleLabel('admin')).toBe('Admin');
+    expect(getRoleLabel('technician')).toBe('Technician');
+    expect(getRoleLabel('assistant')).toBe('Assistant');
+    expect(getRoleLabel(null)).toBe('Team Member');
+    expect(getRoleLabel(undefined)).toBe('Team Member');
+  });
+});
+
+describe('extractFirstIssues', () => {
+  it('extracts at most first 2 issues by default', () => {
+    const raw = `Engine noise during acceleration
+Brake pad inspection
+Oil filter replacement
+Tire pressure check`;
+    expect(extractFirstIssues(raw)).toEqual([
+      'Engine noise during acceleration',
+      'Brake pad inspection',
+    ]);
+  });
+
+  it('strips markdown checkboxes and list indicators', () => {
+    const raw = `[ ] Front fork oil leak
+[x] Battery health check
+- [ ] Chain slack adjustment
+• Mirror replacement`;
+    expect(extractFirstIssues(raw)).toEqual([
+      'Front fork oil leak',
+      'Battery health check',
+    ]);
+  });
+
+  it('handles numbered lists and bullets', () => {
+    const raw = `1. Throttle free play
+2) Horn not working
+3. Tail lamp check`;
+    expect(extractFirstIssues(raw)).toEqual([
+      'Throttle free play',
+      'Horn not working',
+    ]);
+  });
+
+  it('handles empty or undefined descriptions gracefully', () => {
+    expect(extractFirstIssues('')).toEqual([]);
+    expect(extractFirstIssues(undefined)).toEqual([]);
+    expect(extractFirstIssues('   \n  \n')).toEqual([]);
+  });
+
+  it('returns single issue if only one is present', () => {
+    expect(extractFirstIssues('[ ] General Service')).toEqual(['General Service']);
   });
 });
 

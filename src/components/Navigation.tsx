@@ -42,17 +42,6 @@ export function Navigation() {
     }, { replace: true });
   };
 
-  const mobileStatus = searchParams.get('status_m') || 'all';
-  const setMobileStatus = (val: string) => {
-    setSearchParams((prev) => {
-      if (val === 'all') {
-        prev.delete('status_m');
-      } else {
-        prev.set('status_m', val);
-      }
-      return prev;
-    }, { replace: true });
-  };
 
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -104,11 +93,12 @@ export function Navigation() {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      setShowLogoutConfirm(false);
       await logout();
     } catch (err) {
       console.error('Logout error:', err);
+    } finally {
       setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -128,8 +118,6 @@ export function Navigation() {
         isScrolled={isScrolled}
         mobileQuery={mobileQuery}
         onMobileQueryChange={setMobileQuery}
-        mobileStatus={mobileStatus}
-        onMobileStatusChange={setMobileStatus}
         onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 

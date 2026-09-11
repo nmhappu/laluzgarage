@@ -1,8 +1,6 @@
-import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { useRef, useEffect } from "react";
+import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
-import { useBackHandler } from "../../contexts/UIContext";
 
 export interface ServiceHistoryTabsProps {
   tabs: Array<{
@@ -22,102 +20,95 @@ export function ServiceHistoryTabs({
   activeTab,
   onSelectTab,
 }: ServiceHistoryTabsProps) {
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const activeTabObj = tabs.find((t) => t.id === activeTab) || tabs[0];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  useBackHandler(() => {
-    setFilterDropdownOpen(false);
-    return true;
-  }, filterDropdownOpen, 40);
+  // Auto scroll active tab into view smoothly (Groww-style interaction)
+  useEffect(() => {
+    const activeEl = tabRefs.current[activeTab];
+    if (activeEl && containerRef.current) {
+      activeEl.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [activeTab]);
 
   return (
-    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-      <div className="w-full xl:w-72 relative min-w-0 z-30">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 bg-workshop-surface/80 border border-workshop-border/80 hover:border-workshop-accent/50 text-workshop-text px-4 py-3 rounded-xl outline-none select-none transition-all shadow-sm cursor-pointer font-sans text-xs font-black uppercase tracking-wider h-[46px]"
-            id="status-filter-dropdown"
-          >
-            <span className="flex items-center gap-2.5">
+    <div className="w-full relative select-none">
+      {/* Scrollable Tab Row with bottom baseline border */}
+      <div
+        ref={containerRef}
+        className="flex items-center gap-1 sm:gap-2 md:gap-3 overflow-x-auto no-scrollbar scroll-smooth border-b border-workshop-border/60 relative px-0.5"
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                tabRefs.current[tab.id] = el;
+              }}
+              type="button"
+              onClick={() =>
+                onSelectTab(
+                  tab.id as
+                    | "all"
+                    | "pending"
+                    | "in-progress"
+                    | "completed"
+                    | "cancelled"
+                )
+              }
+              className={cn(
+                "relative flex items-center gap-2 py-3 px-3 sm:px-4 shrink-0 transition-colors duration-150 outline-none focus:outline-none [-webkit-tap-highlight-color:transparent] cursor-pointer",
+                isActive
+                  ? "text-workshop-text font-semibold"
+                  : "text-workshop-muted hover:text-workshop-text/80 font-medium"
+              )}
+            >
+              {/* Subtle status indicator dot */}
               <span
                 className={cn(
-                  "w-2 h-2 rounded-full shadow-sm shrink-0",
-                  activeTabObj.color?.replace("text-", "bg-") || "bg-workshop-secondary"
+                  "w-2 h-2 rounded-full shrink-0 transition-all duration-150",
+                  isActive ? "opacity-100 scale-100" : "opacity-40 scale-90",
+                  tab.color?.replace("text-", "bg-") || "bg-workshop-secondary"
                 )}
               />
-              <span className="truncate">{activeTabObj.label}</span>
-              <span className="text-[10px] bg-workshop-border/40 text-workshop-muted px-1.5 py-0.5 rounded font-sans font-black tabular-nums">
-                {activeTabObj.count}
-              </span>
-            </span>
-            <ChevronDown
-              className={cn(
-                "w-4 h-4 text-workshop-muted transition-transform duration-200 shrink-0",
-                filterDropdownOpen && "rotate-180"
-              )}
-            />
-          </button>
 
-          <AnimatePresence>
-            {filterDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40 bg-transparent [-webkit-tap-highlight-color:transparent] outline-none border-none"
-                  onClick={() => setFilterDropdownOpen(false)}
-                />
+              {/* Tab Title */}
+              <span className="text-sm tracking-tight whitespace-nowrap">
+                {tab.label}
+              </span>
+
+              {/* Tab Count Badge */}
+              <span
+                className={cn(
+                  "text-xs font-bold tabular-nums px-2 py-0.5 rounded-full transition-all",
+                  isActive
+                    ? "bg-workshop-surface text-workshop-text border border-workshop-border shadow-2xs"
+                    : "bg-workshop-surface/40 text-workshop-muted/70"
+                )}
+              >
+                {tab.count}
+              </span>
+
+              {/* Sliding Underline Indicator (Groww-Style) */}
+              {isActive && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 right-0 mt-2 bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[200px]"
-                >
-                  {tabs.map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectTab(
-                            tab.id as
-                              | "all"
-                              | "pending"
-                              | "in-progress"
-                              | "completed"
-                              | "cancelled"
-                          );
-                          setFilterDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between gap-3 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all select-none text-left cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]",
-                          isActive
-                            ? "text-workshop-accent bg-workshop-surface/80"
-                            : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/45"
-                        )}
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span
-                            className={cn(
-                              "w-1.5 h-1.5 rounded-full shadow-sm shrink-0",
-                              tab.color?.replace("text-", "bg-") || "bg-workshop-muted"
-                            )}
-                          />
-                          <span className="font-sans truncate">{tab.label}</span>
-                        </span>
-                        <span className="text-[10px] bg-workshop-border/30 px-1.5 py-0.5 rounded font-sans opacity-80 font-black tabular-nums">
-                          {tab.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
+                  layoutId="serviceHistoryActiveTabUnderline"
+                  className="absolute -bottom-px inset-x-1.5 h-[3px] bg-workshop-text rounded-full z-10"
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 32,
+                  }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

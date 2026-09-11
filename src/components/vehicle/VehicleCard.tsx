@@ -1,8 +1,7 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Car, Key, History, Phone, UserPlus } from 'lucide-react';
-import { openCreateContactScreen } from '../../services/contactService';
-import { WhatsAppIcon } from '../ui/BrandIcons';
+import { Car, Key, History, Phone } from 'lucide-react';
+import { WhatsAppIcon, OlaWatermark } from '../ui/BrandIcons';
 import type { Vehicle } from '../../types';
 import { capitalizeName, cleanPhoneNumber, buildWhatsAppUrl } from '../../lib/utils';
 
@@ -34,6 +33,11 @@ export const VehicleCard = memo(function VehicleCard({
   onWhatsApp,
 }: VehicleCardProps) {
   const capOwnerName = capitalizeName(vehicle.ownerName);
+  const isOla = useMemo(() => {
+    const make = (vehicle.make || '').toLowerCase();
+    const model = (vehicle.model || '').toLowerCase();
+    return make.includes('ola') || model.includes('ola');
+  }, [vehicle.make, vehicle.model]);
 
   return (
     <motion.div
@@ -46,6 +50,12 @@ export const VehicleCard = memo(function VehicleCard({
       className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-[background-color,border-color,box-shadow,transform] duration-200 group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/10 active:scale-[0.995] cv-vehicle-card"
       onClick={() => onSelect(vehicle)}
     >
+      {isOla && (
+        <div className="absolute bottom-18 right-0 w-40 md:w-48 pointer-events-none opacity-[0.045] [html[data-theme=light]_&]:opacity-[0.07] flex items-end justify-end pr-4 pb-2 text-workshop-text overflow-hidden select-none">
+          <OlaWatermark className="w-full h-auto" />
+        </div>
+      )}
+
       {/* Row 1: Vehicle Identity with Plate opposite */}
       <div className="flex items-center justify-between gap-4 w-full">
         <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -137,25 +147,6 @@ export const VehicleCard = memo(function VehicleCard({
               >
                 <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>WhatsApp</span>
-              </button>
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (vehicle.ownerPhone) {
-                    const vehicleInfo = `${vehicle.make ? vehicle.make + ' ' : ''}${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ''}`.trim();
-                    await openCreateContactScreen({
-                      name: vehicle.ownerName || 'Customer',
-                      phone: vehicle.ownerPhone,
-                      vehicleInfo: vehicleInfo || undefined,
-                    });
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 bg-workshop-surface hover:bg-workshop-surface/80 text-workshop-muted hover:text-workshop-accent px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm border border-workshop-border/40 active:scale-95"
-                title={`Add ${capOwnerName} to Contacts`}
-              >
-                <UserPlus className="w-3 h-3 shrink-0" />
-                <span>Add Contact</span>
               </button>
             </>
           ) : (

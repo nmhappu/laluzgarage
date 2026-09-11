@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  Heart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThemeToggle } from './ThemeToggle';
@@ -120,7 +121,12 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-workshop-bg flex flex-col justify-between p-6 sm:p-8 safe-top safe-bottom relative overflow-x-hidden">
+    <div
+      className="min-h-screen min-h-[100dvh] bg-workshop-bg flex flex-col justify-between p-6 sm:p-8 safe-top relative overflow-x-hidden"
+      style={{
+        paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem))',
+      }}
+    >
       {/* Precision Canvas Dot Grid Background */}
       <div
         className="canvas-grid pointer-events-none absolute inset-0 opacity-60 dark:opacity-40"
@@ -336,6 +342,43 @@ export function LoginPage() {
           </AnimatePresence>
         </motion.div>
       </main>
+
+      {/* Footer / Bottom Left & Right Info */}
+      <motion.footer
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1, ease: [0.2, 0, 0, 1] }}
+        className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 text-xs text-workshop-muted/80 select-none shrink-0"
+      >
+        {/* Bottom Left: Created with heart by Prince Santhosh */}
+        <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+          <span>Created with</span>
+          <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 shrink-0 inline-block" />
+          <span>by</span>
+          <a
+            href="https://appu.dev"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-medium text-workshop-text hover:text-workshop-accent transition-colors hover:underline underline-offset-4"
+          >
+            Prince Santhosh
+          </a>
+        </div>
+
+        {/* Bottom Right: © 2026 LaluZ Garage · License */}
+        <div className="flex items-center gap-1.5 justify-center sm:justify-end">
+          <span>&copy; 2026 LaluZ Garage</span>
+          <span className="text-workshop-muted/40">&middot;</span>
+          <a
+            href="https://github.com/nmhappu/laluzgarage/blob/main/LICENSE.md"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-workshop-muted hover:text-workshop-text transition-colors hover:underline underline-offset-4"
+          >
+            License
+          </a>
+        </div>
+      </motion.footer>
     </div>
   );
 }

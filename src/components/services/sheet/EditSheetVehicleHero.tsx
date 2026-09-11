@@ -1,10 +1,8 @@
-import React, { useState } from "react";
-import { Key, Phone, ChevronDown, UserPlus } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import React from "react";
+import { Key, Phone } from "lucide-react";
 import type { ServiceRecord, Vehicle, Customer } from "../../../types";
 import { capitalizeName, cn } from "../../../lib/utils";
-import { openCreateContactScreen } from "../../../services/contactService";
-import { useBackHandler } from "../../../contexts/UIContext";
+import { WhatsAppIcon } from "../../ui/BrandIcons";
 
 export interface EditSheetVehicleHeroProps {
   vehicle?: Vehicle;
@@ -19,13 +17,6 @@ export function EditSheetVehicleHero({
   editingRecord,
   onWhatsAppClick,
 }: EditSheetVehicleHeroProps) {
-  const [contactMenuOpen, setContactMenuOpen] = useState(false);
-
-  // Close contact menu dropdown before closing parent sheet
-  useBackHandler(() => {
-    setContactMenuOpen(false);
-    return true;
-  }, contactMenuOpen, 70);
 
   const colorFormatted = vehicle?.color
     ? vehicle.color.charAt(0).toUpperCase() + vehicle.color.slice(1)
@@ -90,97 +81,29 @@ export function EditSheetVehicleHero({
         )}
       </div>
 
-      {/* Dial Customer quick action with dropdown */}
+      {/* Customer Quick Actions */}
       {customer?.phone && (
-        <div className="pt-1.5 relative inline-block text-left select-none">
-          <div className="flex items-center gap-1">
-            <a
-              href={`tel:${customer.phone}`}
-              className="inline-flex items-center gap-1.5 p-1.5 px-3 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all text-xs font-bold uppercase tracking-wider font-sans shadow-sm"
-            >
-              <Phone className="w-3.5 h-3.5 shrink-0" />
-              <span>Call {capitalizeName(customer.name).split(" ")[0]}</span>
-            </a>
+        <div className="pt-1.5 flex items-center gap-2 select-none">
+          <a
+            href={`tel:${customer.phone}`}
+            className="inline-flex items-center gap-1.5 p-1.5 px-3 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all text-xs font-bold uppercase tracking-wider font-sans shadow-sm"
+          >
+            <Phone className="w-3.5 h-3.5 shrink-0" />
+            <span>Call {capitalizeName(customer.name).split(" ")[0]}</span>
+          </a>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setContactMenuOpen(!contactMenuOpen);
-              }}
-              className="inline-flex items-center justify-center p-1.5 rounded-lg bg-workshop-surface border border-workshop-border/60 hover:border-workshop-accent/50 text-workshop-accent hover:text-workshop-text hover:bg-workshop-surface/80 transition-all shadow-sm cursor-pointer"
-              id="contact-actions-dropdown"
-            >
-              <ChevronDown
-                className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  contactMenuOpen && "rotate-180"
-                )}
-              />
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {contactMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-[110]"
-                  onClick={() => setContactMenuOpen(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 mt-1.5 w-60 rounded-xl bg-workshop-card border border-workshop-border shadow-xl z-[120] overflow-hidden py-1"
-                >
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!customer) return;
-                      setContactMenuOpen(false);
-
-                      const vehicleInfo = vehicle
-                        ? `${vehicle.make ? vehicle.make + " " : ""}${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ""}`
-                        : undefined;
-
-                      await openCreateContactScreen({
-                        name: customer.name,
-                        phone: customer.phone,
-                        vehicleInfo,
-                      });
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans"
-                    id="add-to-contacts-option"
-                  >
-                    <UserPlus className="w-4 h-4 text-workshop-secondary shrink-0" />
-                    <span>Add {capitalizeName(customer.name).split(" ")[0]} to Contacts</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setContactMenuOpen(false);
-                      onWhatsAppClick(editingRecord, customer, vehicle || undefined);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-workshop-text hover:bg-workshop-surface/80 transition-all cursor-pointer text-left font-sans outline-none border-0"
-                    id="whatsapp-update-option"
-                  >
-                    <img
-                      src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/whatsapp-light.svg"
-                      alt="WhatsApp"
-                      className="w-4 h-4 shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span>WhatsApp Options</span>
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          <button
+            type="button"
+            onClick={() => {
+              onWhatsAppClick(editingRecord, customer, vehicle || undefined);
+            }}
+            className="inline-flex items-center gap-1.5 p-1.5 px-3 rounded-lg bg-whatsapp/15 hover:bg-whatsapp/25 text-whatsapp transition-all text-xs font-bold uppercase tracking-wider font-sans shadow-sm cursor-pointer border-0 outline-none active:scale-95"
+            title="WhatsApp Options"
+            id="whatsapp-update-option"
+          >
+            <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
+            <span>WhatsApp</span>
+          </button>
         </div>
       )}
     </div>

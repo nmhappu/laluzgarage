@@ -1,9 +1,15 @@
 import React from 'react';
-import { ArrowLeft, Key, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, ClipboardCheck, Gauge, Key, Lock, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { MaterialCalendar } from '../ui/MaterialCalendar';
 import type { Vehicle } from '../../types';
+
+const tapSpringTransition = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 25,
+};
 
 export interface Step3JobSpecificationProps {
   key?: React.Key;
@@ -59,246 +65,250 @@ export function Step3JobSpecification({
     ? 'Key'
     : vehicleForm.passwordOrPin;
 
-  const isKey = pinOrKey?.toLowerCase() === 'key';
+  const vehicleTitle = selectedVehicle
+    ? `${selectedVehicle.make} ${selectedVehicle.model}`
+    : `${vehicleForm.make} ${vehicleForm.model}`;
+
+  const vehiclePlate = selectedVehicle
+    ? selectedVehicle.plateNumber
+    : vehicleForm.plateNumber;
+
+  const isFormValid =
+    !loading &&
+    Boolean(jobForm.description.trim()) &&
+    Boolean(jobForm.serviceDate) &&
+    Boolean(jobForm.expectedDeliveryDate) &&
+    !isMileageInvalid;
 
   return (
     <motion.div
       key="step3"
-      initial={{ opacity: 0, scale: 0.98, x: 15 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.98, x: -15 }}
-      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1.0] }}
-      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+      className="flex flex-col items-start text-left space-y-6 w-full"
     >
-      <button
-        onClick={onBackStep}
-        className="flex items-center gap-2 text-workshop-muted hover:text-workshop-text text-[10px] font-black uppercase tracking-widest cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" /> {selectedVehicle ? "Back to Search" : "Vehicle Info"}
-      </button>
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold text-workshop-text uppercase tracking-tight">
+      {/* Header Icon & Title */}
+      <div className="space-y-4 text-left">
+        <div className="relative text-workshop-accent">
+          <div className="absolute -inset-2 bg-workshop-accent/20 blur-2xl rounded-full pointer-events-none" />
+          <ClipboardCheck className="relative w-12 h-12 stroke-[1.75]" />
+        </div>
+
+        <div className="space-y-1.5 text-left">
+          <h1 className="text-2xl sm:text-3xl font-logo font-bold text-workshop-text tracking-tight">
             Job Specification
-          </h3>
-          <p className="text-workshop-muted text-sm">
-            Define the reason for intake and current vehicle status.
+          </h1>
+          <p className="text-workshop-muted text-xs sm:text-sm leading-relaxed">
+            Specify customer complaints, odometer reading, and scheduled delivery date.
           </p>
         </div>
-        {pinOrKey && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-workshop-surface border border-workshop-border rounded-xl shadow-sm self-start shrink-0">
-            {isKey ? (
+      </div>
+
+      {/* Vehicle Summary Table (PendingApproval style) */}
+      <div className="w-full divide-y divide-workshop-border/60 border-y border-workshop-border/60 text-left py-1">
+        <div className="flex items-center justify-between py-2.5 text-xs sm:text-sm">
+          <span className="text-workshop-muted font-medium">Assigned Vehicle</span>
+          <span className="text-workshop-text font-semibold truncate max-w-[220px]">
+            {vehicleTitle}
+          </span>
+        </div>
+        <div className="flex items-center justify-between py-2.5 text-xs sm:text-sm">
+          <span className="text-workshop-muted font-medium">Plate Number</span>
+          <span className="font-plate text-xs font-bold text-workshop-accent uppercase truncate max-w-[220px]">
+            {vehiclePlate}
+          </span>
+        </div>
+        <div className="flex items-center justify-between py-2.5 text-xs sm:text-sm">
+          <span className="text-workshop-muted font-medium">Security Access</span>
+          <span className="text-workshop-text font-mono text-xs inline-flex items-center gap-1.5">
+            {pinOrKey?.toLowerCase() === 'key' ? (
               <>
-                <Key className="w-3.5 h-3.5 text-workshop-accent animate-pulse" />
-                <span className="text-[10px] font-google-sans font-black uppercase tracking-wider text-workshop-text">
-                  Key
-                </span>
+                <Key className="w-3 h-3 text-workshop-accent" />
+                <span>Physical Key</span>
               </>
             ) : (
               <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-workshop-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-workshop-accent"></span>
-                </span>
-                <span className="text-[10px] font-google-sans font-black uppercase tracking-wider text-workshop-muted">
-                  PIN:
-                </span>
-                <span className="text-[11px] font-numeric font-black tracking-wider text-workshop-text">
-                  {pinOrKey}
-                </span>
+                <Lock className="w-3 h-3 text-workshop-accent" />
+                <span>PIN: {pinOrKey}</span>
               </>
             )}
-          </div>
-        )}
+          </span>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Odometer
-          </label>
-          <div className="relative">
+      {/* Form Fields Grid */}
+      <div className="w-full space-y-4">
+        {/* Odometer Mileage */}
+        <div className="space-y-1.5 text-left">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+              Current Odometer Reading
+            </label>
+            {/* Quick Status Chips */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setJobForm({
+                    ...jobForm,
+                    isDeadVehicle: !jobForm.isDeadVehicle,
+                    isUnknownMileage: false,
+                    mileage: '',
+                  })
+                }
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-medium font-google-sans uppercase tracking-wider transition-colors cursor-pointer border',
+                  jobForm.isDeadVehicle
+                    ? 'bg-status-urgent/15 border-status-urgent/30 text-status-urgent'
+                    : 'bg-workshop-surface border-workshop-border text-workshop-muted hover:text-workshop-text'
+                )}
+              >
+                Dead Vehicle
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setJobForm({
+                    ...jobForm,
+                    isUnknownMileage: !jobForm.isUnknownMileage,
+                    isDeadVehicle: false,
+                    mileage: '',
+                  })
+                }
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-medium font-google-sans uppercase tracking-wider transition-colors cursor-pointer border',
+                  jobForm.isUnknownMileage
+                    ? 'bg-status-pending/15 border-status-pending/30 text-status-pending'
+                    : 'bg-workshop-surface border-workshop-border text-workshop-muted hover:text-workshop-text'
+                )}
+              >
+                Vehicle Locked
+              </button>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <Gauge className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-workshop-muted group-focus-within:text-workshop-accent transition-colors" />
             <input
               type="text"
               inputMode="numeric"
               disabled={jobForm.isDeadVehicle || jobForm.isUnknownMileage}
-              value={jobForm.isDeadVehicle || jobForm.isUnknownMileage ? "" : jobForm.mileage}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "" || /^\d+$/.test(val)) {
-                  setJobForm({ ...jobForm, mileage: val });
-                }
-              }}
-              className={cn(
-                "w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-numeric text-lg font-black text-workshop-text transition-all",
-                (jobForm.isDeadVehicle || jobForm.isUnknownMileage) && "opacity-40 grayscale"
-              )}
-              placeholder={
+              value={
                 jobForm.isDeadVehicle
-                  ? "DEAD VEHICLE"
+                  ? 'Vehicle Dead'
                   : jobForm.isUnknownMileage
-                  ? "VEHICLE LOCKED"
-                  : "000000"
+                  ? 'Odometer Locked'
+                  : jobForm.mileage
               }
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                setJobForm({ ...jobForm, mileage: val });
+              }}
+              placeholder="e.g. 14250"
+              className={cn(
+                'w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 pl-11 pr-14 text-workshop-text font-numeric placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm',
+                (jobForm.isDeadVehicle || jobForm.isUnknownMileage) && 'opacity-60'
+              )}
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-              <span className="text-[10px] font-black text-workshop-muted uppercase tracking-widest opacity-50">
-                KM / Miles
-              </span>
-            </div>
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-medium text-workshop-muted pointer-events-none">
+              KM
+            </span>
           </div>
 
-          {/* Input "0" validation feedback */}
-          {!jobForm.isDeadVehicle && !jobForm.isUnknownMileage && jobForm.mileage === "0" && (
-            <p className="text-status-urgent text-[10px] font-bold mt-1 uppercase tracking-wider">
-              Odometer reading cannot be 0 (input a valid positive mileage or select 'Unknown' / 'Dead')
+          {/* Validation Warning */}
+          {!jobForm.isDeadVehicle && !jobForm.isUnknownMileage && jobForm.mileage === '0' && (
+            <p className="text-status-urgent text-xs font-medium pl-0.5">
+              Odometer reading cannot be 0. Enter positive mileage or select 'Dead Vehicle' / 'Locked'.
             </p>
           )}
-
-          {/* Status Chips Row */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() =>
-                setJobForm({
-                  ...jobForm,
-                  isDeadVehicle: !jobForm.isDeadVehicle,
-                  isUnknownMileage: false,
-                  mileage: "",
-                })
-              }
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                jobForm.isDeadVehicle
-                  ? "bg-status-urgent border-status-urgent/40 text-white shadow-lg shadow-status-urgent/20"
-                  : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-status-urgent/50 hover:text-status-urgent"
-              )}
-            >
-              Vehicle Dead
-              <div
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  jobForm.isDeadVehicle ? "bg-white animate-pulse" : "bg-workshop-muted opacity-30"
-                )}
-              />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setJobForm({
-                  ...jobForm,
-                  isUnknownMileage: !jobForm.isUnknownMileage,
-                  isDeadVehicle: false,
-                  mileage: "",
-                })
-              }
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                jobForm.isUnknownMileage
-                  ? "bg-white border-white text-black shadow-lg shadow-white/15"
-                  : "bg-workshop-bg border-workshop-border text-workshop-muted hover:border-white/50 hover:text-white"
-              )}
-            >
-              Vehicle Locked
-              <div
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  jobForm.isUnknownMileage ? "bg-black" : "bg-workshop-muted opacity-30"
-                )}
-              />
-            </button>
-          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Complaints / Works
+        {/* Complaints & Work Required */}
+        <div className="space-y-1.5 text-left">
+          <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+            Complaints & Service Tasks
           </label>
           <textarea
+            required
+            rows={4}
             value={jobForm.description}
-            onChange={(e) =>
-              setJobForm({ ...jobForm, description: e.target.value })
-            }
-            className="w-full bg-workshop-surface border border-workshop-border px-4 py-4 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 h-40 resize-none font-bold text-workshop-text"
-            placeholder="e.g. Engine noise during cold start, brake pads check, full service..."
+            onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+            placeholder="e.g. Front brake pad replacement, periodic servicing, wheel alignment..."
+            className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl p-3.5 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm leading-relaxed resize-none"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted">
-            Items inside vehicle
+        {/* Belongings Left in Vehicle */}
+        <div className="space-y-1.5 text-left">
+          <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+            Belongings & Accessories Left in Vehicle
           </label>
-          <textarea
+          <input
+            type="text"
             value={jobForm.personalItems}
-            onChange={(e) =>
-              setJobForm({ ...jobForm, personalItems: e.target.value })
-            }
-            className="w-full bg-workshop-surface border border-workshop-border px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-workshop-accent/30 font-bold text-workshop-text min-h-[80px] resize-none"
-            placeholder="e.g. Laptop, Cash, Sunglasses, Spare Tyre..."
+            onChange={(e) => setJobForm({ ...jobForm, personalItems: e.target.value })}
+            placeholder="e.g. Helmet, Original Documents, Charging cable, Tool kit..."
+            className="w-full bg-workshop-surface/60 hover:bg-workshop-surface focus:bg-workshop-surface border border-workshop-border rounded-xl py-3.5 px-4 text-workshop-text placeholder:text-workshop-muted/40 focus:outline-none focus:border-workshop-accent/60 transition-colors font-medium text-sm"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
-              Service Date
-              <span className="text-status-urgent">*</span>
+        {/* Dates Selection */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5 text-left">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
+              Intake Date
             </label>
             <MaterialCalendar
               value={jobForm.serviceDate}
-              onChange={(val) =>
-                setJobForm({ ...jobForm, serviceDate: val })
-              }
-              max={new Date().toISOString().split("T")[0]}
-              className={cn(
-                "py-4",
-                jobForm.serviceDate === new Date().toISOString().split("T")[0]
-                  ? "text-workshop-accent"
-                  : "text-workshop-text"
-              )}
+              onChange={(val) => setJobForm({ ...jobForm, serviceDate: val })}
+              max={new Date().toISOString().split('T')[0]}
+              className="py-3"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-google-sans font-black uppercase tracking-[0.2em] text-workshop-muted flex items-center gap-1.5">
+
+          <div className="space-y-1.5 text-left">
+            <label className="text-xs font-semibold text-workshop-muted pl-0.5">
               Estimated Delivery Date
-              <span className="text-status-urgent">*</span>
             </label>
             <MaterialCalendar
               value={jobForm.expectedDeliveryDate}
-              onChange={(val) =>
-                setJobForm({
-                  ...jobForm,
-                  expectedDeliveryDate: val,
-                })
-              }
-              min={new Date().toISOString().split("T")[0]}
-              className="py-4 text-workshop-text"
+              onChange={(val) => setJobForm({ ...jobForm, expectedDeliveryDate: val })}
+              min={new Date().toISOString().split('T')[0]}
+              className="py-3"
             />
           </div>
         </div>
       </div>
 
-      <button
-        onClick={onSubmit}
-        disabled={
-          loading ||
-          !jobForm.description ||
-          !jobForm.serviceDate ||
-          !jobForm.expectedDeliveryDate ||
-          isMileageInvalid
-        }
-        className="w-full py-5 bg-workshop-accent text-workshop-bg rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 transition-all shadow-xl shadow-workshop-accent/10 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale cursor-pointer"
-      >
-        {loading ? (
-          "Processing..."
-        ) : (
-          <>
-            <ClipboardCheck className="w-5 h-5" />
-            Issue Job Card
-          </>
-        )}
-      </button>
+      {/* Form Error Banner if mileage invalid */}
+      {isMileageInvalid && (
+        <div className="w-full flex items-center gap-2.5 p-3.5 bg-status-urgent/10 border border-status-urgent/25 text-status-urgent rounded-xl text-xs font-semibold text-left">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>Please provide a valid odometer reading or select Dead/Locked vehicle.</span>
+        </div>
+      )}
+
+      {/* Primary Action Button */}
+      <div className="w-full pt-2">
+        <motion.button
+          type="button"
+          disabled={!isFormValid}
+          onClick={onSubmit}
+          whileTap={{ scale: 0.97 }}
+          transition={tapSpringTransition}
+          className="w-full flex items-center justify-start gap-3 bg-workshop-accent text-workshop-bg hover:bg-workshop-accent/90 px-5 py-3.5 rounded-xl font-medium font-google-sans text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left accelerate-gpu will-change-transform"
+        >
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-workshop-bg border-t-transparent rounded-full animate-spin shrink-0" />
+          ) : (
+            <ClipboardCheck className="w-4 h-4 shrink-0" />
+          )}
+          <span>{loading ? 'Creating Service Record...' : 'Issue Job Card'}</span>
+        </motion.button>
+      </div>
     </motion.div>
   );
 }

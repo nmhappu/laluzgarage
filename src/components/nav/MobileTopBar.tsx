@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Search } from '../ui/SearchIcon';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { ThemeToggle } from '../ThemeToggle';
 import { useBackHandler } from '../../contexts/UIContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHighQualityAvatarUrl } from '../../lib/avatar';
+import { MorphText } from '../ui/MorphText';
+import { getUserRole } from '../../types';
 import {
+  getNavTitle,
   getActiveTabLabel,
   getActiveTabM3Icon,
   getActiveTabColor,
-  SERVICE_STATUS_FILTERS,
+  getRoleRingClass,
+  getRoleFallbackStyle,
+  getRoleLabel,
 } from './types';
 
 interface MobileTopBarProps {
@@ -20,8 +24,6 @@ interface MobileTopBarProps {
   isScrolled: boolean;
   mobileQuery: string;
   onMobileQueryChange: (val: string) => void;
-  mobileStatus: string;
-  onMobileStatusChange: (val: string) => void;
   onLogoutClick?: () => void;
 }
 
@@ -30,15 +32,12 @@ export function MobileTopBar({
   isScrolled,
   mobileQuery,
   onMobileQueryChange,
-  mobileStatus,
-  onMobileStatusChange,
   onLogoutClick,
 }: MobileTopBarProps) {
   const location = useLocation();
   const { user, profile } = useAuth();
   const [imageError, setImageError] = useState(false);
   const [showStickySearch, setShowStickySearch] = useState(false);
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   useEffect(() => {
     setImageError(false);
@@ -48,6 +47,11 @@ export function MobileTopBar({
   const avatarUrl = !imageError ? getHighQualityAvatarUrl(rawPhoto, 256) : null;
   const initialLetter = (profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0] || 'A').toUpperCase();
 
+  const role = getUserRole(profile);
+  const roleRingClass = getRoleRingClass(role);
+  const roleFallbackStyle = getRoleFallbackStyle(role);
+  const roleLabel = getRoleLabel(role);
+
   // Close sticky search bar on back button
   useBackHandler(() => {
     setShowStickySearch(false);
@@ -55,15 +59,8 @@ export function MobileTopBar({
     return true;
   }, showStickySearch, 60);
 
-  // Close filter menu dropdown on back button
-  useBackHandler(() => {
-    setFilterMenuOpen(false);
-    return true;
-  }, filterMenuOpen, 60);
-
   useEffect(() => {
     setShowStickySearch(false);
-    setFilterMenuOpen(false);
   }, [location.pathname]);
 
   return (
@@ -79,10 +76,10 @@ export function MobileTopBar({
       <div className="safe-top" />
       <div className="h-16 flex items-center justify-between px-5">
         {/* Logo & Current Page Icon */}
-        <NavLink to="/" className="flex items-center gap-2.5 h-full">
-          <span className="text-workshop-text text-base font-logo font-bold tracking-tight">
-            LaluZ Garage
-          </span>
+        <NavLink to="/" className="flex items-center gap-2.5 h-full min-w-0">
+          <MorphText className="text-workshop-text text-base font-logo font-bold tracking-tight">
+            {getNavTitle(location.pathname)}
+          </MorphText>
           <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.span
@@ -116,26 +113,24 @@ export function MobileTopBar({
               <Search className="w-5 h-5" />
             </button>
           )}
-          {location.pathname.startsWith('/services') && (
-            <button
-              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={cn(
-                "p-2 text-workshop-muted hover:text-workshop-text transition-colors rounded-lg",
-                filterMenuOpen && "text-workshop-accent"
-              )}
-              title="Filter Logs"
-            >
-              <SlidersHorizontal className="w-5 h-5" />
-            </button>
-          )}
+
           {/* Account Profile Picture Avatar */}
           <NavLink
             to="/settings"
-            className="ml-2 relative rounded-full p-0.5 ring-2 ring-workshop-border/80 hover:ring-workshop-accent/70 transition-all active:scale-95 flex items-center justify-center focus:outline-none"
-            title="Profile & Settings"
-            aria-label="Profile & Settings"
+            className={cn(
+              "ml-2 relative rounded-full p-0.5 ring-2 transition-all active:scale-95 flex items-center justify-center focus:outline-none",
+              roleRingClass
+            )}
+            title={`Profile & Settings (${roleLabel})`}
+            aria-label={`Profile & Settings (${roleLabel})`}
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-workshop-surface flex items-center justify-center text-xs font-bold text-workshop-accent">
+            <div
+              className={cn(
+                "w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-colors",
+                roleFallbackStyle.bg,
+                roleFallbackStyle.text
+              )}
+            >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -145,7 +140,7 @@ export function MobileTopBar({
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <span className="font-bold uppercase text-[11px] text-workshop-text">
+                <span className="font-bold uppercase text-[11px]">
                   {initialLetter}
                 </span>
               )}
@@ -188,47 +183,6 @@ export function MobileTopBar({
               </button>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Filter Dropdown */}
-      <AnimatePresence>
-        {filterMenuOpen && (
-          <>
-            <div
-              className="fixed inset-0 bg-transparent z-40"
-              onClick={() => setFilterMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-6 topbar-menu-offset bg-workshop-card border border-workshop-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5 min-w-[160px]"
-            >
-              {SERVICE_STATUS_FILTERS.map((status) => {
-                const isActive = mobileStatus === status.id;
-                return (
-                  <button
-                    key={status.id}
-                    onClick={() => {
-                      onMobileStatusChange(status.id);
-                      setFilterMenuOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-left transition-colors",
-                      isActive
-                        ? "text-workshop-accent bg-workshop-surface/80"
-                        : "text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface/40"
-                    )}
-                  >
-                    <span className={cn("w-2 h-2 rounded-full shrink-0", status.color)} />
-                    <span className="truncate">{status.label}</span>
-                  </button>
-                );
-              })}
-            </motion.div>
-          </>
         )}
       </AnimatePresence>
     </nav>

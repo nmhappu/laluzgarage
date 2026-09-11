@@ -11,7 +11,7 @@ const tapSpringTransition = {
   damping: 25,
 };
 
-const POPULAR_MAKES = ['Ola', 'Ather', 'Honda', 'TVS', 'Yamaha', 'Suzuki'];
+const POPULAR_MAKES = ['Ola', 'Ather', 'Honda', 'TVS', 'Hero', 'Tylos'];
 
 export interface Step2VehicleSelectionProps {
   key?: React.Key;

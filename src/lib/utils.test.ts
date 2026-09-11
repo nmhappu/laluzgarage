@@ -159,3 +159,21 @@ describe('Contact vCard Service', () => {
     expect(vcard).toContain('END:VCARD');
   });
 });
+
+describe('Ola Brand Identification', () => {
+  const isOlaVehicle = (v?: { make?: string; model?: string }) => {
+    const make = (v?.make || '').toLowerCase();
+    const model = (v?.model || '').toLowerCase();
+    return make.includes('ola') || model.includes('ola');
+  };
+
+  it('correctly identifies Ola vehicles by make or model', () => {
+    expect(isOlaVehicle({ make: 'Ola', model: 'S1 Pro' })).toBe(true);
+    expect(isOlaVehicle({ make: 'OLA', model: 'S1 Air' })).toBe(true);
+    expect(isOlaVehicle({ make: '', model: 'Ola S1 Pro' })).toBe(true);
+    expect(isOlaVehicle({ make: 'Electric', model: 'Ola S1' })).toBe(true);
+    expect(isOlaVehicle({ make: 'Honda', model: 'Activa 6G' })).toBe(false);
+    expect(isOlaVehicle(undefined)).toBe(false);
+  });
+});
+

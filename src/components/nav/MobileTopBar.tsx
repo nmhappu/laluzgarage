@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Settings, Search, SlidersHorizontal, LogOut, X } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import { Search } from '../ui/SearchIcon';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
 import { useBackHandler } from '../../contexts/UIContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { getHighQualityAvatarUrl } from '../../lib/avatar';
 import {
   getActiveTabLabel,
   getActiveTabM3Icon,
@@ -19,7 +22,7 @@ interface MobileTopBarProps {
   onMobileQueryChange: (val: string) => void;
   mobileStatus: string;
   onMobileStatusChange: (val: string) => void;
-  onLogoutClick: () => void;
+  onLogoutClick?: () => void;
 }
 
 export function MobileTopBar({
@@ -32,8 +35,18 @@ export function MobileTopBar({
   onLogoutClick,
 }: MobileTopBarProps) {
   const location = useLocation();
+  const { user, profile } = useAuth();
+  const [imageError, setImageError] = useState(false);
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.photoURL]);
+
+  const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
+  const avatarUrl = !imageError ? getHighQualityAvatarUrl(rawPhoto, 256) : null;
+  const initialLetter = (profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0] || 'A').toUpperCase();
 
   // Close sticky search bar on back button
   useBackHandler(() => {
@@ -115,23 +128,29 @@ export function MobileTopBar({
               <SlidersHorizontal className="w-5 h-5" />
             </button>
           )}
-          {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}
+          {/* Account Profile Picture Avatar */}
           <NavLink
             to="/settings"
-            className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-workshop-muted hover:text-workshop-text transition-colors rounded-lg"
-            title="Settings"
+            className="ml-2 relative rounded-full p-0.5 ring-2 ring-workshop-border/80 hover:ring-workshop-accent/70 transition-all active:scale-95 flex items-center justify-center focus:outline-none"
+            title="Profile & Settings"
+            aria-label="Profile & Settings"
           >
-            <Settings className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-workshop-surface flex items-center justify-center text-xs font-bold text-workshop-accent">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={profile?.name || user?.displayName || 'Profile'}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover rounded-full"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <span className="font-bold uppercase text-[11px] text-workshop-text">
+                  {initialLetter}
+                </span>
+              )}
+            </div>
           </NavLink>
-          <button
-            id="mobile-nav-logout-btn"
-            onClick={onLogoutClick}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-workshop-muted hover:text-status-urgent active:scale-95 transition-all rounded-lg"
-            title="Logout"
-            aria-label="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
         </div>
       </div>
 

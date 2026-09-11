@@ -80,11 +80,17 @@ export const ServiceRecordCard = memo(({
     }
   }, [record.expectedDeliveryDate, record.status]);
 
+  const isOla = useMemo(() => {
+    const make = (v?.make || "").toLowerCase();
+    const model = (v?.model || "").toLowerCase();
+    return make.includes("ola") || model.includes("ola");
+  }, [v?.make, v?.model]);
+
   return (
     <motion.div
       onClick={() => onClick(record)}
       className={cn(
-        "relative bg-workshop-surface/25 hover:bg-workshop-surface/50 rounded-xl border border-transparent shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
+        "relative bg-[#0A0C10] hover:bg-[#0C0E12] [html[data-theme=light]_&]:bg-workshop-card [html[data-theme=light]_&]:hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/30 shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
         record.status === "completed"
           ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
           : record.status === "in-progress"
@@ -106,8 +112,8 @@ export const ServiceRecordCard = memo(({
         )}
       />
 
-      {v?.make?.toUpperCase() === "OLA" && (
-        <div className="absolute inset-y-0 left-0 w-1/3 pointer-events-none opacity-[0.03] flex items-center pl-4 text-workshop-text overflow-hidden">
+      {isOla && (
+        <div className="absolute inset-y-0 left-0 w-1/3 pointer-events-none opacity-[0.035] [html[data-theme=light]_&]:opacity-[0.06] flex items-center pl-4 text-workshop-text overflow-hidden select-none">
           <OlaWatermark className="w-full h-auto" />
         </div>
       )}

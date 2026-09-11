@@ -368,17 +368,14 @@ export function ServiceHistory() {
       <DeleteRecordModal
         recordToDelete={recordToDelete}
         onClose={() => setRecordToDelete(null)}
-        onConfirm={onDeleteConfirm}
-        vehicleMap={vehicleMap}
-        customerMap={customerMap}
+        onConfirmDelete={onDeleteConfirm}
       />
 
       {/* Delivery Bill WhatsApp Completion Modal */}
       {completedJobPopup && (
         <DeliveryBillModal
-          payload={completedJobPopup}
-          onClose={() => setCompletedJobPopup(null)}
-          onSuccess={() => {
+          completedJob={completedJobPopup}
+          onClose={() => {
             setCompletedJobPopup(null);
             fetchData();
           }}

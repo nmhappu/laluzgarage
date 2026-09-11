@@ -67,7 +67,12 @@ export function LoginPage() {
         return;
       }
       if (errorObj.code === 'auth/popup-blocked') {
-        setError('Popup was blocked by your browser. Please allow popups and try again.');
+        setError('Popup was blocked by your browser. Please allow popups or try again.');
+        return;
+      }
+      if (errorObj.code === 'auth/unauthorized-domain') {
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'this host';
+        setError(`Domain "${host}" is not authorized for Google Sign-In. Please open http://localhost:3000 or add "${host}" to Firebase Console > Authentication > Settings > Authorized domains.`);
         return;
       }
       if (errorObj.code === 'auth/account-exists-with-different-credential') {

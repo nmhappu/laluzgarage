@@ -225,7 +225,7 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
         style={{ contain: 'layout style' }}
         className={cn(
           "pointer-events-auto flex items-center gap-2 p-2 rounded-full shrink-0",
-          "bg-workshop-card/90 backdrop-blur-xl transform-gpu",
+          "bg-bottomnav/95 backdrop-blur-xl transform-gpu",
           "border-0 border-none outline-none ring-0",
           "shadow-[0_12px_36px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)]",
           "transition-colors max-w-[calc(100vw-1.5rem)]"

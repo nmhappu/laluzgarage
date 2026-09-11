@@ -24,7 +24,7 @@ export function SystemBars() {
       metaThemeColor.setAttribute("name", "theme-color");
       document.head.appendChild(metaThemeColor);
     }
-    metaThemeColor.setAttribute("content", isDark ? '#0B0D11' : '#FFFFFF');
+    metaThemeColor.setAttribute("content", isDark ? '#07080A' : '#FFFFFF');
 
     if (Capacitor.isNativePlatform()) {
       const setupBars = async () => {
@@ -42,7 +42,11 @@ export function SystemBars() {
         }
       };
 
-      setupBars();
+      // Delay native window insets/contrast updates until the 750ms circular transition finishes
+      // to prevent Android from triggering a window relayout that aborts the web view transition
+      const delay = ('startViewTransition' in document) ? 750 : 0;
+      const timer = setTimeout(setupBars, delay);
+      return () => clearTimeout(timer);
     }
   }, [theme]);
 

@@ -1,9 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Settings, Search, X, LogOut } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
+import { Search } from '../ui/SearchIcon';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
+import { getHighQualityAvatarUrl } from '../../lib/avatar';
 import { navItems, getActiveTabLabel, getActiveTabM3Icon, getActiveTabColor } from './types';
 
 interface DesktopSidebarProps {
@@ -22,6 +24,10 @@ export function DesktopSidebar({
   const { user, profile } = useAuth();
   const location = useLocation();
   const pageTitle = 'LaluZ Garage';
+
+  const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
+  const avatarUrl = getHighQualityAvatarUrl(rawPhoto, 256);
+  const initialLetter = (profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0] || 'A').toUpperCase();
 
   return (
     <aside
@@ -66,10 +72,24 @@ export function DesktopSidebar({
           </NavLink>
           <NavLink
             to="/settings"
-            className="p-2 text-workshop-muted hover:text-workshop-text hover:bg-workshop-card/50 rounded-lg transition-colors ml-2 flex items-center justify-center"
-            title="Settings"
+            className="p-0.5 ring-2 ring-workshop-border/80 hover:ring-workshop-accent/70 rounded-full transition-all ml-2 flex items-center justify-center focus:outline-none active:scale-95 shrink-0"
+            title="Profile & Settings"
+            aria-label="Profile & Settings"
           >
-            <Settings className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-full overflow-hidden bg-workshop-surface flex items-center justify-center text-xs font-bold text-workshop-accent">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={profile?.name || user?.displayName || 'Profile'}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span className="font-bold uppercase text-[10px] text-workshop-text">
+                  {initialLetter}
+                </span>
+              )}
+            </div>
           </NavLink>
         </div>
         <p className="text-workshop-muted text-[10px] font-bold mt-2 uppercase tracking-[0.3em] font-sans">Workshop Manager</p>
@@ -159,19 +179,26 @@ export function DesktopSidebar({
       </motion.nav>
 
       <div className="p-6 bg-workshop-bg flex flex-col gap-4 border-t border-workshop-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-workshop-accent flex items-center justify-center text-[10px] font-bold text-workshop-bg uppercase overflow-hidden">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt={profile?.name || user.displayName || ''} referrerPolicy="no-referrer" />
+        <NavLink to="/settings" className="flex items-center gap-3 group hover:no-underline" title="Profile & Settings">
+          <div className="w-8 h-8 rounded-full bg-workshop-accent/20 ring-1 ring-workshop-border group-hover:ring-workshop-accent/70 transition-all flex items-center justify-center text-[10px] font-bold text-workshop-accent uppercase overflow-hidden shrink-0">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={profile?.name || user?.displayName || ''}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover rounded-full"
+              />
             ) : (
-              profile?.name?.[0] || user?.displayName?.[0] || user?.email?.[0]
+              initialLetter
             )}
           </div>
           <div className="space-y-0.5 overflow-hidden">
-            <p className="text-xs text-workshop-text font-bold truncate max-w-[120px]">{profile?.name || user?.displayName || user?.email}</p>
+            <p className="text-xs text-workshop-text font-bold truncate max-w-[120px] group-hover:text-workshop-accent transition-colors">
+              {profile?.name || user?.displayName || user?.email}
+            </p>
             <p className="text-[10px] uppercase text-workshop-muted font-black tracking-widest opacity-60">Active session</p>
           </div>
-        </div>
+        </NavLink>
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-workshop-border/30">
           {location.pathname === '/' && <ThemeToggle className="w-8 h-8 rounded-lg" />}

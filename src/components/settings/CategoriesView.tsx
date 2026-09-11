@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "motion/react";
 import {
   User,
@@ -7,8 +9,13 @@ import {
   Info,
   LogOut,
   ChevronRight,
+  Plus,
+  Wrench,
+  Sparkles,
 } from "lucide-react";
 import type { User as FirebaseUser } from "firebase/auth";
+import { useAuth } from "../../contexts/AuthContext";
+import { getHighQualityAvatarUrl } from "../../lib/avatar";
 import { WhatsAppIcon } from "../ui/BrandIcons";
 
 export interface CategoriesViewProps {
@@ -26,6 +33,17 @@ export function CategoriesView({
   onLogoutClick,
   pageVariants,
 }: CategoriesViewProps) {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const [imgError, setImgError] = useState(false);
+
+  const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
+  const avatarUrl = !imgError ? getHighQualityAvatarUrl(rawPhoto, 384) : null;
+
+  const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "Advisor";
+  const displayEmail = user?.email || (profile?.tags?.length ? profile.tags.join(" • ") : "LaluZ Garage");
+  const initialLetter = (displayName?.[0] || "A").toUpperCase();
+
   return (
     <motion.div
       key="categories"
@@ -33,119 +51,266 @@ export function CategoriesView({
       initial="initial"
       animate="animate"
       exit="exit"
-      className="space-y-6"
+      className="w-full space-y-0 pt-0 pb-8"
     >
-      <div className="divide-y divide-workshop-border/30 border-b border-workshop-border/30">
-        {/* Accounts Category */}
+      {/* Edge-to-Edge Hero Waveform Banner */}
+      <div className="w-full relative overflow-hidden bg-workshop-surface/20 border-b border-workshop-border/20 pt-6 pb-6">
+        {/* Sinusoidal Wave Graphic with Dotted Matrix Grid (Edge-to-Edge) */}
+        <div className="absolute top-0 right-0 left-0 h-32 sm:h-36 pointer-events-none overflow-hidden opacity-90">
+          <svg
+            className="w-full h-full"
+            viewBox="0 0 500 130"
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <pattern
+                id="matrixDots"
+                x="0"
+                y="0"
+                width="8"
+                height="8"
+                patternUnits="userSpaceOnUse"
+              >
+                <circle
+                  cx="2"
+                  cy="2"
+                  r="1.1"
+                  fill="currentColor"
+                  className="text-indigo-400/25 dark:text-indigo-400/25"
+                />
+              </pattern>
+              <clipPath id="waveClip">
+                <path d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55 L500,130 L0,130 Z" />
+              </clipPath>
+            </defs>
+
+            {/* Dotted matrix fill area clipped by curve */}
+            <rect
+              x="0"
+              y="0"
+              width="500"
+              height="130"
+              fill="url(#matrixDots)"
+              clipPath="url(#waveClip)"
+            />
+
+            {/* Smooth waveform curve stroke */}
+            <path
+              d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55"
+              fill="none"
+              stroke="currentColor"
+              className="text-indigo-500/70 dark:text-indigo-400/80"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+
+          {/* Sparkle / Status Accent on top right of the wave */}
+          <div className="absolute right-5 sm:right-6 top-8 w-8 h-8 rounded-full bg-workshop-surface/80 border border-workshop-border/60 backdrop-blur-md flex items-center justify-center text-workshop-muted shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          </div>
+        </div>
+
+        {/* Profile Avatar overlapping wave */}
+        <div className="relative z-10 pt-4 px-5 sm:px-6">
+          <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full ring-4 ring-workshop-bg shadow-2xl overflow-hidden bg-workshop-surface flex items-center justify-center">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover rounded-full"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-workshop-accent/30 to-workshop-surface flex items-center justify-center text-2xl sm:text-3xl font-bold font-logo text-workshop-text">
+                {initialLetter}
+              </div>
+            )}
+          </div>
+
+          {/* User Display Info */}
+          <div className="mt-4">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-workshop-text font-sans">
+              {displayName}
+            </h1>
+            <p className="text-xs text-workshop-muted font-medium mt-1">
+              {displayEmail}
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Action / Shift Status Row (Reference: ₹0.00 Stocks row + Add money button) */}
+        <div className="mt-6 pt-5 px-5 sm:px-6 border-t border-workshop-border/20 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-workshop-surface flex items-center justify-center text-workshop-muted border border-workshop-border/50 shrink-0">
+              <Wrench className="w-4 h-4 text-workshop-accent" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-workshop-text leading-tight truncate">
+                Active Shift
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                LaluZ Operations • Ready
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate("/intake")}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Intake</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Edge-to-Edge Settings Category Menu List */}
+      <div className="divide-y divide-workshop-border/20 border-b border-workshop-border/20">
+        {/* Accounts (Admin Only) */}
         {isAdmin && (
           <button
             type="button"
             id="settings-category-accounts"
             onClick={() => onSelectTab("accounts")}
-            className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group animate-fade-in px-0 cursor-pointer"
+            className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <User className="w-5 h-5 text-status-success shrink-0" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-status-success transition-colors shrink-0">
+                <User className="w-5 h-5" />
+              </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-status-success transition-colors">
-                  Accounts
+                <p className="text-sm font-semibold text-workshop-text group-hover:text-status-success transition-colors">
+                  Accounts & Team
+                </p>
+                <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                  Advisors, technicians & role permissions
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+            <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
           </button>
         )}
 
-        {/* General Category */}
-        <button
-          type="button"
-          id="settings-category-general"
-          onClick={() => onSelectTab("general")}
-          className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0 cursor-pointer"
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <Sliders className="w-5 h-5 text-workshop-secondary shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-workshop-secondary transition-colors">
-                General
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
-        </button>
-
-        {/* WhatsApp Presets Category */}
-        <button
-          type="button"
-          id="settings-category-whatsapp"
-          onClick={() => onSelectTab("whatsapp_presets")}
-          className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0 cursor-pointer"
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <WhatsAppIcon className="w-5 h-5 text-whatsapp shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-whatsapp transition-colors">
-                WhatsApp Presets
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
-        </button>
-
-        {/* Tags Category */}
-        <button
-          type="button"
-          id="settings-category-tags"
-          onClick={() => onSelectTab("tags")}
-          className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0 cursor-pointer"
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <Tag className="w-5 h-5 text-indigo-400 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-indigo-400 transition-colors">
-                Tags
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
-        </button>
-
-        {/* Technician Performance Category */}
+        {/* Performance (Admin Only) */}
         {isAdmin && (
           <button
             type="button"
             id="settings-category-performance"
             onClick={() => onSelectTab("performance")}
-            className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group animate-fade-in px-0 cursor-pointer"
+            className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <BarChart2 className="w-5 h-5 text-cyan-400 shrink-0" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-cyan-400 transition-colors shrink-0">
+                <BarChart2 className="w-5 h-5" />
+              </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-cyan-400 transition-colors">
-                  Technician Performance
+                <p className="text-sm font-semibold text-workshop-text group-hover:text-cyan-400 transition-colors">
+                  Performance
+                </p>
+                <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                  Service revenue, logs & advisor metrics
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+            <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
           </button>
         )}
 
-        {/* System Category */}
+        {/* WhatsApp Presets */}
+        <button
+          type="button"
+          id="settings-category-whatsapp"
+          onClick={() => onSelectTab("whatsapp_presets")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-whatsapp transition-colors shrink-0">
+              <WhatsAppIcon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-whatsapp transition-colors">
+                WhatsApp Presets
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Vehicle intake & delivery notification templates
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* Tags*/}
+        <button
+          type="button"
+          id="settings-category-tags"
+          onClick={() => onSelectTab("tags")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-indigo-400 transition-colors shrink-0">
+              <Tag className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-indigo-400 transition-colors">
+                Tags
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Skills, technician departments & service labels
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* General Settings */}
+        <button
+          type="button"
+          id="settings-category-general"
+          onClick={() => onSelectTab("general")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-secondary transition-colors shrink-0">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-secondary transition-colors">
+                General Settings
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Workshop identifier, currency & GST configuration
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* System Diagnostics */}
         <button
           type="button"
           id="settings-category-system"
           onClick={() => onSelectTab("system")}
-          className="w-full py-5 flex items-center justify-between text-left hover:bg-workshop-surface/10 transition-colors rounded-none group px-0 cursor-pointer"
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
         >
           <div className="flex items-center gap-4 min-w-0">
-            <Info className="w-5 h-5 text-amber-500 shrink-0" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-amber-400 transition-colors shrink-0">
+              <Info className="w-5 h-5" />
+            </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-workshop-text leading-tight group-hover:text-amber-400 transition-colors">
-                System
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-amber-400 transition-colors">
+                System Diagnostics
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Database sync, connection latency & diagnostics
               </p>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
         </button>
 
         {/* Log Out */}
@@ -153,20 +318,22 @@ export function CategoriesView({
           type="button"
           id="settings-category-logout"
           onClick={onLogoutClick}
-          className="w-full py-5 flex items-center justify-between text-left hover:bg-status-urgent/10 transition-colors rounded-none group px-0 cursor-pointer"
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-status-urgent/10 transition-colors group px-5 sm:px-6 cursor-pointer"
         >
           <div className="flex items-center gap-4 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-status-urgent/10 flex items-center justify-center text-status-urgent shrink-0 border border-status-urgent/20">
-              <LogOut className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-status-urgent/80 group-hover:text-status-urgent transition-colors shrink-0">
+              <LogOut className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-status-urgent leading-tight">Log Out</p>
+              <p className="text-sm font-semibold text-status-urgent leading-tight">
+                Log Out
+              </p>
               <p className="text-xs text-workshop-muted mt-0.5 truncate">
-                {user?.email ? `Signed in as ${user.email}` : "End active session"}
+                End active session on this device
               </p>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-status-urgent/50 group-hover:text-status-urgent transition-colors shrink-0 ml-4" />
+          <ChevronRight className="w-4 h-4 text-status-urgent/50 group-hover:text-status-urgent transition-colors shrink-0 ml-4" />
         </button>
       </div>
     </motion.div>

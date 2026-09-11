@@ -53,10 +53,9 @@ export function AccountsView({
                       {u.name || "Unnamed Team Member"}
                     </p>
                     {isAdmin && (
-                      <Shield
-                        className="w-3.5 h-3.5 text-status-urgent shrink-0"
-                        title="Administrator"
-                      />
+                      <span title="Administrator" className="inline-flex">
+                        <Shield className="w-3.5 h-3.5 text-status-urgent shrink-0" />
+                      </span>
                     )}
                   </div>
                   <p className="text-xs font-mono text-workshop-muted mt-0.5 truncate">{u.email}</p>

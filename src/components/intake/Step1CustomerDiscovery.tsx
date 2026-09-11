@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, UserPlus, ArrowLeft, ChevronRight, Key } from 'lucide-react';
+import { UserPlus, ArrowLeft, ChevronRight, Key } from 'lucide-react';
+import { Search } from '../ui/SearchIcon';
 import { motion } from 'motion/react';
 import type { Customer, Vehicle } from '../../types';
 

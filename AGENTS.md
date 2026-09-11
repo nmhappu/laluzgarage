@@ -56,6 +56,7 @@ The codebase employs two distinct icon libraries plus custom SVG assets:
    - **OLA Electric Brand Watermark**: Inline SVG embedded inside `ServiceRecordCard` and `VehicleCard` when `vehicle.make === 'OLA'`.
    - **WavyProgress (`src/components/WavyProgress.tsx`)**: Custom animated SVG sinusoidal wave indicator displaying active progress during the 3-step vehicle intake wizard.
    - **LaluZ Garage Brand Icon**: Vector assets located at `/LALUZ GARAGE ICON.svg`, `/app_icon.svg`, and `/public/icon.png`.
+   - **Custom Search Icon (`src/components/ui/SearchIcon.tsx`)**: Material Symbols search glyph loaded from `/external-items/` replacing generic search icons across navigation, intake discovery, and service drawer pickers.
 
 ### 2.3 Third-Party Libraries & Dependencies
 
@@ -246,11 +247,11 @@ This section details the UI architecture, styling conventions, and component tre
 ### 5.1 Color Tokens & Theming (`src/index.css`)
 Tailwind CSS v4 is configured with CSS custom properties mapped to semantic tokens:
 
-| Token Name | Dark Mode (Default) | Light Mode | Purpose |
+| Token Name | Dark Mode (Default #07080A) | Light Mode | Purpose |
 | :--- | :--- | :--- | :--- |
-| `--bg` / `--color-workshop-bg` | `#0B0D11` | `#FFFFFF` | Main canvas background |
-| `--card-bg` / `--color-workshop-card` | `#181B24` | `#FFFFFF` | Elevated cards and sheets |
-| `--surface-bg` / `--color-workshop-surface` | `#0B0D11` | `#F8FAFC` | Sidebar, navigation, list hover backgrounds |
+| `--bg` / `--color-workshop-bg` | `#07080A` | `#FFFFFF` | Main canvas background |
+| `--card-bg` / `--color-workshop-card` | `#07080A` | `#FFFFFF` | Elevated cards and sheets |
+| `--surface-bg` / `--color-workshop-surface` | `#07080A` | `#F8FAFC` | Sidebar, navigation, list hover backgrounds |
 | `--border-color` / `--color-workshop-border` | `#1E232E` | `#E2E8F0` | Structural dividers and borders |
 | `--fg` / `--color-workshop-text` | `#F8FAFC` | `#0F172A` | Primary typography |
 | `--muted-fg` / `--color-workshop-muted` | `#94A3B8` | `#64748B` | Secondary labels, captions, metadata |

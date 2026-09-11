@@ -4,6 +4,8 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCredential,
   GoogleAuthProvider,
   signOut,
@@ -42,6 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Process redirect result if browser used redirect-based sign-in
+    if (!Capacitor.isNativePlatform()) {
+      getRedirectResult(auth).catch((redirectErr) => {
+        console.debug('Google redirect result check:', redirectErr);
+      });
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (unsubscribeProfileRef.current) {
         unsubscribeProfileRef.current();
@@ -176,10 +185,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const credential = GoogleAuthProvider.credential(idToken);
       await signInWithCredential(auth, credential);
     } else {
-      // Web browser popup flow
+      // Web browser flow: attempt popup first, fallback to redirect if popup is blocked
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(auth, provider);
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (popupErr: unknown) {
+        const errorObj = popupErr as { code?: string };
+        if (
+          errorObj?.code === 'auth/popup-blocked' ||
+          errorObj?.code === 'auth/operation-not-supported-in-this-environment'
+        ) {
+          console.info('Popup blocked/unsupported; falling back to signInWithRedirect:', errorObj.code);
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw popupErr;
+      }
     }
   }, []);
 

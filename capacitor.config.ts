@@ -6,13 +6,13 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     StatusBar: {
-      backgroundColor: '#0B0D11',
+      backgroundColor: '#07080A',
       style: 'DARK'
     },
     SplashScreen: {
       launchShowDuration: 3000,
       launchAutoHide: false,
-      backgroundColor: "#0B0D11",
+      backgroundColor: "#07080A",
       androidScaleType: "CENTER_INSIDE",
       showSpinner: false,
       splashFullScreen: false,

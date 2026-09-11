@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, Search, X, Minus, Plus } from "lucide-react";
+import { ChevronDown, X, Minus, Plus } from "lucide-react";
+import { Search } from "../../ui/SearchIcon";
 import { motion, AnimatePresence } from "motion/react";
 import type { Part, ServiceRecord } from "../../../types";
 import { formatCurrency, cn } from "../../../lib/utils";

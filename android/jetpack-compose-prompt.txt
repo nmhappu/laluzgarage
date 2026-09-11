@@ -43,9 +43,9 @@ Important visual direction:
 The UI should be dark by default with muted, premium, tech-like styling. Strong uppercase headings, small metadata labels, compact cards, smooth animating lists, and a polished workshop dashboard aesthetic.
 
 Theme and styling:
-- Default dark palette:
-  - background: #0B0D11
-  - card/surface: #181B24 or similar dark neutral
+- Default dark palette (#07080A):
+  - background: #07080A
+  - card/surface: #07080A
   - border: #1E232E
   - muted text: #94A3B8
   - primary accent green: #10B981

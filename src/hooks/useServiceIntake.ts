@@ -51,7 +51,14 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     if (val.length === 4) {
       const matched = users.find(u => u.pin && String(u.pin) === val) ||
         (profile && (profile.pin ? String(profile.pin) === val : val === DEFAULT_ADVISOR_PIN) ? profile : null) ||
-        (users.length === 0 && val === DEFAULT_ADVISOR_PIN && authUser ? { id: authUser.uid, name: authUser.displayName || authUser.email || 'Advisor', email: authUser.email || '', status: 'online' as const } : null);
+        (users.length === 0 && val === DEFAULT_ADVISOR_PIN && authUser ? {
+          id: authUser.uid,
+          name: authUser.displayName || authUser.email || 'Advisor',
+          email: authUser.email || '',
+          status: 'online' as const,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        } : null);
       if (matched) {
         setAuthenticatedAdvisor(matched);
         setPinCode('');

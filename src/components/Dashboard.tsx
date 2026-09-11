@@ -11,9 +11,16 @@ import { StatTile, type StatTrendItem } from './dashboard/StatTile';
 
 type HistoryItem = StatTrendItem;
 
+interface EnrichedActivity extends ServiceRecord {
+  make?: string;
+  model?: string;
+  plateNumber?: string;
+  customerName?: string;
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
-  const [pendingQueue, setPendingQueue] = useState<ServiceRecord[]>([]);
+  const [pendingQueue, setPendingQueue] = useState<EnrichedActivity[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [metrics, setMetrics] = useState({
     totalCustomers: 0,
@@ -143,7 +150,7 @@ export function Dashboard() {
           completed: completedHistory
         }
       });
-      setPendingQueue(allActivities as ServiceRecord[]);
+      setPendingQueue(allActivities);
 
     } catch (e: unknown) {
       console.error('Dashboard data fetch error:', e);

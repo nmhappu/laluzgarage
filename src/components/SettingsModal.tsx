@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
-import { ArrowLeft, RefreshCw, Plus } from "lucide-react";
+import { ArrowLeft, RefreshCw, Plus, Shield } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI, useBackHandler } from "../contexts/UIContext";
+import { ThemeToggle } from "./ThemeToggle";
 import { useWorkshopUsers } from "../hooks/useWorkshopUsers";
 import { useWorkshopTags } from "../hooks/useWorkshopTags";
 import { useWhatsAppPresets } from "../hooks/useWhatsAppPresets";
@@ -249,9 +250,10 @@ export function SettingsPage() {
 
             <div className="min-w-0">
               {viewState === "categories" && (
-                <h2 className="text-base font-black tracking-tight uppercase leading-none text-workshop-text">
-                  Settings
-                </h2>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface border border-workshop-border/80 text-xs font-bold text-workshop-muted shadow-sm">
+                  <Shield className="w-3.5 h-3.5 text-workshop-accent" />
+                  <span>{isAdmin ? "Workshop Admin" : "Service Advisor"}</span>
+                </div>
               )}
               {viewState === "accounts" && (
                 <h2 className="text-base font-black tracking-tight uppercase leading-none text-status-success">
@@ -293,6 +295,9 @@ export function SettingsPage() {
 
           {/* Action Group on the Right */}
           <div className="flex items-center gap-3 shrink-0">
+            {viewState === "categories" && (
+              <ThemeToggle className="w-8 h-8 rounded-lg" />
+            )}
             {viewState === "accounts" && (
               <>
                 <button
@@ -352,7 +357,7 @@ export function SettingsPage() {
 
       {/* Page Content Panel Container */}
       <div className="flex-1 overflow-y-auto bg-workshop-bg">
-        <div className="max-w-4xl mx-auto w-full px-6 pt-1 pb-8 md:pb-12">
+        <div className={cn("w-full max-w-4xl mx-auto pt-0 pb-8 md:pb-12", viewState === "categories" ? "px-0" : "px-5 sm:px-6")}>
           <AnimatePresence mode="wait">
             {viewState === "categories" && (
               <CategoriesView

@@ -57,16 +57,20 @@
   /* WhatsApp Brand Integration */
   --color-whatsapp: #128C7E;
   --color-whatsapp-dark: #0E7065;
+
+  /* Floating Dock & Tool Bar */
+  --color-bottomnav: var(--bottomnav-bg);
 }
 
 :root {
-  /* Default Dark Mode */
-  --bg: #0B0D11;
+  /* Default Dark Mode (Obsidian #07080A) */
+  --bg: #07080A;
   --fg: #F8FAFC;
-  --card-bg: #181B24;
-  --surface-bg: #0B0D11;
-  --popover-bg: #0B0D11;
-  --muted-bg: #1E232E;
+  --card-bg: #07080A;
+  --surface-bg: #07080A;
+  --popover-bg: #07080A;
+  --bottomnav-bg: #0C0E12;
+  --muted-bg: #12141A;
   --muted-fg: #94A3B8;
   --border-color: #1E232E;
   --status-success: #10B981;
@@ -102,6 +106,7 @@
   --card-bg: #FFFFFF;
   --surface-bg: #F8FAFC;
   --popover-bg: #FFFFFF;
+  --bottomnav-bg: #FFFFFF;
   --muted-bg: #F1F5F9;
   --muted-fg: #64748B;
   --border-color: #E2E8F0;
@@ -131,7 +136,7 @@
 
 ::view-transition-new(root) {
   z-index: 9999;
-  animation: telegram-theme-reveal var(--theme-transition-duration, 600ms) cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: telegram-theme-reveal var(--theme-transition-duration, 750ms) cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
 @keyframes telegram-theme-reveal {
@@ -230,12 +235,12 @@
 }
 
 @utility canvas-grid {
-  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
 .canvas-grid {
-  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -352,7 +357,7 @@
 
 .skeleton-card-m3 {
   background-color: var(--card-bg);
-  border: 1px solid rgba(var(--border-color), 0.4);
+  border: 1px solid var(--border-color);
   border-radius: 1rem; /* M3 Medium Component Radius: 16px */
   overflow: hidden;
   position: relative;
@@ -396,4 +401,18 @@
     rgba(255, 255, 255, 0) 100%
   );
 }
+
+/* AMOLED interactive hover micro-states (elevated subtle contrast on hover) */
+:root:not([data-theme="light"]) .hover\:bg-workshop-surface:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+:root:not([data-theme="light"]) .hover\:bg-workshop-surface\/50:hover {
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
+:root:not([data-theme="light"]) .hover\:bg-workshop-card\/50:hover {
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
 

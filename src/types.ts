@@ -70,6 +70,7 @@ export interface WorkshopUser {
   id: string;
   name: string;
   email: string;
+  photoURL?: string;
   status: 'online' | 'offline';
   role?: UserRole;
   pin?: string;

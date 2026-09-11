@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       metaThemeColor.setAttribute("name", "theme-color");
       document.head.appendChild(metaThemeColor);
     }
-    metaThemeColor.setAttribute("content", theme === 'dark' ? '#0B0D11' : '#FFFFFF');
+    metaThemeColor.setAttribute("content", theme === 'dark' ? '#07080A' : '#FFFFFF');
   }, [theme]);
 
   const toggleTheme = (eventOrElement?: React.MouseEvent | MouseEvent | Element | null) => {
@@ -43,7 +43,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Support for circular reveal animation using View Transitions API
     const isShiftKey = Boolean((eventOrElement as React.MouseEvent)?.shiftKey || (eventOrElement as MouseEvent)?.shiftKey);
-    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
     // Calculate the exact origin coordinate (x, y) centered on the theme toggle icon/button
     let x: number | undefined;
@@ -112,7 +111,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.setProperty('--theme-switch-y', `${Math.round(y)}px`);
     document.documentElement.style.setProperty('--theme-switch-radius', `${endRadius}px`);
 
-    if (!document.startViewTransition || isShiftKey || prefersReducedMotion) {
+    if (!document.startViewTransition || isShiftKey) {
       document.documentElement.setAttribute('data-theme', newTheme);
       localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
       setTheme(newTheme);
@@ -128,6 +127,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           setTheme(newTheme);
         });
       });
+
+      // Animate via Web Animations API with explicit pixel values so Android WebView
+      // doesn't rely on CSS variable inheritance in pseudo-element keyframes
+      transition.ready.then(() => {
+        try {
+          document.documentElement.animate(
+            {
+              clipPath: [
+                `circle(0px at ${Math.round(x)}px ${Math.round(y)}px)`,
+                `circle(${endRadius}px at ${Math.round(x)}px ${Math.round(y)}px)`,
+              ],
+            },
+            {
+              duration: 750,
+              easing: 'cubic-bezier(0.2, 0, 0, 1)',
+              pseudoElement: '::view-transition-new(root)',
+              fill: 'forwards',
+            }
+          );
+        } catch {
+          // Handled by CSS keyframes fallback
+        }
+      }).catch(() => {});
 
       transition.finished.finally(() => {
         isTransitioningRef.current = false;

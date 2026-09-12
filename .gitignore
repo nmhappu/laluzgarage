@@ -65,13 +65,10 @@ coverage/
 # ==============================================================================
 # IDEs & Code Editors
 # ==============================================================================
-# VS Code (ignore workspace state, preserve shared workspace config)
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# VS Code
+.vscode/
 *.code-workspace
+
 
 # IntelliJ / Android Studio / WebStorm
 .idea/
@@ -118,6 +115,7 @@ $RECYCLE.BIN/
 android/.gradle/
 android/build/
 android/app/build/
+android/app/release/
 android/captures/
 android/.navigation/
 android/.cxx/
@@ -154,5 +152,6 @@ temp/
 tmp/
 AGENTS.md
 agents.md
-external-items/Screen_Recording_20260911_184343.mp4
+external-items/
+
 

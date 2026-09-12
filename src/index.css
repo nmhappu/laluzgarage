@@ -1,0 +1,418 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-google-sans: "Google Sans", "Google Sans Text", sans-serif;
+  --font-numeric: "Google Sans", "Google Sans Text", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-logo: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", sans-serif;
+
+  /* Theme color mapping */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+
+  --color-card: var(--card-bg);
+  --color-card-foreground: var(--fg);
+
+  --color-popover: var(--popover-bg);
+  --color-popover-foreground: var(--fg);
+
+  --color-primary: #10B981;
+  --color-primary-foreground: var(--bg);
+
+  --color-secondary: #3B82F6;
+  --color-secondary-foreground: #F8FAFC;
+
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted-fg);
+
+  --color-accent: #10B981;
+  --color-accent-foreground: var(--bg);
+
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #F8FAFC;
+
+  --color-border: var(--border-color);
+  --color-input: var(--border-color);
+  --color-ring: #10B981;
+
+  /* Status Colors */
+  --color-status-success: var(--status-success);
+  --color-status-pending: var(--status-pending);
+  --color-status-urgent: var(--status-urgent);
+
+  --radius: 0.5rem;
+
+  /* Keep legacy workshop names for backward compatibility */
+  --color-workshop-bg: var(--bg);
+  --color-workshop-surface: var(--surface-bg);
+  --color-workshop-card: var(--card-bg);
+  --color-workshop-accent: var(--color-primary);
+  --color-workshop-secondary: var(--color-secondary);
+  --color-workshop-warning: #FBBF24;
+  --color-workshop-border: var(--border-color);
+  --color-workshop-text: var(--fg);
+  --color-workshop-muted: var(--muted-fg);
+
+  /* WhatsApp Brand Integration */
+  --color-whatsapp: #128C7E;
+  --color-whatsapp-dark: #0E7065;
+
+  /* Floating Dock & Tool Bar */
+  --color-bottomnav: var(--bottomnav-bg);
+}
+
+:root {
+  /* Default Dark Mode (Obsidian #07080A) */
+  --bg: #07080A;
+  --fg: #F8FAFC;
+  --card-bg: #07080A;
+  --surface-bg: #07080A;
+  --popover-bg: #07080A;
+  --bottomnav-bg: #0C0E12;
+  --muted-bg: #12141A;
+  --muted-fg: #94A3B8;
+  --border-color: #1E232E;
+  --status-success: #10B981;
+  --status-pending: #FBBF24;
+  --status-urgent: #F43F5E;
+
+  /* Hardware Safe-Area Insets */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Standard Component Heights */
+  --topbar-height: 4rem;
+  --bottomnav-height: 5.25rem;
+
+  /* Composite Layout Offsets */
+  --header-total-height: calc(var(--topbar-height) + var(--safe-top));
+  --bottomnav-total-height: calc(var(--bottomnav-height) + var(--safe-bottom));
+
+  /* Modal & Drawer Standard Padding */
+  --sheet-header-pt: calc(1rem + var(--safe-top));
+  --sheet-footer-pb: calc(1.25rem + var(--safe-bottom));
+
+  /* Main Content Clearance */
+  --main-content-pt: calc(var(--header-total-height) + 0.5rem);
+  --main-content-pb: calc(var(--bottomnav-total-height) + 1.5rem);
+}
+
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --fg: #0F172A;
+  --card-bg: #FFFFFF;
+  --surface-bg: #F8FAFC;
+  --popover-bg: #FFFFFF;
+  --bottomnav-bg: #FFFFFF;
+  --muted-bg: #F1F5F9;
+  --muted-fg: #64748B;
+  --border-color: #E2E8F0;
+  --status-success: #10B981;
+  --status-pending: #FBBF24;
+  --status-urgent: #F43F5E;
+}
+
+/* View Transition Styles for Circular Reveal Theme Toggle (Telegram Style) */
+:root {
+  --theme-transition-duration: 750ms;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+  animation: telegram-theme-reveal var(--theme-transition-duration, 750ms) cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes telegram-theme-reveal {
+  0% {
+    clip-path: circle(0px at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
+  }
+  100% {
+    clip-path: circle(var(--theme-switch-radius, 150vmax) at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  html, body {
+    @apply bg-background text-foreground font-sans antialiased select-none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Elegantly custom style selection color across the entire app */
+  ::selection {
+    background-color: rgba(16, 185, 129, 0.25);
+    color: inherit;
+  }
+
+  /* Prevent outline/border highlight artifact on Android selection & focuses */
+  button:focus, a:focus, [role="button"]:focus, div:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hardware momentum scrolling and scroll containment */
+  .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Utilities for mobile optimization */
+@utility google-sans {
+  font-family: "Google Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0;
+}
+
+.google-sans {
+  font-family: "Google Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0;
+}
+
+@utility font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility font-plate {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.font-plate {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+@utility accelerate-gpu {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@utility will-change-transform {
+  will-change: transform;
+}
+
+@utility will-change-transform-opacity {
+  will-change: transform, opacity;
+}
+
+@utility canvas-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.canvas-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+[data-theme="light"] .canvas-grid {
+  background-image: radial-gradient(rgba(100, 116, 139, 0.22) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+
+/* Zero-Cost Offscreen Rendering for Long Lists (DOM & Paint containment) */
+@utility content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 160px;
+}
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 160px;
+}
+
+@utility cv-record-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+
+.cv-record-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+
+@utility cv-vehicle-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
+}
+
+.cv-vehicle-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
+}
+
+@utility cv-part-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 74px;
+}
+
+.cv-part-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 74px;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility main-content-scroll {
+  padding-top: var(--main-content-pt);
+  padding-bottom: var(--main-content-pb);
+}
+
+@utility sheet-header-safe {
+  padding-top: var(--sheet-header-pt);
+}
+
+@utility sheet-footer-safe {
+  padding-bottom: var(--sheet-footer-pb);
+}
+
+@utility bottomnav-safe {
+  padding-top: 0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@utility header-safe-sticky {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: var(--header-total-height);
+}
+
+@utility topbar-menu-offset {
+  top: calc(var(--header-total-height) + 4px);
+}
+
+@utility viewport-fill {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+@utility h-mobile-screen {
+  height: 100dvh;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+}
+
+/* Material 3 Skeleton Loading Animation */
+@keyframes shimmer-m3-anim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-card-m3 {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem; /* M3 Medium Component Radius: 16px */
+  overflow: hidden;
+  position: relative;
+  opacity: 0.95;
+  transition: all 0.2s ease;
+}
+
+.skeleton-element-m3 {
+  background-color: var(--muted-bg);
+  border-radius: 9999px; /* rounded-full */
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-element-m3::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer-m3-anim 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] .skeleton-element-m3::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(0, 0, 0, 0.02) 25%,
+    rgba(0, 0, 0, 0.05) 50%,
+    rgba(0, 0, 0, 0.02) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* AMOLED interactive hover micro-states (elevated subtle contrast on hover) */
+:root:not([data-theme="light"]) .hover\:bg-workshop-surface:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+:root:not([data-theme="light"]) .hover\:bg-workshop-surface\/50:hover {
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
+:root:not([data-theme="light"]) .hover\:bg-workshop-card\/50:hover {
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
+

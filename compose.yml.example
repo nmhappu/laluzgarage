@@ -1,0 +1,9 @@
+services:
+  laluz-garage:
+    image: ghcr.io/nmhappu/laluzgarage:latest
+    container_name: laluzgarage
+    restart: unless-stopped
+    ports:
+      - "1002:1002"
+volumes:
+  laluzgarge:

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_background">@color/bg_dark</color>
+    <color name="app_surface">@color/surface_bg_dark</color>
+    <color name="app_card">@color/card_bg_dark</color>
+</resources>

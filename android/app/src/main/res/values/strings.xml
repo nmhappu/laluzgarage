@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LaluZ Garage</string>
+    <string name="title_activity_main">LaluZ Garage</string>
+    <string name="package_name">dev.appu.laluzgarage</string>
+    <string name="custom_url_scheme">dev.appu.laluzgarage</string>
+</resources>

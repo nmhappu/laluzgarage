@@ -8,8 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "test": "vitest run src/lib/utils.test.ts",
+    "test": "vitest run src/lib/",
     "lint": "eslint . && tsc --noEmit",
+    "docker:build": "docker build -t laluzgarage .",
+    "docker:run": "docker run -p 2266:2266 --env-file .env laluzgarage",
     "mobile:build": "npm run build && npx cap copy",
     "mobile:sync": "npm run build && npx cap sync",
     "mobile:open": "npx cap open android"

@@ -112,6 +112,7 @@ $RECYCLE.BIN/
 # Android & Mobile Build Artifacts (Capacitor / Gradle)
 # ==============================================================================
 .gradle/
+**/.gradle/
 android/.gradle/
 android/build/
 android/app/build/
@@ -120,7 +121,12 @@ android/captures/
 android/.navigation/
 android/.cxx/
 android/.externalNativeBuild/
+**/android/.cxx/
+**/android/.externalNativeBuild/
 android/local.properties
+**/local.properties
+key.properties
+**/key.properties
 
 # Android outputs and compiled binaries
 *.apk
@@ -140,6 +146,101 @@ android/fastlane/report.xml
 android/fastlane/Preview.html
 android/fastlane/screenshots
 android/fastlane/test_output
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# ==============================================================================
+# Flutter & Dart Ecosystem (Mobile & Cross-Platform)
+# ==============================================================================
+# Core Dart / Flutter packages & build cache
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+**/.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins-dependencies
+.packages
+**/.packages
+.pub-cache/
+**/.pub-cache/
+.pub/
+**/.pub/
+flutter/build/
+**/flutter/build/
+
+# Flutter Version Manager (FVM)
+.fvm/
+**/.fvm/
+!.fvm/fvm_config.json
+!**/.fvm/fvm_config.json
+
+# Documentation, testing & diagnostics
+**/doc/api/
+.widget_preview/
+**/.widget_preview/
+migrate_working_dir/
+flutter_*.log
+**/flutter_*.log
+
+# Symbolication & Obfuscation
+app.*.symbols
+**/app.*.symbols
+app.*.map.json
+**/app.*.map.json
+
+# iOS & macOS Flutter / CocoaPods Artifacts
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/**/DerivedData/
+**/ios/**/xcuserdata/
+**/ios/**/.generated/
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Pods/
+**/macos/**/xcuserdata/
+**/macos/**/DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Desktop Flutter Artifacts (Windows & Linux)
+**/windows/flutter/ephemeral/
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+**/windows/x64/
+**/windows/x86/
+**/linux/flutter/ephemeral/
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+
+# Android Flutter & Native Shared Artifacts
+**/android/**/GeneratedPluginRegistrant.java
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# Apple / iOS Secrets & Firebase
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+!GoogleService-Info.plist.example
+!**/GoogleService-Info.plist.example
+*.mobileprovision
 
 # ==============================================================================
 # AI Assistants, Scratch & Temporary Directories
@@ -153,5 +254,6 @@ tmp/
 AGENTS.md
 agents.md
 external-items/
+
 
 

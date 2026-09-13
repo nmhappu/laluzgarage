@@ -42,7 +42,7 @@
 
 ### 4. WhatsApp Templates
 - **WhatsApp Alerts**: Pre-filled customer messages on vehicle intake and job delivery.
-- 
+
 ### 5. Watchlist & Advisor Analytics
 - **Dashboard Stat Tiles**: Watchlist metrics for Total Services, Pending Work, Completed Jobs, and Issues Attended.
 - **Embedded Sparklines**: 14-day operational trend charts.

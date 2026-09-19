@@ -18,6 +18,8 @@ export interface IntakeTopBarProps {
   m3Icon?: string;
   onBack: () => void;
   showBack?: boolean;
+  className?: string;
+  showProfile?: boolean;
 }
 
 export function IntakeTopBar({
@@ -25,6 +27,8 @@ export function IntakeTopBar({
   m3Icon = 'assignment',
   onBack,
   showBack = true,
+  className,
+  showProfile = true,
 }: IntakeTopBarProps) {
   const { user, profile } = useAuth();
   const [imageError, setImageError] = useState(false);
@@ -48,7 +52,12 @@ export function IntakeTopBar({
   const roleLabel = getRoleLabel(role);
 
   return (
-    <header className="sticky top-0 z-30 bg-workshop-bg shrink-0 border-b border-workshop-border/20 w-full">
+    <header
+      className={cn(
+        'sticky top-0 z-30 bg-transparent shrink-0 w-full',
+        className
+      )}
+    >
       <div className="safe-top" />
       <div className="h-16 flex items-center justify-between px-5 sm:px-6">
         {/* Left Side: Back Navigation & Dynamic Page Title */}
@@ -84,37 +93,39 @@ export function IntakeTopBar({
         <div className="flex items-center gap-2 shrink-0">
           <ThemeToggle className="w-8 h-8 rounded-lg" />
 
-          <NavLink
-            to="/settings"
-            className={cn(
-              'ml-1 relative rounded-full p-0.5 ring-2 transition-all active:scale-95 flex items-center justify-center focus:outline-none',
-              roleRingClass
-            )}
-            title={`Profile & Settings (${roleLabel})`}
-            aria-label={`Profile & Settings (${roleLabel})`}
-          >
-            <div
+          {showProfile && (
+            <NavLink
+              to="/settings"
               className={cn(
-                'w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-colors',
-                roleFallbackStyle.bg,
-                roleFallbackStyle.text
+                'ml-1 relative rounded-full p-0.5 ring-2 transition-all active:scale-95 flex items-center justify-center focus:outline-none',
+                roleRingClass
               )}
+              title={`Profile & Settings (${roleLabel})`}
+              aria-label={`Profile & Settings (${roleLabel})`}
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={profile?.name || user?.displayName || 'Profile'}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover rounded-full"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <span className="font-bold uppercase text-[11px]">
-                  {initialLetter}
-                </span>
-              )}
-            </div>
-          </NavLink>
+              <div
+                className={cn(
+                  'w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-colors',
+                  roleFallbackStyle.bg,
+                  roleFallbackStyle.text
+                )}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={profile?.name || user?.displayName || 'Profile'}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover rounded-full"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <span className="font-bold uppercase text-[11px]">
+                    {initialLetter}
+                  </span>
+                )}
+              </div>
+            </NavLink>
+          )}
         </div>
       </div>
     </header>

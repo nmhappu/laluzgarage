@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ClipboardList, History, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, History, TrendingUp, LucideIcon } from 'lucide-react';
 
 export interface NavItemConfig {
   to: string;
@@ -19,6 +19,7 @@ export const getActiveTabLabel = (pathname: string): string => {
   if (pathname.startsWith('/vehicles')) return 'Vehicle Registry';
   if (pathname.startsWith('/inventory')) return 'Parts Inventory';
   if (pathname.startsWith('/services')) return 'Service History';
+  if (pathname.startsWith('/analytics')) return 'Statistics';
   if (pathname.startsWith('/settings')) return 'Settings';
   if (pathname.startsWith('/intake')) return 'Vehicle Intake';
   return 'Dashboard';
@@ -34,6 +35,7 @@ export const getActiveTabM3Icon = (pathname: string): string => {
   if (pathname.startsWith('/vehicles')) return 'directions_car';
   if (pathname.startsWith('/inventory')) return 'inventory_2';
   if (pathname.startsWith('/services')) return 'build';
+  if (pathname.startsWith('/analytics')) return 'monitoring';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/intake')) return 'assignment';
   return 'grid_view';

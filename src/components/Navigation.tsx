@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import {
@@ -14,7 +14,6 @@ export function Navigation() {
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const location = useLocation();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -86,9 +85,6 @@ export function Navigation() {
     };
   }, []);
 
-  if (location.pathname === '/settings' || location.pathname === '/intake') {
-    return null;
-  }
 
   const handleLogout = async () => {
     try {

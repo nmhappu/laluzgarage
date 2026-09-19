@@ -4,7 +4,6 @@ import {
   Key,
   Trash2,
   Edit2,
-  ArrowRight,
   Package,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -160,29 +159,42 @@ export const ServiceRecordCard = memo(({
               <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
                 {/* Mileage Badge */}
                 <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
-                      record.isDeadVehicle
-                        ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                  {record.status === "completed" ? (
+                    <span
+                      className={cn(
+                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
+                        !record.completionMileage && record.isDeadVehicle
+                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : !record.completionMileage && record.isUnknownMileage
+                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                            : "text-status-success",
+                      )}
+                    >
+                      {record.completionMileage
+                        ? `${record.completionMileage.toLocaleString()} KM`
+                        : record.isDeadVehicle
+                          ? "DEAD"
+                          : record.isUnknownMileage
+                            ? "LOCKED"
+                            : `${record.mileage.toLocaleString()} KM`}
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
+                        record.isDeadVehicle
+                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : record.isUnknownMileage
+                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                            : "text-status-pending",
+                      )}
+                    >
+                      {record.isDeadVehicle
+                        ? "DEAD"
                         : record.isUnknownMileage
-                          ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                          : "text-status-pending",
-                    )}
-                  >
-                    {record.isDeadVehicle
-                      ? "DEAD"
-                      : record.isUnknownMileage
-                        ? "LOCKED"
-                        : `${record.mileage.toLocaleString()} KM`}
-                  </span>
-                  {!!record.completionMileage && (
-                    <>
-                      <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
-                      <span className="text-status-success font-google-sans font-black whitespace-nowrap shrink-0 text-base">
-                        {record.completionMileage.toLocaleString()} KM
-                      </span>
-                    </>
+                          ? "LOCKED"
+                          : `${record.mileage.toLocaleString()} KM`}
+                    </span>
                   )}
                 </div>
 

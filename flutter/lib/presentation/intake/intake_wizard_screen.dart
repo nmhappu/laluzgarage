@@ -284,6 +284,8 @@ class _IntakeWizardScreenState extends ConsumerState<IntakeWizardScreen> {
     return Scaffold(
       backgroundColor: WorkshopTheme.darkCanvas,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () {

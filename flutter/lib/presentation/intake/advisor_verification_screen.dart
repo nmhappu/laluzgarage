@@ -89,6 +89,8 @@ class _AdvisorVerificationScreenState
     return Scaffold(
       backgroundColor: WorkshopTheme.darkCanvas,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.of(context).pop(),

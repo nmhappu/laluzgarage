@@ -38,7 +38,7 @@ export function IntakeSuccessModal({
       </div>
 
       {/* Standard App Top Navbar */}
-      <IntakeTopBar onBack={onDismiss} title="Job Card Summary" m3Icon="check_circle" />
+      <IntakeTopBar onBack={onDismiss} title="Job Card Summary" m3Icon="check_circle" showProfile={false} />
 
       {/* Main Content Area - Standard Page Padding & Left-Aligned */}
       <main className="relative z-10 flex-1 overflow-y-auto px-5 sm:px-6 py-8 flex flex-col justify-center items-center sheet-footer-safe">

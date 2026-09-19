@@ -16,8 +16,22 @@ export interface CreatedJobSummary {
   waUrl: string;
 }
 
+const DRAFT_KEY = 'laluz_service_intake_draft';
+
+function loadIntakeDraft(): any {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load intake draft:', e);
+  }
+  return null;
+}
+
 export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
-  const [step, setStep] = useState(1);
+  const initialDraft = useMemo(() => loadIntakeDraft(), []);
+
+  const [step, setStep] = useState<number>(() => initialDraft?.step || 1);
   const [loading, setLoading] = useState(false);
   const [createdJob, setCreatedJob] = useState<CreatedJobSummary | null>(null);
 
@@ -30,7 +44,9 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
   const [records, setRecords] = useState<ServiceRecord[]>([]);
 
   // PIN authentication states
-  const [authenticatedAdvisor, setAuthenticatedAdvisor] = useState<WorkshopUser | null>(null);
+  const [authenticatedAdvisor, setAuthenticatedAdvisor] = useState<WorkshopUser | null>(
+    () => initialDraft?.authenticatedAdvisor || null
+  );
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
@@ -87,43 +103,141 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
   }, [authenticatedAdvisor, onClose]);
 
   // Search states
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => initialDraft?.searchQuery || '');
   const [searchResults, setSearchResults] = useState<{ customer: Customer; vehicle?: Vehicle }[]>([]);
 
   // Selection states
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    () => initialDraft?.selectedCustomer || null
+  );
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
+    () => initialDraft?.selectedVehicle || null
+  );
 
   // Form states
-  const [customerForm, setCustomerForm] = useState({
-    name: '',
-    phone: '',
-  });
+  const [customerForm, setCustomerForm] = useState(
+    () => initialDraft?.customerForm || { name: '', phone: '' }
+  );
 
-  const [vehicleForm, setVehicleForm] = useState({
-    make: '',
-    model: '',
-    color: '',
-    plateNumber: '',
-    passwordOrPin: '',
-  });
+  const [vehicleForm, setVehicleForm] = useState(
+    () =>
+      initialDraft?.vehicleForm || {
+        make: '',
+        model: '',
+        color: '',
+        plateNumber: '',
+        passwordOrPin: '',
+      }
+  );
 
-  const [jobForm, setJobForm] = useState({
-    mileage: '',
-    description: '',
-    personalItems: '',
-    expectedDeliveryDate: '',
-    serviceDate: new Date().toISOString().split('T')[0],
-    isDeadVehicle: false,
-    isUnknownMileage: false,
-  });
+  const [jobForm, setJobForm] = useState(
+    () =>
+      initialDraft?.jobForm || {
+        mileage: '',
+        description: '',
+        personalItems: '',
+        expectedDeliveryDate: '',
+        serviceDate: new Date().toISOString().split('T')[0],
+        isDeadVehicle: false,
+        isUnknownMileage: false,
+      }
+  );
 
-  const [useKey, setUseKey] = useState(false);
+  const [useKey, setUseKey] = useState<boolean>(() => Boolean(initialDraft?.useKey));
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const isMileageInvalid =
     !jobForm.isDeadVehicle &&
     !jobForm.isUnknownMileage &&
     (!jobForm.mileage || parseInt(jobForm.mileage, 10) === 0);
+
+  const hasUnsavedProgress = useMemo(() => {
+    if (createdJob) return false;
+    if (step > 1) return true;
+    if (selectedCustomer || selectedVehicle) return true;
+    if (customerForm.name.trim() || customerForm.phone.replace(/^\+91\s*/, '').trim()) return true;
+    if (vehicleForm.make.trim() || vehicleForm.model.trim() || vehicleForm.plateNumber.trim()) return true;
+    if (jobForm.description.trim() || jobForm.mileage.trim()) return true;
+    return false;
+  }, [createdJob, step, selectedCustomer, selectedVehicle, customerForm, vehicleForm, jobForm]);
+
+  const clearDraft = useCallback(() => {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch (e) {
+      console.error('Failed to clear intake draft:', e);
+    }
+  }, []);
+
+  // Persist draft to sessionStorage
+  useEffect(() => {
+    if (createdJob) {
+      clearDraft();
+      return;
+    }
+
+    if (hasUnsavedProgress || authenticatedAdvisor) {
+      try {
+        const draft = {
+          step,
+          customerForm,
+          vehicleForm,
+          jobForm,
+          selectedCustomer,
+          selectedVehicle,
+          useKey,
+          searchQuery,
+          authenticatedAdvisor,
+        };
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.error('Failed to save intake draft:', e);
+      }
+    }
+  }, [
+    createdJob,
+    hasUnsavedProgress,
+    step,
+    customerForm,
+    vehicleForm,
+    jobForm,
+    selectedCustomer,
+    selectedVehicle,
+    useKey,
+    searchQuery,
+    authenticatedAdvisor,
+    clearDraft,
+  ]);
+
+  // Prompt before closing window/tab if unsaved progress exists
+  useEffect(() => {
+    if (!hasUnsavedProgress) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedProgress]);
+
+  const handleRequestClose = useCallback(() => {
+    if (hasUnsavedProgress) {
+      setShowDiscardConfirm(true);
+    } else {
+      clearDraft();
+      onClose();
+    }
+  }, [hasUnsavedProgress, clearDraft, onClose]);
+
+  const handleConfirmDiscard = useCallback(() => {
+    setShowDiscardConfirm(false);
+    clearDraft();
+    onClose();
+  }, [clearDraft, onClose]);
+
+  const handleCancelDiscard = useCallback(() => {
+    setShowDiscardConfirm(false);
+  }, []);
 
   const handleBackStep = useCallback(() => {
     if (step === 3 && selectedVehicle) {
@@ -144,9 +258,16 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     }
   }, [step, selectedVehicle, selectedCustomer]);
 
+  // Back navigation: Discard confirmation modal (priority 80)
+  useBackHandler(() => {
+    setShowDiscardConfirm(false);
+    return true;
+  }, showDiscardConfirm, 80);
+
   // Back navigation: Success modal (highest priority in intake)
   useBackHandler(() => {
     setCreatedJob(null);
+    clearDraft();
     onClose();
     return true;
   }, Boolean(createdJob), 70);
@@ -157,9 +278,14 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
       handleBackStep();
       return true;
     }
+    if (hasUnsavedProgress) {
+      setShowDiscardConfirm(true);
+      return true;
+    }
+    clearDraft();
     onClose();
     return true;
-  }, !createdJob, 35);
+  }, !createdJob && !showDiscardConfirm, 35);
 
   // Fetch initial lookup records
   useEffect(() => {
@@ -404,6 +530,7 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
         waUrl,
       });
 
+      clearDraft();
       onSuccess();
     } catch (e: unknown) {
       console.error(e);
@@ -419,6 +546,7 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     jobForm,
     authenticatedAdvisor,
     useKey,
+    clearDraft,
     onSuccess,
   ]);
 
@@ -453,5 +581,11 @@ export function useServiceIntake(onClose: () => void, onSuccess: () => void) {
     handleCreateNewCustomer,
     handleSubmitIntake,
     getLastServicedDate,
+    showDiscardConfirm,
+    hasUnsavedProgress,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+    clearDraft,
   };
 }

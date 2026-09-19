@@ -10,19 +10,21 @@ import {
   ChevronRight,
   Shield,
   Wrench,
-  Sparkles,
   Calendar,
+  TrendingUp,
+  Download,
 } from "lucide-react";
 import type { User as FirebaseUser } from "firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { getHighQualityAvatarUrl } from "../../lib/avatar";
 import { WhatsAppIcon } from "../ui/BrandIcons";
 import { getUserRole } from "../../types";
+import { WorkshopPulseHeroChart } from "./WorkshopPulseHeroChart";
 
 export interface CategoriesViewProps {
   isAdmin: boolean;
   user: FirebaseUser | null;
-  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system" | "date_history") => void;
+  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system" | "date_history" | "statistics" | "updates") => void;
   onLogoutClick: () => void;
   pageVariants?: Variants;
 }
@@ -74,63 +76,8 @@ export function CategoriesView({
     >
       {/* Edge-to-Edge Hero Waveform Banner */}
       <div className="w-full relative overflow-hidden bg-workshop-surface/20 border-b border-workshop-border/20 pt-6 pb-6">
-        {/* Sinusoidal Wave Graphic with Dotted Matrix Grid (Edge-to-Edge) */}
-        <div className="absolute top-0 right-0 left-0 h-32 sm:h-36 pointer-events-none overflow-hidden opacity-90">
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 500 130"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern
-                id="matrixDots"
-                x="0"
-                y="0"
-                width="8"
-                height="8"
-                patternUnits="userSpaceOnUse"
-              >
-                <circle
-                  cx="2"
-                  cy="2"
-                  r="1.1"
-                  fill="currentColor"
-                  className="text-indigo-400/25 dark:text-indigo-400/25"
-                />
-              </pattern>
-              <clipPath id="waveClip">
-                <path d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55 L500,130 L0,130 Z" />
-              </clipPath>
-            </defs>
-
-            {/* Dotted matrix fill area clipped by curve */}
-            <rect
-              x="0"
-              y="0"
-              width="500"
-              height="130"
-              fill="url(#matrixDots)"
-              clipPath="url(#waveClip)"
-            />
-
-            {/* Smooth waveform curve stroke */}
-            <path
-              d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55"
-              fill="none"
-              stroke="currentColor"
-              className="text-indigo-500/70 dark:text-indigo-400/80"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {/* Sparkle / Status Accent on top right of the wave */}
-          <div className="absolute right-5 sm:right-6 top-8 w-8 h-8 rounded-full bg-workshop-surface/80 border border-workshop-border/60 backdrop-blur-md flex items-center justify-center text-workshop-muted shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          </div>
-        </div>
+        {/* Animated 14-Day Throughput Pulse Background (Apache ECharts) */}
+        <WorkshopPulseHeroChart />
 
         {/* Profile Avatar overlapping wave */}
         <div className="relative z-10 pt-4 px-5 sm:px-6">
@@ -219,6 +166,29 @@ export function CategoriesView({
             <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
           </button>
         )}
+
+        {/* Statistics */}
+        <button
+          type="button"
+          id="settings-category-statistics"
+          onClick={() => onSelectTab("statistics")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors">
+                Statistics
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Workshop throughput, financials & business intelligence
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
 
         {/* Date-wise Service History (Preview) */}
         <button
@@ -334,6 +304,34 @@ export function CategoriesView({
               </p>
               <p className="text-xs text-workshop-muted mt-0.5 truncate">
                 Database sync, connection latency & diagnostics
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* App Updates */}
+        <button
+          type="button"
+          id="settings-category-updates"
+          onClick={() => onSelectTab("updates")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors shrink-0">
+              <Download className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors">
+                  App Updates
+                </p>
+                <span className="text-[10px] font-mono font-bold text-workshop-muted px-1.5 py-0.5 rounded bg-workshop-border/20 border border-workshop-border/40">
+                  OTA
+                </span>
+              </div>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                GitHub release channels, APK installation & build info
               </p>
             </div>
           </div>

@@ -153,7 +153,6 @@ class CategoriesView extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: WorkshopTheme.darkSurface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: WorkshopTheme.darkBorder),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

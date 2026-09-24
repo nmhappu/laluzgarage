@@ -10,8 +10,8 @@ import { motion } from "motion/react";
 import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } from "date-fns";
 import type { ServiceRecord, Vehicle, Customer } from "../../types";
 import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
-import { OlaWatermark } from "../ui/BrandIcons";
 import { ServiceStatusBadge } from "../shared/ServiceStatusBadge";
+import { VehicleWatermark } from "../shared/VehicleWatermark";
 
 export interface ServiceRecordCardProps {
   record: ServiceRecord;
@@ -34,7 +34,6 @@ export const ServiceRecordCard = memo(({
   onDelete,
   canDelete = false,
   canEdit = true,
-  onWhatsAppClick,
 }: ServiceRecordCardProps) => {
   const formattedDate = useMemo(() => {
     try {
@@ -54,7 +53,7 @@ export const ServiceRecordCard = memo(({
       .map((line) =>
         line
           .replace(/^\[[x ]\]\s*/, "")
-          .replace(/^(\d+[\.\)]|[-*•])\s*/, "")
+          .replace(/^(\d+[.)]|[-*•])\s*/, "")
           .trim()
       )
       .filter(Boolean);
@@ -79,12 +78,6 @@ export const ServiceRecordCard = memo(({
       return null;
     }
   }, [record.expectedDeliveryDate, record.status]);
-
-  const isOla = useMemo(() => {
-    const make = (v?.make || "").toLowerCase();
-    const model = (v?.model || "").toLowerCase();
-    return make.includes("ola") || model.includes("ola");
-  }, [v?.make, v?.model]);
 
   return (
     <motion.div
@@ -112,11 +105,7 @@ export const ServiceRecordCard = memo(({
         )}
       />
 
-      {isOla && (
-        <div className="absolute bottom-18 right-2 w-44 md:w-56 pointer-events-none opacity-[0.045] [html[data-theme=light]_&]:opacity-[0.07] flex items-end justify-end pr-4 pb-2 text-workshop-text overflow-hidden select-none">
-          <OlaWatermark className="w-full h-auto" />
-        </div>
-      )}
+      <VehicleWatermark make={v?.make} model={v?.model} />
       <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
         <div className="flex items-center gap-4 mb-2">
           <div className="flex items-center gap-2 shrink-0">

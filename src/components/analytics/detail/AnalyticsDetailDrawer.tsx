@@ -54,7 +54,7 @@ export function AnalyticsDetailDrawer({
     if (!activeCard) return;
 
     let csvContent = 'data:text/csv;charset=utf-8,';
-    let filename = `laluz_analytics_${activeCard}_${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `laluz_analytics_${activeCard}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     if (activeCard === 'revenue') {
       csvContent += 'Date,Labor Revenue (INR),Parts Revenue (INR),Total Revenue (INR),Jobs Count\n';
@@ -448,7 +448,7 @@ export function AnalyticsDetailDrawer({
             {/* Drawer Header */}
             <div className="p-6 border-b border-workshop-border flex items-center justify-between gap-4 bg-workshop-card/50">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-workshop-card border border-workshop-border shrink-0", meta.color)}>
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-workshop-card shrink-0", meta.color)}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">

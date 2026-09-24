@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, X, Download, ExternalLink } from 'lucide-react';
+import { Sparkles, X, Download } from 'lucide-react';
 import { formatBytes, type OtaReleaseInfo } from '../../services/otaUpdateService';
 import { cn } from '../../lib/utils';
 

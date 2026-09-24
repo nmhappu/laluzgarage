@@ -237,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [attachUserSession]);
 
   const loginWithGoogle = useCallback(async () => {
-    let loggedInUser: User | null = null;
+    let loggedInUser: User | null;
     if (Capacitor.isNativePlatform()) {
       // Native Android Google Sign-In via system account picker
       const result = await FirebaseAuthentication.signInWithGoogle();

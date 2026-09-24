@@ -24,11 +24,11 @@ export function InventoryCard({
 }: InventoryCardProps) {
   const chartOption = useMemo(() => {
     const categories = categoryBreakdown.slice(0, 4);
-    const names = categories.map((c) => c.name);
+    const names = categories.map((c) => (c.name.length > 5 ? c.name.slice(0, 4) + '..' : c.name));
     const values = categories.map((c) => c.value);
 
     return {
-      grid: { top: 6, right: 8, bottom: 18, left: 8, containLabel: false },
+      grid: { top: 4, right: 4, bottom: 16, left: 4, containLabel: false },
       xAxis: {
         type: 'category',
         data: names.length > 0 ? names : ['Parts'],
@@ -36,7 +36,7 @@ export function InventoryCard({
         axisTick: { show: false },
         axisLabel: {
           color: '#64748B',
-          fontSize: 9,
+          fontSize: 8,
           interval: 0,
         },
       },
@@ -48,10 +48,10 @@ export function InventoryCard({
         {
           type: 'bar',
           data: values.length > 0 ? values : [1],
-          barWidth: 14,
+          barWidth: 8,
           itemStyle: {
             color: '#F59E0B',
-            borderRadius: [4, 4, 0, 0],
+            borderRadius: [2, 2, 0, 0],
           },
         },
       ],

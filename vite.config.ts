@@ -102,7 +102,7 @@ export default defineConfig({
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/echarts') || id.includes('node_modules/zrender')) {
+          if (id.includes('node_modules/echarts') || id.includes('node_modules/zrender')) {
             return 'vendor-charts';
           }
           if (id.includes('node_modules/lucide-react') || id.includes('node_modules/motion')) {

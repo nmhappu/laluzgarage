@@ -37,7 +37,7 @@ export function IntakeTopBar({
     setImageError(false);
   }, [user?.photoURL]);
 
-  const rawPhoto = user?.photoURL || (profile as any)?.photoURL;
+  const rawPhoto = user?.photoURL || profile?.photoURL;
   const avatarUrl = !imageError ? getHighQualityAvatarUrl(rawPhoto, 256) : null;
   const initialLetter = (
     profile?.name?.[0] ||

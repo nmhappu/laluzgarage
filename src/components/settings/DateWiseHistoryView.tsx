@@ -3,7 +3,7 @@ import { motion, type Variants } from "motion/react";
 import { format, parseISO, isSameYear } from "date-fns";
 import { Calendar, Search, RefreshCw, X, ChevronRight } from "lucide-react";
 import { useServiceHistory } from "../../hooks/useServiceHistory";
-import type { ServiceRecord, Vehicle, Customer } from "../../types";
+import type { ServiceRecord, Vehicle } from "../../types";
 import { EditRecordSheet } from "../services/EditRecordSheet";
 import { WhatsAppPopup } from "../WhatsAppPopup";
 import { cn } from "../../lib/utils";
@@ -51,7 +51,7 @@ export function extractFirstIssues(description?: string, limit = 2): string[] {
   if (!description) return [];
   return description
     .split("\n")
-    .map((line) => line.replace(/^[-*•\s]*(\[[xXvV\s✓✔]*\]|\d+[\.)])?\s*/, "").trim())
+    .map((line) => line.replace(/^[-*•\s]*(\[[xXvV\s✓✔]*\]|\d+[.)])?\s*/, "").trim())
     .filter((line) => line.length > 0)
     .slice(0, limit);
 }
@@ -79,7 +79,6 @@ export function DateWiseHistoryView({
   // Use core service history hook
   const {
     records,
-    vehicles,
     customers,
     parts,
     loading,
@@ -193,7 +192,7 @@ export function DateWiseHistoryView({
 
     filteredRecords.forEach((record) => {
       // Determine standard date string
-      let dateKey = "";
+      let dateKey: string;
       let dateObj = new Date();
 
       if (record.date) {

@@ -25,7 +25,7 @@ export function RetentionCard({
           type: 'gauge',
           startAngle: 90,
           endAngle: -270,
-          radius: '90%',
+          radius: '85%',
           center: ['50%', '50%'],
           pointer: { show: false },
           progress: {
@@ -39,7 +39,7 @@ export function RetentionCard({
           },
           axisLine: {
             lineStyle: {
-              width: 10,
+              width: 7,
               color: [[1, 'rgba(255, 255, 255, 0.08)']],
             },
           },

@@ -31,13 +31,13 @@ export function FleetCard({
       series: [
         {
           type: 'pie',
-          radius: ['25%', '85%'],
+          radius: ['20%', '82%'],
           center: ['50%', '50%'],
           roseType: 'area',
           itemStyle: {
-            borderRadius: 4,
+            borderRadius: 3,
             borderColor: '#07080A',
-            borderWidth: 2,
+            borderWidth: 1.5,
           },
           label: { show: false },
           data: data.length > 0 ? data : [{ name: 'None', value: 1 }],

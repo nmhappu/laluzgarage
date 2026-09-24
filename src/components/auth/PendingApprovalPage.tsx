@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ShieldAlert, RefreshCw, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 export function PendingApprovalPage() {
   const { profile, user, logout } = useAuth();

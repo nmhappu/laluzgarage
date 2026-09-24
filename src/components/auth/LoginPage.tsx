@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useBackHandler } from '../contexts/UIContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useBackHandler } from '../../contexts/UIContext';
 import {
   Mail,
   Lock,
@@ -11,8 +11,8 @@ import {
   Heart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ThemeToggle } from './ThemeToggle';
-import { LaluzLogo } from './ui/LaluzLogo';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { LaluzLogo } from '../ui/LaluzLogo';
 
 const tapSpringTransition = {
   type: 'spring' as const,
@@ -124,7 +124,7 @@ export function LoginPage() {
     <div
       className="min-h-screen min-h-[100dvh] bg-workshop-bg flex flex-col justify-between p-6 sm:p-8 safe-top relative overflow-x-hidden"
       style={{
-        paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem))',
+        paddingBottom: 'max(1.5rem, calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 1.25rem))',
       }}
     >
       {/* Precision Canvas Dot Grid Background */}

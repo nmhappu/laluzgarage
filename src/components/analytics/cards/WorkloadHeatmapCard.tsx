@@ -20,7 +20,7 @@ export function WorkloadHeatmapCard({
 }: WorkloadHeatmapCardProps) {
   const chartOption = useMemo(() => {
     return {
-      grid: { top: 6, right: 6, bottom: 18, left: 6, containLabel: false },
+      grid: { top: 4, right: 4, bottom: 16, left: 4, containLabel: false },
       xAxis: {
         type: 'category',
         data: days,
@@ -28,7 +28,9 @@ export function WorkloadHeatmapCard({
         axisTick: { show: false },
         axisLabel: {
           color: '#64748B',
-          fontSize: 9,
+          fontSize: 8,
+          interval: 0,
+          formatter: (val: string) => val.slice(0, 1),
           fontFamily: '"Google Sans", sans-serif',
         },
       },
@@ -43,10 +45,10 @@ export function WorkloadHeatmapCard({
             value: c,
             itemStyle: {
               color: days[i] === peakDay ? '#F43F5E' : '#06B6D4',
-              borderRadius: [4, 4, 0, 0],
+              borderRadius: [2, 2, 0, 0],
             },
           })),
-          barWidth: 14,
+          barWidth: 8,
         },
       ],
     };

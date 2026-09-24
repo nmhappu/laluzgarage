@@ -4,7 +4,7 @@ import { useResponsiveSearch } from "../hooks/useResponsiveSearch";
 import { useServiceHistory } from "../hooks/useServiceHistory";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, X } from "lucide-react";
-import type { ServiceRecord, Vehicle, Customer } from "../types";
+import type { ServiceRecord, Vehicle } from "../types";
 import { getUserRole } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { useBackHandler } from "../contexts/UIContext";
@@ -16,6 +16,8 @@ import { EditDetailsModal } from "./services/EditDetailsModal";
 import { DeleteRecordModal } from "./services/DeleteRecordModal";
 import { DeliveryBillModal, type CompletedJobPayload } from "./services/DeliveryBillModal";
 import { ServiceHistoryTabs } from "./services/ServiceHistoryTabs";
+import { EmptyState } from "./shared/EmptyState";
+import { InfiniteScrollFooter } from "./shared/InfiniteScrollFooter";
 
 const contentVariants = {
   enter: { opacity: 0, y: 16 },
@@ -33,7 +35,7 @@ export function ServiceHistory() {
   const isAssistant = role === "assistant";
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const { searchTerm: stickySearchLogs, setSearchTerm, activeTab, setActiveTab } = useResponsiveSearch();
+  const { searchTerm: stickySearchLogs, setSearchTerm, activeTab, setActiveTab, sortOrder, setSortOrder } = useResponsiveSearch();
   const deferredSearch = useDeferredValue(stickySearchLogs);
 
   // Sync activeTab from location state
@@ -56,7 +58,6 @@ export function ServiceHistory() {
   // Use the encapsulated service history hook
   const {
     records,
-    vehicles,
     customers,
     parts,
     loading,
@@ -71,7 +72,7 @@ export function ServiceHistory() {
     confirmDelete,
     handleUpdateRecord,
     handleUpdateDetails,
-  } = useServiceHistory(activeTab, deferredSearch);
+  } = useServiceHistory(activeTab, deferredSearch, sortOrder);
 
   // Editing & Dialog states
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null);
@@ -210,7 +211,7 @@ export function ServiceHistory() {
     loadMore,
   } = useInfiniteScroll(filteredRecords, {
     batchSize: 20,
-    resetDependency: `${activeTab}-${deferredSearch}`,
+    resetDependency: `${activeTab}-${deferredSearch}-${sortOrder}`,
   });
 
   return (
@@ -221,6 +222,8 @@ export function ServiceHistory() {
         tabs={tabs}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        sortOrder={sortOrder}
+        onToggleSort={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
       />
 
       {/* Active Search Summary */}
@@ -270,65 +273,41 @@ export function ServiceHistory() {
             </motion.div>
           ) : filteredRecords.length === 0 ? (
             isSearching && searchMatchingRecordsCount > 0 ? (
-              <motion.div
+              <EmptyState
                 key="empty-cross-tab-search-state"
                 variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="text-center py-12 px-4 bg-workshop-surface/30 border border-workshop-border border-dashed rounded-xl space-y-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-workshop-surface border border-workshop-border flex items-center justify-center mx-auto text-workshop-muted">
-                  <Search className="w-5 h-5 text-workshop-accent" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-workshop-text font-bold text-sm">
-                    No <span className="capitalize">{activeTab}</span> logs match "{deferredSearch}"
-                  </p>
-                  <p className="text-workshop-muted text-xs">
-                    Found {searchMatchingRecordsCount} matching {searchMatchingRecordsCount === 1 ? "record" : "records"} in other status tabs.
-                  </p>
-                </div>
-                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("all")}
-                    className="px-4 py-2 rounded-xl bg-workshop-accent text-workshop-bg font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    View all {searchMatchingRecordsCount} {searchMatchingRecordsCount === 1 ? "result" : "results"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
-                  >
-                    Clear search
-                  </button>
-                </div>
-              </motion.div>
+                icon={Search}
+                iconClassName="text-workshop-accent"
+                className="py-12 bg-workshop-surface/30"
+                title={`No ${activeTab} logs match "${deferredSearch}"`}
+                description={`Found ${searchMatchingRecordsCount} matching ${searchMatchingRecordsCount === 1 ? "record" : "records"} in other status tabs.`}
+                action={
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("all")}
+                      className="px-4 py-2 rounded-xl bg-workshop-accent text-workshop-bg font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
+                    >
+                      View all {searchMatchingRecordsCount} {searchMatchingRecordsCount === 1 ? "result" : "results"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm("")}
+                      className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                    >
+                      Clear search
+                    </button>
+                  </>
+                }
+              />
             ) : isSearching ? (
-              <motion.div
+              <EmptyState
                 key="empty-search-state"
                 variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="text-center py-16 px-4 bg-workshop-surface/20 border border-workshop-border border-dashed rounded-xl space-y-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-workshop-surface border border-workshop-border flex items-center justify-center mx-auto text-workshop-muted">
-                  <Search className="w-5 h-5 opacity-40" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-workshop-text font-bold text-sm">
-                    No logs match "{deferredSearch}"
-                  </p>
-                  <p className="text-workshop-muted text-xs max-w-sm mx-auto">
-                    Try searching by customer name, phone number, vehicle plate, model, advisor, problem, or spare parts.
-                  </p>
-                </div>
-                <div className="pt-2">
+                icon={Search}
+                title={`No logs match "${deferredSearch}"`}
+                description="Try searching by customer name, phone number, vehicle plate, model, advisor, problem, or spare parts."
+                action={
                   <button
                     type="button"
                     onClick={() => setSearchTerm("")}
@@ -336,22 +315,16 @@ export function ServiceHistory() {
                   >
                     Clear search
                   </button>
-                </div>
-              </motion.div>
+                }
+              />
             ) : (
-              <motion.div
+              <EmptyState
                 key="empty-state"
                 variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="text-center py-16 bg-workshop-surface/20 border border-workshop-border border-dashed rounded-xl"
-              >
-                <p className="text-workshop-muted text-sm font-medium">
-                  No logs match your filter criteria.
-                </p>
-              </motion.div>
+                icon={Search}
+                title="No logs found"
+                description="No logs match your filter criteria."
+              />
             )
           ) : (
             <motion.div
@@ -378,40 +351,18 @@ export function ServiceHistory() {
                     onDelete={handleCardDelete}
                     canDelete={isAdmin}
                     canEdit={isTechnician}
-                    onWhatsAppClick={(record, cust, veh) => {
-                      setWhatsAppRedirect({
-                        name: cust?.name || "Customer",
-                        phone: cust?.phone || "",
-                        url: "",
-                        record,
-                        vehicle: veh,
-                      });
-                    }}
                   />
                 );
               })}
 
-              {/* Infinite Scroll Sentinel */}
-              <div ref={sentinelRef} className="h-4 w-full" />
-
-              {hasMore && (
-                <div className="flex justify-center pt-2 pb-6">
-                  {isLoadingMore ? (
-                    <div className="flex items-center gap-2 text-workshop-muted text-xs font-bold uppercase tracking-wider py-2">
-                      <div className="w-3 h-3 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin" />
-                      Loading records...
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={loadMore}
-                      className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text hover:text-workshop-accent transition-all text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
-                    >
-                      Load more records ({remainingCount} remaining)
-                    </button>
-                  )}
-                </div>
-              )}
+              <InfiniteScrollFooter
+                sentinelRef={sentinelRef}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
+                remainingCount={remainingCount}
+                onLoadMore={loadMore}
+                itemName="records"
+              />
             </motion.div>
           )}
         </AnimatePresence>

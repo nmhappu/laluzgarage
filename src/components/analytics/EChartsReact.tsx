@@ -49,7 +49,7 @@ export interface EChartsReactProps {
   className?: string;
   style?: React.CSSProperties;
   loading?: boolean;
-  onChartClick?: (params: any) => void;
+  onChartClick?: (params: Record<string, unknown>) => void;
 }
 
 export const EChartsReact = memo(function EChartsReact({

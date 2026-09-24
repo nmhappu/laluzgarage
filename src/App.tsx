@@ -4,8 +4,8 @@ import { Navigation } from './components/Navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
-import { LoginPage } from './components/LoginPage';
-import { PendingApprovalPage } from './components/PendingApprovalPage';
+import { LoginPage } from './components/auth/LoginPage';
+import { PendingApprovalPage } from './components/auth/PendingApprovalPage';
 import { SystemBars } from './components/SystemBars';
 import { BackButtonHandler } from './components/BackButtonHandler';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -19,7 +19,7 @@ const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ def
 const VehicleHistory = lazy(() => import('./components/VehicleHistory').then((m) => ({ default: m.VehicleHistory })));
 const Inventory = lazy(() => import('./components/Inventory').then((m) => ({ default: m.Inventory })));
 const ServiceHistory = lazy(() => import('./components/ServiceHistory').then((m) => ({ default: m.ServiceHistory })));
-const SettingsPage = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsPage })));
+const SettingsPage = lazy(() => import('./components/settings/SettingsLayout').then((m) => ({ default: m.SettingsLayout })));
 const ServiceIntakePage = lazy(() => import('./components/ServiceIntake').then((m) => ({ default: m.ServiceIntakePage })));
 
 const m3Variants = {

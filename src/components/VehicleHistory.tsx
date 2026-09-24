@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Car, PlusCircle } from 'lucide-react';
 import { useVehicleHistory } from '../hooks/useVehicleHistory';
 import { VehicleCard } from './vehicle/VehicleCard';
-import { AddVehicleModal } from './vehicle/AddVehicleModal';
-import { EditVehicleModal } from './vehicle/EditVehicleModal';
+import { VehicleFormModal } from './vehicle/VehicleFormModal';
 import { DeleteVehicleModal } from './vehicle/DeleteVehicleModal';
 import { VehicleLedgerDrawer } from './vehicle/VehicleLedgerDrawer';
 import { WhatsAppPopup } from './WhatsAppPopup';
@@ -12,6 +11,8 @@ import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserRole } from '../types';
+import { EmptyState } from './shared/EmptyState';
+import { InfiniteScrollFooter } from './shared/InfiniteScrollFooter';
 
 export function VehicleHistory() {
   const {
@@ -157,48 +158,37 @@ export function VehicleHistory() {
                 onWhatsApp={(info) => setWhatsAppRedirect(info)}
               />
             ))}
-            {hasMore && (
-              <div 
-                ref={sentinelRef} 
-                className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-workshop-muted"
-              >
-                {isLoadingMore ? (
-                  <div className="flex items-center gap-2 font-bold tracking-widest uppercase text-workshop-accent">
-                    <div className="w-4 h-4 border-2 border-workshop-accent border-t-transparent rounded-full animate-spin shrink-0" />
-                    <span>Loading vehicles...</span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border hover:border-workshop-accent/50 text-workshop-text hover:text-workshop-accent transition-all text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
-                  >
-                    Load more vehicles ({remainingCount} remaining)
-                  </button>
-                )}
-              </div>
-            )}
+            <InfiniteScrollFooter
+              sentinelRef={sentinelRef}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              remainingCount={remainingCount}
+              onLoadMore={loadMore}
+              itemName="vehicles"
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
       {!loading && filteredVehicles.length === 0 && (
-        <div className="text-center py-20 bg-workshop-card/30 border border-workshop-border border-dashed rounded-xl max-w-xl mx-auto p-10 mt-12">
-          <Car className="w-12 h-12 text-workshop-muted mx-auto opacity-20 mb-4" />
-          <h3 className="text-workshop-text font-black uppercase tracking-tight mb-1">No Vehicles Registered</h3>
-          <p className="text-workshop-muted text-sm max-w-xs mx-auto leading-relaxed">No vehicle files found matching your search term. Register a vehicle to initiate tracking.</p>
-        </div>
+        <EmptyState
+          icon={Car}
+          title="No Vehicles Registered"
+          description="No vehicle files found matching your search term. Register a vehicle to initiate tracking."
+          className="mt-12"
+        />
       )}
 
       {/* Add Vehicle Fullscreen Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <AddVehicleModal
+          <VehicleFormModal
             isOpen={showAddModal}
+            mode="add"
             onClose={() => setShowAddModal(false)}
             customers={customers}
-            newVehicle={newVehicle}
-            setNewVehicle={setNewVehicle}
+            vehicleData={newVehicle}
+            setVehicleData={setNewVehicle}
             onSubmit={handleAddVehicle}
           />
         )}
@@ -207,12 +197,13 @@ export function VehicleHistory() {
       {/* Edit Vehicle Fullscreen Modal */}
       <AnimatePresence>
         {showEditModal && editingVehicle && (
-          <EditVehicleModal
+          <VehicleFormModal
             isOpen={showEditModal}
+            mode="edit"
             onClose={() => setShowEditModal(false)}
-            editingVehicle={editingVehicle}
-            setEditingVehicle={setEditingVehicle}
             customers={customers}
+            vehicleData={editingVehicle}
+            setVehicleData={setEditingVehicle}
             onSubmit={handleEditVehicle}
           />
         )}

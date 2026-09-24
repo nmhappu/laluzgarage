@@ -1,10 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/workshop_theme.dart';
-import '../../data/models/service_record.dart';
-import '../../data/repositories/service_repository.dart';
 
 class _NavItem {
   final int index;
@@ -12,7 +9,6 @@ class _NavItem {
   final IconData icon;
   final Color accentColor;
   final double activeWidth;
-  final int badgeCount;
 
   const _NavItem({
     required this.index,
@@ -20,7 +16,6 @@ class _NavItem {
     required this.icon,
     required this.accentColor,
     required this.activeWidth,
-    this.badgeCount = 0,
   });
 }
 
@@ -28,8 +23,7 @@ class _NavItem {
 /// - Floating capsule centered above system navigation bar
 /// - Frosted glass backdrop blur with #0C0E12 dark / #FFFFFF light
 /// - Dynamic pill expansion with Google Sans typography
-/// - Real-time badge counter for pending services
-class MobileBottomNav extends ConsumerWidget {
+class MobileBottomNav extends StatelessWidget {
   final int activeIndex;
   final ValueChanged<int> onTabSelected;
 
@@ -40,33 +34,26 @@ class MobileBottomNav extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final records = ref.watch(serviceRecordsStreamProvider).asData?.value ?? [];
-    final pendingCount = records
-        .where((r) =>
-            r.status == ServiceStatus.pending ||
-            r.status == ServiceStatus.inProgress)
-        .length;
-
-    final items = [
-      const _NavItem(
+    const items = [
+      _NavItem(
         index: 0,
         label: 'Dashboard',
         icon: Icons.grid_view_rounded,
         accentColor: WorkshopTheme.emeraldAccent,
         activeWidth: 124,
       ),
-      const _NavItem(
+      _NavItem(
         index: 1,
         label: 'Vehicle',
         icon: Icons.directions_car_rounded,
         accentColor: WorkshopTheme.blueAccent,
         activeWidth: 104,
       ),
-      const _NavItem(
+      _NavItem(
         index: 2,
         label: 'Inventory',
         icon: Icons.inventory_2_rounded,
@@ -79,7 +66,6 @@ class MobileBottomNav extends ConsumerWidget {
         icon: Icons.build_rounded,
         accentColor: WorkshopTheme.emeraldAccent,
         activeWidth: 114,
-        badgeCount: pendingCount,
       ),
     ];
 
@@ -147,57 +133,14 @@ class MobileBottomNav extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Icon(
-                                    item.icon,
-                                    size: 22,
-                                    color: isActive
-                                        ? item.accentColor
-                                        : (isDark
-                                            ? WorkshopTheme.darkTextMuted
-                                            : WorkshopTheme.lightTextMuted),
-                                  ),
-                                  if (item.badgeCount > 0)
-                                    Positioned(
-                                      top: -3,
-                                      right: -6,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 5, vertical: 1.5),
-                                        decoration: BoxDecoration(
-                                          color: WorkshopTheme.statusUrgent,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: WorkshopTheme.statusUrgent
-                                                  .withValues(alpha: 0.4),
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                        constraints: const BoxConstraints(
-                                          minWidth: 18,
-                                          minHeight: 18,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            item.badgeCount > 99
-                                                ? '99+'
-                                                : '${item.badgeCount}',
-                                            textAlign: TextAlign.center,
-                                            style: GoogleFonts.googleSans(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                              Icon(
+                                item.icon,
+                                size: 22,
+                                color: isActive
+                                    ? item.accentColor
+                                    : (isDark
+                                        ? WorkshopTheme.darkTextMuted
+                                        : WorkshopTheme.lightTextMuted),
                               ),
                               if (isActive) ...[
                                 const SizedBox(width: 8),

@@ -95,7 +95,7 @@ export const STORAGE_KEYS = {
  */
 export function normalizeVersion(rawVersion: string): string {
   if (!rawVersion) return '0.0.0';
-  let cleaned = rawVersion.trim().replace(/^[vV]/, '').replace(/^release-/i, '');
+  const cleaned = rawVersion.trim().replace(/^[vV]/, '').replace(/^release-/i, '');
   return cleaned;
 }
 

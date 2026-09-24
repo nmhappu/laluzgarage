@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, type Transition } from 'motion/react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 import {
   navItems,
@@ -38,18 +36,14 @@ interface NavTabItemProps {
   key?: string;
   item: NavItemConfig;
   isActive: boolean;
-  showBadge: boolean;
-  pendingCount?: number;
 }
 
 /**
- * Memoized Tab Item to eliminate redundant renders across route and badge changes
+ * Memoized Tab Item to eliminate redundant renders across route changes
  */
 const NavTabItem = memo(function NavTabItem({
   item,
   isActive,
-  showBadge,
-  pendingCount = 0,
 }: NavTabItemProps) {
   const [measuredTextWidth, setMeasuredTextWidth] = useState<number>(0);
   const textRef = useRef<HTMLSpanElement>(null);
@@ -150,13 +144,6 @@ const NavTabItem = memo(function NavTabItem({
             >
               {item.m3Icon}
             </span>
-
-            {/* Pending Services Notification Badge */}
-            {showBadge && (
-              <span className="absolute top-1.5 right-1.5 z-20 min-w-[18px] h-[18px] px-1 rounded-full bg-status-urgent text-white text-[10px] font-numeric font-black flex items-center justify-center shadow-xs select-none pointer-events-none">
-                {pendingCount > 99 ? '99+' : pendingCount}
-              </span>
-            )}
           </div>
 
           {/* Expanding Label: Dynamically measured for font size and screen zoom */}
@@ -189,33 +176,14 @@ const NavTabItem = memo(function NavTabItem({
 
 export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
   const location = useLocation();
-  const [pendingCount, setPendingCount] = useState<number>(0);
 
   // Active path memoization to avoid redundant path checking on sub-renders
   const currentPath = location.pathname;
 
-  // Real-time listener for active service jobs to display the status badge
-  useEffect(() => {
-    try {
-      const q = query(
-        collection(db, 'serviceRecords'),
-        where('status', 'in', ['pending', 'in-progress'])
-      );
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        setPendingCount(snapshot.docs.length);
-      });
-
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Failed to attach pending records listener:', e);
-    }
-  }, []);
-
   return (
     <div
       className={cn(
-        "md:hidden fixed bottom-[calc(0.85rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 flex items-center justify-center px-3 pointer-events-none transition-opacity duration-200",
+        "md:hidden fixed bottom-[calc(0.85rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] left-0 right-0 z-50 flex items-center justify-center px-3 pointer-events-none transition-opacity duration-200",
         isModalOpen && "opacity-0"
       )}
     >
@@ -237,15 +205,11 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
               ? currentPath === '/'
               : currentPath.startsWith(item.to);
 
-          const showBadge = item.to === '/services' && pendingCount > 0;
-
           return (
             <NavTabItem
               key={item.to}
               item={item}
               isActive={isActive}
-              showBadge={showBadge}
-              pendingCount={showBadge ? pendingCount : undefined}
             />
           );
         })}

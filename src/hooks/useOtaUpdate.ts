@@ -85,9 +85,9 @@ export function useOtaUpdate(options: UseOtaUpdateOptions = {}) {
         }
       }
       return res;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isMountedRef.current) {
-        const msg = err?.message || 'Failed to check for updates. Check internet connection.';
+        const msg = err instanceof Error ? err.message : 'Failed to check for updates. Check internet connection.';
         setError(msg);
       }
       return null;
@@ -124,9 +124,9 @@ export function useOtaUpdate(options: UseOtaUpdateOptions = {}) {
         setDownloading(false);
       }
       return filePath;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isMountedRef.current) {
-        const msg = err?.message || 'Download failed. Please try again.';
+        const msg = err instanceof Error ? err.message : 'Download failed. Please try again.';
         setError(msg);
         setDownloading(false);
       }
@@ -152,8 +152,8 @@ export function useOtaUpdate(options: UseOtaUpdateOptions = {}) {
       } else if (!res.success && res.message) {
         setError(res.message);
       }
-    } catch (err: any) {
-      setError(err?.message || 'Installation failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Installation failed');
     } finally {
       if (isMountedRef.current) {
         setInstalling(false);
@@ -166,8 +166,8 @@ export function useOtaUpdate(options: UseOtaUpdateOptions = {}) {
       await OtaUpdateService.openInstallPermissionSettings();
       // Reset flag so user can re-try install when returning
       setPermissionNeeded(false);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to open settings');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to open settings');
     }
   }, []);
 

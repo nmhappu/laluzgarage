@@ -37,18 +37,18 @@ export function JobFlowCard({
       series: [
         {
           type: 'pie',
-          radius: ['58%', '82%'],
+          radius: ['52%', '80%'],
           center: ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
-            borderRadius: 6,
+            borderRadius: 3,
             borderColor: '#07080A',
-            borderWidth: 3,
+            borderWidth: 1.5,
           },
           label: { show: false },
           emphasis: {
             scale: true,
-            scaleSize: 6,
+            scaleSize: 3,
           },
           data,
         },

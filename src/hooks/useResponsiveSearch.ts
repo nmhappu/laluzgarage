@@ -39,6 +39,8 @@ export function useResponsiveSearch() {
   const searchTerm = searchParams.get(queryKey) || '';
   const activeTab = (searchParams.get(statusKey) || 'all') as "all" | "pending" | "in-progress" | "completed" | "cancelled";
 
+  const sortOrder = (searchParams.get('sort') || 'newest') as 'newest' | 'oldest';
+
   const setSearchTerm = useCallback((val: string) => {
     setSearchParams(prev => {
       if (!val) {
@@ -61,11 +63,24 @@ export function useResponsiveSearch() {
     }, { replace: true });
   }, [statusKey, setSearchParams]);
 
+  const setSortOrder = useCallback((val: 'newest' | 'oldest') => {
+    setSearchParams(prev => {
+      if (val === 'newest') {
+        prev.delete('sort');
+      } else {
+        prev.set('sort', val);
+      }
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   return {
     isMobile,
     searchTerm,
     activeTab,
+    sortOrder,
     setSearchTerm,
     setActiveTab,
+    setSortOrder,
   };
 }

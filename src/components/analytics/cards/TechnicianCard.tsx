@@ -19,11 +19,11 @@ export function TechnicianCard({
 }: TechnicianCardProps) {
   const chartOption = useMemo(() => {
     const top3 = list.slice(0, 3).reverse();
-    const names = top3.map((t) => t.name.split(' ')[0]);
+    const names = top3.map((t) => t.name.split(' ')[0].slice(0, 6));
     const values = top3.map((t) => t.completed);
 
     return {
-      grid: { top: 4, right: 12, bottom: 4, left: 55, containLabel: false },
+      grid: { top: 2, right: 6, bottom: 2, left: 38, containLabel: false },
       xAxis: {
         type: 'value',
         show: false,
@@ -35,7 +35,7 @@ export function TechnicianCard({
         axisTick: { show: false },
         axisLabel: {
           color: '#94A3B8',
-          fontSize: 10,
+          fontSize: 9,
           fontFamily: '"Google Sans", sans-serif',
         },
       },
@@ -43,15 +43,15 @@ export function TechnicianCard({
         {
           type: 'bar',
           data: values.length > 0 ? values : [0],
-          barWidth: 10,
+          barWidth: 7,
           itemStyle: {
             color: '#3B82F6',
-            borderRadius: [0, 4, 4, 0],
+            borderRadius: [0, 3, 3, 0],
           },
           showBackground: true,
           backgroundStyle: {
             color: 'rgba(255, 255, 255, 0.04)',
-            borderRadius: [0, 4, 4, 0],
+            borderRadius: [0, 3, 3, 0],
           },
         },
       ],

@@ -5,8 +5,11 @@ const config: CapacitorConfig = {
   appName: 'LaluzGarage',
   webDir: 'dist',
   plugins: {
+    SystemBars: {
+      insetsHandling: 'disable'
+    },
     StatusBar: {
-      backgroundColor: '#07080A',
+      overlaysWebView: true,
       style: 'DARK'
     },
     SplashScreen: {

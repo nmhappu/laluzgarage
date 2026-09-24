@@ -4,7 +4,6 @@ import {
   User,
   Sliders,
   Tag,
-  BarChart2,
   Info,
   LogOut,
   ChevronRight,
@@ -24,7 +23,7 @@ import { WorkshopPulseHeroChart } from "./WorkshopPulseHeroChart";
 export interface CategoriesViewProps {
   isAdmin: boolean;
   user: FirebaseUser | null;
-  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system" | "date_history" | "statistics" | "updates") => void;
+  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "system" | "date_history" | "statistics" | "updates") => void;
   onLogoutClick: () => void;
   pageVariants?: Variants;
 }
@@ -98,17 +97,29 @@ export function CategoriesView({
           </div>
 
           {/* User Display Info */}
-          <div className="mt-4">
+          <div className="mt-4.5 sm:mt-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-workshop-text font-sans">
               {displayName}
             </h1>
-            <div className="flex items-center justify-between gap-3 mt-1.5">
-              <p className="text-xs text-workshop-muted font-medium truncate min-w-0">
+            <div className="flex items-center justify-between gap-3 mt-0.5   flex-wrap">
+              <p className="text-xs sm:text-sm text-workshop-text/75 dark:text-workshop-muted font-medium truncate min-w-0">
                 {displayEmail}
               </p>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface border border-workshop-border/80 text-xs font-bold text-workshop-muted shadow-sm shrink-0">
-                <RoleIcon className="w-3.5 h-3.5 text-workshop-accent" />
-                <span>{roleLabel}</span>
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface/90 text-xs font-semibold text-workshop-text shadow-sm">
+                  <RoleIcon className="w-3.5 h-3.5 text-workshop-accent shrink-0" />
+                  <span>{roleLabel}</span>
+                </div>
+                {(profile?.tags || [])
+                  .filter((t) => !["admin", "technician", "tech", "assistant"].includes(t.toLowerCase()))
+                  .map((t) => (
+                    <span
+                      key={t}
+                      className="px-2.5 py-0.5 rounded-full bg-workshop-surface/70 border border-workshop-border/60 text-[11px] font-medium text-workshop-muted shadow-sm"
+                    >
+                      {t}
+                    </span>
+                  ))}
               </div>
             </div>
           </div>
@@ -142,30 +153,6 @@ export function CategoriesView({
           </button>
         )}
 
-        {/* Performance (Admin Only) */}
-        {isAdmin && (
-          <button
-            type="button"
-            id="settings-category-performance"
-            onClick={() => onSelectTab("performance")}
-            className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
-          >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-cyan-400 transition-colors shrink-0">
-                <BarChart2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-workshop-text group-hover:text-cyan-400 transition-colors">
-                  Performance
-                </p>
-                <p className="text-xs text-workshop-muted mt-0.5 truncate">
-                  Service revenue, logs & advisor metrics
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
-          </button>
-        )}
 
         {/* Statistics */}
         <button

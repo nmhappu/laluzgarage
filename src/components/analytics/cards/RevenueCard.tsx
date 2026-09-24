@@ -18,7 +18,6 @@ interface RevenueCardProps {
 export function RevenueCard({
   totalRevenue,
   laborRevenue,
-  partsRevenue,
   avgTicket,
   growth,
   timeline,

@@ -14,7 +14,6 @@ interface TurnaroundCardProps {
 
 export function TurnaroundCard({
   avgDays,
-  avgHours,
   onTimeRate,
   expressCount,
   longStayCount,
@@ -28,8 +27,8 @@ export function TurnaroundCard({
       series: [
         {
           type: 'gauge',
-          center: ['50%', '75%'],
-          radius: '115%',
+          center: ['50%', '82%'],
+          radius: '90%',
           startAngle: 180,
           endAngle: 0,
           min: 0,
@@ -37,7 +36,7 @@ export function TurnaroundCard({
           splitNumber: 5,
           axisLine: {
             lineStyle: {
-              width: 10,
+              width: 7,
               color: [
                 [0.3, '#10B981'], // <1.5 days: fast
                 [0.7, '#FBBF24'], // 1.5 - 3.5 days: standard
@@ -47,8 +46,8 @@ export function TurnaroundCard({
           },
           pointer: {
             icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-            length: '55%',
-            width: 5,
+            length: '52%',
+            width: 3.5,
             offsetCenter: [0, '-10%'],
             itemStyle: {
               color: '#F8FAFC',

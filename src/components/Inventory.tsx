@@ -5,6 +5,8 @@ import { DeletePartModal } from './inventory/DeletePartModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserRole } from '../types';
 
+import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
+
 export function Inventory() {
   const { profile } = useAuth();
   const role = getUserRole(profile);
@@ -12,9 +14,11 @@ export function Inventory() {
   const isTechnician = role === 'technician' || role === 'admin';
   const isAssistant = role === 'assistant';
 
+  const { setSearchTerm } = useResponsiveSearch();
   const {
     filteredParts,
     loading,
+    searchTerm,
     showAddModal,
     setShowAddModal,
     showEditModal,
@@ -37,6 +41,8 @@ export function Inventory() {
       <InventoryList
         parts={filteredParts}
         loading={loading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
         onAddClick={isTechnician ? () => setShowAddModal(true) : undefined}
         onPartClick={(part) => {
           setEditingPart(part);

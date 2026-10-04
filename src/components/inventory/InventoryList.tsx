@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Part } from '../../types';
 import { PartCard } from './PartCard';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { DesktopSearchBar } from '../shared/DesktopSearchBar';
 
 export interface InventoryListProps {
   parts: Part[];
   loading: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
   onAddClick?: () => void;
   onPartClick: (part: Part) => void;
 }
@@ -14,6 +17,8 @@ export interface InventoryListProps {
 export function InventoryList({
   parts,
   loading,
+  searchTerm = '',
+  onSearchChange,
   onAddClick,
   onPartClick,
 }: InventoryListProps) {
@@ -40,15 +45,24 @@ export function InventoryList({
             Track and manage shop supplies and spare parts.
           </p>
         </div>
-        {onAddClick && (
-          <button
-            onClick={onAddClick}
-            className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>ADD PART</span>
-          </button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {onSearchChange && (
+            <DesktopSearchBar
+              value={searchTerm}
+              onChange={onSearchChange}
+              placeholder="Search parts..."
+            />
+          )}
+          {onAddClick && (
+            <button
+              onClick={onAddClick}
+              className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded-xl shadow-lg shadow-workshop-accent/10 font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all cursor-pointer h-10"
+            >
+              <Plus className="w-4 h-4" />
+              <span>ADD PART</span>
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="-mx-4 md:-mx-8 lg:-mx-10 overflow-hidden">

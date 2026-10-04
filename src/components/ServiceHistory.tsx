@@ -18,6 +18,7 @@ import { DeliveryBillModal, type CompletedJobPayload } from "./services/Delivery
 import { ServiceHistoryTabs } from "./services/ServiceHistoryTabs";
 import { EmptyState } from "./shared/EmptyState";
 import { InfiniteScrollFooter } from "./shared/InfiniteScrollFooter";
+import { DesktopSearchBar } from "./shared/DesktopSearchBar";
 import { cn } from "../lib/utils";
 
 const contentVariants = {
@@ -229,6 +230,25 @@ export function ServiceHistory() {
         )}
       >
         <div className="w-full max-w-xl mx-auto md:max-w-none md:mx-0 space-y-6">
+          {/* Desktop Top Header with Title and Search Bar */}
+          <header className="hidden md:flex flex-row items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase font-sans">
+                Service History
+              </h1>
+              <p className="text-workshop-muted text-sm font-medium font-sans">
+                Track and manage workshop service records.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <DesktopSearchBar
+                value={stickySearchLogs}
+                onChange={setSearchTerm}
+                placeholder="Search records..."
+              />
+            </div>
+          </header>
+
           {/* Status Tabs Controls */}
           <ServiceHistoryTabs
             tabs={tabs}

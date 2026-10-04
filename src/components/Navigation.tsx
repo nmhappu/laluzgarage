@@ -17,18 +17,6 @@ export function Navigation() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const desktopQuery = searchParams.get('q') || '';
-  const setDesktopQuery = (val: string) => {
-    setSearchParams((prev) => {
-      if (!val) {
-        prev.delete('q');
-      } else {
-        prev.set('q', val);
-      }
-      return prev;
-    }, { replace: true });
-  };
-
   const mobileQuery = searchParams.get('qm') || '';
   const setMobileQuery = (val: string) => {
     setSearchParams((prev) => {
@@ -103,8 +91,6 @@ export function Navigation() {
       {/* Desktop Sidebar */}
       <DesktopSidebar
         isModalOpen={isModalOpen}
-        desktopQuery={desktopQuery}
-        onDesktopQueryChange={setDesktopQuery}
         onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 

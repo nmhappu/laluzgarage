@@ -19,6 +19,9 @@ build/
 out/
 .vite/
 *.tsbuildinfo
+vite.config.*.timestamp-*
+stats.html
+bundle-report.html
 
 # ==============================================================================
 # Environment & Secrets (Keep .env.example tracked)
@@ -52,6 +55,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.npm/
+.node_repl_history
 
 # ==============================================================================
 # Testing & Code Coverage
@@ -61,21 +66,45 @@ coverage/
 *.lcov
 .eslintcache
 .stylelintcache
+.vitest/
+test-results/
+playwright-report/
+blob-report/
 
 # ==============================================================================
 # IDEs & Code Editors
 # ==============================================================================
 # VS Code
 .vscode/
+**/.vscode/
 *.code-workspace
-
+.history/
+**/.history/
 
 # IntelliJ / Android Studio / WebStorm
 .idea/
+**/.idea/
 *.iml
+**/*.iml
+.idea_modules/
 android/.idea/
 android/*.iml
 android/app/*.iml
+cmake-build-*/
+**/cmake-build-*/
+
+# Visual Studio & Windows Native Tools (C++ / Flutter)
+.vs/
+**/.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Fleet & Zed
+.fleet/
+**/.fleet/
+.zed/
+**/.zed/
 
 # Eclipse / NetBeans / Sublime / Vim
 *.sublime-project
@@ -109,7 +138,7 @@ $RECYCLE.BIN/
 .directory
 
 # ==============================================================================
-# Android & Mobile Build Artifacts (Capacitor / Gradle)
+# Android & Mobile Build Artifacts (Capacitor / Jetpack Compose / Gradle)
 # ==============================================================================
 .gradle/
 **/.gradle/
@@ -128,6 +157,31 @@ android/local.properties
 key.properties
 **/key.properties
 
+# Kotlin & Jetpack Compose Artifacts
+.kotlin/
+**/.kotlin/
+kotlin-daemon.*.log
+**/kotlin-daemon.*.log
+.ksp/
+**/.ksp/
+**/compose_metrics/
+**/compose_reports/
+**/compose_compiler/
+compose-app/.gradle/
+compose-app/build/
+compose-app/app/build/
+compose-app/.kotlin/
+
+# Capacitor Web Assets & Generated Native Config
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/res/xml/config.xml
+**/capacitor-cordova-android-plugins/build/
+ios/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/capacitor.plugins.json
+
 # Android outputs and compiled binaries
 *.apk
 *.aab
@@ -137,9 +191,14 @@ key.properties
 *.class
 *.hprof
 
-# Android Signing / Keystore Files
+# Android Signing / Keystore Files & Publishing Credentials
 *.keystore
 *.jks
+*.p12
+*.key
+debug.keystore
+play-store-*.json
+*-pc-api-*.json
 
 # Fastlane (if used for automated deployment)
 android/fastlane/report.xml
@@ -248,12 +307,34 @@ GoogleService-Info.plist
 .gemini/
 .claude/
 .chat/
+.cursor/
+**/.cursor/
+.copilot/
+**/.copilot/
+.aider*
 scratch/
 temp/
 tmp/
 AGENTS.md
 agents.md
 external-items/
+
+# ==============================================================================
+# Docker Local Overrides
+# ==============================================================================
+compose.override.yml
+compose.override.yaml
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# ==============================================================================
+# Temporary, Patch & Backup Files
+# ==============================================================================
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
 
 
 

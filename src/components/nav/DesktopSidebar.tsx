@@ -1,14 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHighQualityAvatarUrl } from '../../lib/avatar';
 import { getUserRole } from '../../types';
-import { Search } from '../ui/SearchIcon';
 import { LzLightningIcon } from '../ui/LzLightningIcon';
-import { X } from 'lucide-react';
 import {
   navItems,
   getRoleRingClass,
@@ -16,14 +14,11 @@ import {
   getRoleLabel,
   getActiveTabPillClass,
   getTabAccentColor,
-  getActiveTabLabel,
   type NavItemConfig,
 } from './types';
 
 interface DesktopSidebarProps {
   isModalOpen: boolean;
-  desktopQuery: string;
-  onDesktopQueryChange: (val: string) => void;
   onLogoutClick: () => void;
 }
 
@@ -54,8 +49,6 @@ const M3_TRANSITION = {
  */
 export function DesktopSidebar({
   isModalOpen,
-  desktopQuery,
-  onDesktopQueryChange,
   onLogoutClick,
 }: DesktopSidebarProps) {
   const { user, profile } = useAuth();
@@ -93,57 +86,6 @@ export function DesktopSidebar({
       navigate('/');
     }
   };
-
-  // Search popover state for compact (80px) rail mode
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  // Focus search input when popover opens
-  useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchOpen]);
-
-  // Global '/' keyboard shortcut to trigger search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
-      if (e.key === '/' && !isInput) {
-        e.preventDefault();
-        if (!isExpanded) {
-          setIsSearchOpen(true);
-        } else {
-          searchInputRef.current?.focus();
-        }
-      } else if (e.key === 'Escape' && isSearchOpen) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, isSearchOpen]);
-
-  // Click outside to close search popover in compact mode
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        isSearchOpen &&
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    if (isSearchOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isSearchOpen]);
 
   const rawPhoto = user?.photoURL || profile?.photoURL;
   const avatarUrl = getHighQualityAvatarUrl(rawPhoto, 256);
@@ -282,127 +224,7 @@ export function DesktopSidebar({
         </motion.button>
       </div>
 
-      {/* 3. SEARCH CONTAINER: Fluid Morphing Search Bar */}
-      <div className="px-3 mb-2 shrink-0 relative overflow-visible h-10" ref={searchContainerRef}>
-        <motion.div
-          animate={{
-            width: isExpanded ? 216 : 56,
-          }}
-          transition={M3_TRANSITION}
-          className={cn(
-            "h-10 relative flex items-center rounded-xl bg-workshop-card/80 border border-workshop-border overflow-hidden",
-            !isExpanded && desktopQuery && "border-workshop-accent/50 bg-workshop-accent/10"
-          )}
-        >
-          {/* Search Trigger Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!isExpanded) {
-                setIsSearchOpen((prev) => !prev);
-              } else {
-                searchInputRef.current?.focus();
-              }
-            }}
-            className={cn(
-              "w-14 h-10 flex items-center justify-center shrink-0 cursor-pointer focus:outline-none transition-colors",
-              desktopQuery ? "text-workshop-accent" : "text-workshop-muted hover:text-workshop-text"
-            )}
-            title={desktopQuery ? `Active filter: "${desktopQuery}" (Press /)` : "Search (/)"}
-            aria-label="Search"
-          >
-            <Search className="w-4 h-4" />
-            {desktopQuery && !isExpanded && (
-              <span className="absolute top-2 right-3.5 w-2 h-2 rounded-full bg-workshop-accent animate-pulse" />
-            )}
-          </button>
-
-          {/* Inline Input for Expanded Mode */}
-          <motion.div
-            initial={false}
-            animate={{
-              opacity: isExpanded ? 1 : 0,
-              width: isExpanded ? 150 : 0,
-            }}
-            transition={{
-              duration: isExpanded ? 0.22 : 0.12,
-              ease: M3_EASE,
-            }}
-            className="flex-1 flex items-center h-full overflow-hidden pr-2"
-          >
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={desktopQuery}
-              onChange={(e) => onDesktopQueryChange(e.target.value)}
-              placeholder="Search..."
-              className="w-full bg-transparent border-none pl-0 pr-6 py-1 text-xs font-semibold text-workshop-text placeholder:text-workshop-muted/60 focus:outline-none uppercase"
-            />
-            {desktopQuery && isExpanded && (
-              <button
-                type="button"
-                onClick={() => onDesktopQueryChange('')}
-                className="absolute right-2 text-workshop-muted hover:text-workshop-text p-1 cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </motion.div>
-        </motion.div>
-
-        {/* Collapsed Search Popover Flyout */}
-        <AnimatePresence>
-          {isSearchOpen && !isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, x: -8, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -8, scale: 0.95 }}
-              transition={{ duration: 0.18, ease: M3_EASE }}
-              className="absolute left-[calc(100%+8px)] top-0 z-50 w-72 p-2 rounded-2xl bg-workshop-surface border border-workshop-border shadow-2xl backdrop-blur-xl"
-            >
-              <div className="relative flex items-center">
-                <Search className="absolute left-3 text-workshop-muted w-4 h-4" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={desktopQuery}
-                  onChange={(e) => onDesktopQueryChange(e.target.value)}
-                  placeholder={`Search ${getActiveTabLabel(location.pathname).toLowerCase()}...`}
-                  className="w-full bg-workshop-card border border-workshop-border pl-9 pr-8 py-2 rounded-xl text-xs font-semibold text-workshop-text placeholder:text-workshop-muted/50 focus:outline-none focus:ring-1 focus:ring-workshop-accent uppercase"
-                />
-                {desktopQuery && (
-                  <button
-                    type="button"
-                    onClick={() => onDesktopQueryChange('')}
-                    className="absolute right-2.5 text-workshop-muted hover:text-workshop-text p-1 cursor-pointer"
-                    title="Clear query"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-              {desktopQuery && (
-                <div className="mt-2 px-2 flex items-center justify-between text-[10px] text-workshop-muted">
-                  <span>Filtering view</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDesktopQueryChange('');
-                      setIsSearchOpen(false);
-                    }}
-                    className="hover:text-status-urgent cursor-pointer font-bold uppercase tracking-wider"
-                  >
-                    Reset
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* 4. DESTINATIONS: Material 3 Navigation Rail Items with Dynamic Spacing & Rearrangement */}
+      {/* 3. DESTINATIONS: Material 3 Navigation Rail Items with Dynamic Spacing & Rearrangement */}
       <motion.nav
         layout
         transition={M3_TRANSITION}
@@ -509,7 +331,7 @@ export function DesktopSidebar({
         })}
       </motion.nav>
 
-      {/* 5. TRAILING SECTION: Theme Toggle, Profile Avatar, and Logout */}
+      {/* 4. TRAILING SECTION: Theme Toggle, Profile Avatar, and Logout */}
       <div className="p-3 bg-workshop-surface border-t border-workshop-border shrink-0 flex flex-col gap-1.5">
         {/* Profile Card / Avatar */}
         <NavLink

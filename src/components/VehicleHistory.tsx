@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserRole } from '../types';
 import { EmptyState } from './shared/EmptyState';
 import { InfiniteScrollFooter } from './shared/InfiniteScrollFooter';
+import { DesktopSearchBar } from './shared/DesktopSearchBar';
 
 export function VehicleHistory() {
   const {
@@ -39,7 +40,7 @@ export function VehicleHistory() {
     handleDeleteVehicle
   } = useVehicleHistory();
 
-  const { searchTerm } = useResponsiveSearch();
+  const { searchTerm, setSearchTerm } = useResponsiveSearch();
   const { 
     visibleItems: visibleVehicles, 
     sentinelRef, 
@@ -65,16 +66,23 @@ export function VehicleHistory() {
           <h1 className="text-2xl font-bold text-workshop-text tracking-tight uppercase font-sans">Vehicle Registry</h1>
           <p className="text-workshop-muted text-sm font-medium font-sans">Manage workshop vehicles.</p>
         </div>
-        {isTechnician && (
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-workshop-accent/25 shrink-0 cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Register Vehicle</span>
-          </button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <DesktopSearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search vehicles..."
+          />
+          {isTechnician && (
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center justify-center gap-2 bg-workshop-accent text-workshop-bg px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-workshop-accent/25 shrink-0 cursor-pointer h-10"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Register Vehicle</span>
+            </button>
+          )}
+        </div>
       </header>
 
       <AnimatePresence mode="wait">

@@ -89,6 +89,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
+    port: 3000,
     hmr: process.env.DISABLE_HMR !== 'true',
   },
   build: {
@@ -102,7 +104,7 @@ export default defineConfig({
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
-          if (id.includes('node_modules/recharts')) {
+          if (id.includes('node_modules/echarts') || id.includes('node_modules/zrender')) {
             return 'vendor-charts';
           }
           if (id.includes('node_modules/lucide-react') || id.includes('node_modules/motion')) {

@@ -42,7 +42,7 @@
 
 ### 4. WhatsApp Templates
 - **WhatsApp Alerts**: Pre-filled customer messages on vehicle intake and job delivery.
-- 
+
 ### 5. Watchlist & Advisor Analytics
 - **Dashboard Stat Tiles**: Watchlist metrics for Total Services, Pending Work, Completed Jobs, and Issues Attended.
 - **Embedded Sparklines**: 14-day operational trend charts.
@@ -143,6 +143,60 @@ will be hosted on `http://localhost:3000`.
 npm run test    # Runs Vitest test suite
 npm run lint    # Runs ESLint and TypeScript type checking
 ```
+
+---
+
+## Docker & Container Deployment
+
+LaluZ Garage can be deployed instantly using Docker and Docker Compose. The official container package is published to GitHub Container Registry (`ghcr.io/nmhappu/laluzgarage:latest`) with multi-arch support (`linux/amd64`, `linux/arm64`) and dynamic runtime environment variable injection.
+
+### 1. Quick Start with Docker Compose
+1. Copy the example compose file:
+   ```bash
+   cp compose.example.yml compose.yml
+   ```
+2. Configure your Firebase credentials in `compose.yml` (or in a `.env` file).
+3. Start the container:
+   ```bash
+   docker compose up -d
+   ```
+4. Access LaluZ Garage in your browser at `http://localhost:2266`.
+
+### 2. Run with Docker CLI
+```bash
+docker run -d \
+  --name laluzgarage \
+  -p 2266:2266 \
+  -e PORT=2266 \
+  -e VITE_FIREBASE_API_KEY=your_api_key \
+  -e VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com \
+  -e VITE_FIREBASE_PROJECT_ID=your_project_id \
+  -e VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app \
+  -e VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id \
+  -e VITE_FIREBASE_APP_ID=your_app_id \
+  -e VITE_FIREBASE_FIRESTORE_DATABASE_ID=ai-studio-68b1ba2c-7611-4e4f-b6eb-ac12f212fa4e \
+  --restart unless-stopped \
+  ghcr.io/nmhappu/laluzgarage:latest
+```
+
+### 3. Build & Run Locally
+```bash
+npm run docker:build
+npm run docker:run
+```
+
+### 4. Environment Variables Reference
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PORT` | Listening port for Nginx and health checks | `2266` |
+| `SERVER_NAME` | Nginx virtual host server name | `localhost` |
+| `VITE_FIREBASE_API_KEY` or `FIREBASE_API_KEY` | Firebase Web API Key | *Required* |
+| `VITE_FIREBASE_AUTH_DOMAIN` or `FIREBASE_AUTH_DOMAIN` | Firebase Authentication domain | *Required* |
+| `VITE_FIREBASE_PROJECT_ID` or `FIREBASE_PROJECT_ID` | Google Cloud / Firebase project ID | *Required* |
+| `VITE_FIREBASE_STORAGE_BUCKET` or `FIREBASE_STORAGE_BUCKET` | Cloud Storage bucket | *Required* |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` or `FIREBASE_MESSAGING_SENDER_ID` | FCM messaging sender ID | *Required* |
+| `VITE_FIREBASE_APP_ID` or `FIREBASE_APP_ID` | Firebase Web application ID | *Required* |
+| `VITE_FIREBASE_FIRESTORE_DATABASE_ID` or `FIREBASE_FIRESTORE_DATABASE_ID` | Named Firestore database | `(default)` |
 
 ---
 

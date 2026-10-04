@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import { motion } from "motion/react";
+import { ArrowDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 export interface ServiceHistoryTabsProps {
@@ -13,12 +14,16 @@ export interface ServiceHistoryTabsProps {
   }>;
   activeTab: string;
   onSelectTab: (tabId: "all" | "pending" | "in-progress" | "completed" | "cancelled") => void;
+  sortOrder?: 'newest' | 'oldest';
+  onToggleSort?: () => void;
 }
 
 export function ServiceHistoryTabs({
   tabs,
   activeTab,
   onSelectTab,
+  sortOrder,
+  onToggleSort,
 }: ServiceHistoryTabsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -109,6 +114,31 @@ export function ServiceHistoryTabs({
             </button>
           );
         })}
+
+        {/* Desktop Sort (arrow) button */}
+        {sortOrder && onToggleSort && (
+          <div className="hidden md:flex ml-auto items-center pl-4 pr-1">
+            <button
+              type="button"
+              onClick={onToggleSort}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all select-none active:scale-95 cursor-pointer",
+                "bg-workshop-card/80 hover:bg-workshop-card border border-workshop-border/80 text-workshop-text hover:border-workshop-accent/40 shadow-sm",
+                sortOrder === 'oldest' && "border-workshop-accent/50 text-workshop-accent bg-workshop-accent/10"
+              )}
+              title={`Sort: ${sortOrder === 'newest' ? 'Newest first (click for oldest)' : 'Oldest first (click for newest)'}`}
+            >
+              <span className="font-sans font-bold tracking-tight text-workshop-text text-xs">Sort</span>
+              <motion.span
+                animate={{ rotate: sortOrder === 'oldest' ? 180 : 0 }}
+                transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                className="flex items-center justify-center text-workshop-accent shrink-0"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+              </motion.span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

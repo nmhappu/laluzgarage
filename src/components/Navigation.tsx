@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import {
@@ -14,21 +14,8 @@ export function Navigation() {
   const { isModalOpen } = useUI();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const location = useLocation();
 
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const desktopQuery = searchParams.get('q') || '';
-  const setDesktopQuery = (val: string) => {
-    setSearchParams((prev) => {
-      if (!val) {
-        prev.delete('q');
-      } else {
-        prev.set('q', val);
-      }
-      return prev;
-    }, { replace: true });
-  };
 
   const mobileQuery = searchParams.get('qm') || '';
   const setMobileQuery = (val: string) => {
@@ -86,9 +73,6 @@ export function Navigation() {
     };
   }, []);
 
-  if (location.pathname === '/settings' || location.pathname === '/intake') {
-    return null;
-  }
 
   const handleLogout = async () => {
     try {
@@ -107,8 +91,6 @@ export function Navigation() {
       {/* Desktop Sidebar */}
       <DesktopSidebar
         isModalOpen={isModalOpen}
-        desktopQuery={desktopQuery}
-        onDesktopQueryChange={setDesktopQuery}
         onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 

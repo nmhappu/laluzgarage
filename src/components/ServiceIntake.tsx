@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Portal } from './Portal';
+import { Portal } from './ui/Portal';
 import { useServiceIntake } from '../hooks/useServiceIntake';
 import { AdvisorVerification } from './intake/AdvisorVerification';
 import { IntakeSuccessModal } from './intake/IntakeSuccessModal';
 import { IntakeTopBar } from './intake/IntakeTopBar';
+import { DiscardIntakeModal } from './intake/DiscardIntakeModal';
 import { Step1CustomerDiscovery } from './intake/Step1CustomerDiscovery';
 import { Step2VehicleSelection } from './intake/Step2VehicleSelection';
 import { Step3JobSpecification } from './intake/Step3JobSpecification';
@@ -48,6 +49,10 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
     handleCreateNewCustomer,
     handleSubmitIntake,
     getLastServicedDate,
+    showDiscardConfirm,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
   } = useServiceIntake(onClose, onSuccess);
 
   const Wrapper = isPage ? React.Fragment : Portal;
@@ -56,9 +61,9 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
     if (step > 1) {
       handleBackStep();
     } else {
-      onClose();
+      handleRequestClose();
     }
-  }, [step, handleBackStep, onClose]);
+  }, [step, handleBackStep, handleRequestClose]);
 
   // 1. Success Screen State
   if (createdJob) {
@@ -119,7 +124,12 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
         </div>
 
         {/* Standard App Top Navbar */}
-        <IntakeTopBar onBack={handleTopBack} title="Vehicle Intake" m3Icon="assignment" />
+        <IntakeTopBar
+          onBack={handleTopBack}
+          title="Vehicle Intake"
+          m3Icon="assignment"
+          showProfile={false}
+        />
 
         {/* Scrollable Main Step Content Area - Left Aligned with standard padding */}
         <main className="relative z-10 flex-1 overflow-y-auto px-5 sm:px-6 py-6 sheet-footer-safe">
@@ -172,6 +182,13 @@ export function ServiceIntake({ onClose, onSuccess, isPage }: ServiceIntakeProps
             </AnimatePresence>
           </div>
         </main>
+
+        {/* Unsaved Changes Discard Confirmation Modal */}
+        <DiscardIntakeModal
+          isOpen={showDiscardConfirm}
+          onClose={handleCancelDiscard}
+          onConfirm={handleConfirmDiscard}
+        />
       </motion.div>
     </Wrapper>
   );

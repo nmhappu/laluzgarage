@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Package, Wrench, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency, capitalizeName, cn } from '../../lib/utils';
-import { Portal } from '../Portal';
+import { Portal } from '../ui/Portal';
 import type { Customer, Vehicle, ServiceRecord } from '../../types';
 
 interface VehicleLedgerDrawerProps {

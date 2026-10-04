@@ -12,7 +12,11 @@ import { db, handleFirestoreError } from "../lib/firebase";
 import type { ServiceRecord, Vehicle, Customer, Part } from "../types";
 import type { CompletedJobPayload } from "../components/services/DeliveryBillModal";
 
-export function useServiceHistory(activeTab: string, deferredSearch: string) {
+export function useServiceHistory(
+  activeTab: string,
+  deferredSearch: string,
+  sortOrder: 'newest' | 'oldest' = 'newest'
+) {
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -178,9 +182,22 @@ export function useServiceHistory(activeTab: string, deferredSearch: string) {
   );
 
   const filteredRecords = useMemo(() => {
-    if (activeTab === "all") return searchMatchingRecords;
-    return searchMatchingRecords.filter((r) => r.status === activeTab);
-  }, [searchMatchingRecords, activeTab]);
+    const base = activeTab === "all" ? searchMatchingRecords : searchMatchingRecords.filter((r) => r.status === activeTab);
+    return [...base].sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      const validA = isNaN(timeA) ? 0 : timeA;
+      const validB = isNaN(timeB) ? 0 : timeB;
+
+      if (sortOrder === 'oldest') {
+        if (validA !== validB) return validA - validB;
+        return (a.id || '').localeCompare(b.id || '');
+      } else {
+        if (validA !== validB) return validB - validA;
+        return (b.id || '').localeCompare(a.id || '');
+      }
+    });
+  }, [searchMatchingRecords, activeTab, sortOrder]);
 
   const confirmDelete = async (recordToDelete: ServiceRecord) => {
     if (!recordToDelete) return;

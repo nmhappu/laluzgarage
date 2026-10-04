@@ -1,18 +1,21 @@
-import { useEffect } from 'react';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';
+import { useEffect, useRef } from 'react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { useTheme } from '../contexts/ThemeContext';
 
-import { registerPlugin } from '@capacitor/core';
-
-interface SystemBarsPluginInterface {
-  setSystemBarsStyle(options: { isDark: boolean }): Promise<void>;
+interface AppSystemBarsPluginInterface {
+  setSystemBarsStyle(options: { isDark: boolean }): Promise<{
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  }>;
 }
 
-const NativeSystemBars = registerPlugin<SystemBarsPluginInterface>('SystemBars');
+const AppSystemBars = registerPlugin<AppSystemBarsPluginInterface>('AppSystemBars');
 
 export function SystemBars() {
   const { theme } = useTheme();
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
     const isDark = theme === 'dark';
@@ -29,22 +32,30 @@ export function SystemBars() {
     if (Capacitor.isNativePlatform()) {
       const setupBars = async () => {
         try {
-          // Synchronize both status bar and navigation bar icon contrast and disable scrims
-          await NativeSystemBars.setSystemBarsStyle({ isDark });
-        } catch {
-          // Graceful fallback to standard StatusBar plugin if needed
-          try {
-            await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
-            await StatusBar.setBackgroundColor({ color: '#00000000' });
-          } catch (fallbackErr) {
-            console.debug('Fallback status bar setup error:', fallbackErr);
+          const insets = await AppSystemBars.setSystemBarsStyle({ isDark });
+          if (insets) {
+            if (typeof insets.top === 'number') {
+              document.documentElement.style.setProperty('--safe-area-inset-top', `${insets.top}px`);
+            }
+            if (typeof insets.bottom === 'number') {
+              document.documentElement.style.setProperty('--safe-area-inset-bottom', `${insets.bottom}px`);
+            }
+            if (typeof insets.left === 'number') {
+              document.documentElement.style.setProperty('--safe-area-inset-left', `${insets.left}px`);
+            }
+            if (typeof insets.right === 'number') {
+              document.documentElement.style.setProperty('--safe-area-inset-right', `${insets.right}px`);
+            }
           }
+        } catch (err) {
+          console.debug('AppSystemBars setup error:', err);
         }
       };
 
-      // Delay native window insets/contrast updates until the 750ms circular transition finishes
-      // to prevent Android from triggering a window relayout that aborts the web view transition
-      const delay = ('startViewTransition' in document) ? 750 : 0;
+      // On initial mount execute immediately; on theme toggle delay until circular view transition completes
+      const delay = isFirstMount.current ? 0 : ('startViewTransition' in document ? 750 : 0);
+      isFirstMount.current = false;
+
       const timer = setTimeout(setupBars, delay);
       return () => clearTimeout(timer);
     }
@@ -52,3 +63,4 @@ export function SystemBars() {
 
   return null;
 }
+

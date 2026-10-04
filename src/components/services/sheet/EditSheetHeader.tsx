@@ -1,13 +1,16 @@
 import React from "react";
-import { ArrowLeft, ArrowDown, ArrowUp } from "lucide-react";
+import { X, ArrowDown, ArrowUp } from "lucide-react";
 import { parseISO, startOfDay, isAfter, isSameDay } from "date-fns";
+import NumberFlow from "@number-flow/react";
 import { cn } from "../../../lib/utils";
+import { RollingText } from "../../ui/RollingText";
 
 export interface EditSheetHeaderProps {
   vehicleTitle: string;
   intakeDate?: string;
   expectedDeliveryDate?: string;
   onClose: () => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
 }
 
 export function EditSheetHeader({
@@ -15,77 +18,89 @@ export function EditSheetHeader({
   intakeDate,
   expectedDeliveryDate,
   onClose,
+  onPointerDown,
 }: EditSheetHeaderProps) {
   return (
-    <div className="relative overflow-hidden flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">
-      {/* Faded Text Silhouette Watermark */}
-      <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 pointer-events-none select-none text-[100px] sm:text-[160px] md:text-[196px] font-black text-white/[0.015] tracking-[0.13em] uppercase font-sans whitespace-nowrap z-0">
-        RECORD
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="relative z-10 flex items-center justify-center p-2 rounded-2xl text-workshop-muted hover:text-workshop-text transition-all duration-200 outline-none active:scale-95 group"
-      >
-        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-workshop-accent" />
-      </button>
-
-      <div className="relative z-10 flex-1 pl-1 flex flex-col justify-center">
-        <span className="text-base font-black font-google-sans text-workshop-accent uppercase tracking-tight leading-none">
-          {vehicleTitle}
-        </span>
-      </div>
-
-      <div className="relative z-10 flex flex-col items-end gap-1.5 select-none text-right">
-        {/* Service Intake Date */}
-        <div className="text-xs font-bold text-status-success font-sans flex items-center gap-1">
-          <ArrowDown className="w-4 h-4 text-status-success shrink-0" />
-          <span className="font-sans font-black tracking-normal uppercase">
-            {(() => {
-              if (!intakeDate) return "";
+    <div
+      onPointerDown={onPointerDown}
+      className={cn(
+        "relative overflow-hidden flex items-center justify-between px-5 sm:px-6 py-3.5 bg-workshop-surface border-b border-workshop-border/40 shrink-0 select-none",
+        onPointerDown && "cursor-grab active:cursor-grabbing touch-none"
+      )}
+    >
+      {/* Title & Dates */}
+      <div className="flex-1 min-w-0 pr-3">
+        <h2 className="text-base sm:text-lg font-black font-google-sans text-workshop-accent uppercase tracking-tight leading-tight truncate">
+          <RollingText text={vehicleTitle || "Job Card"} />
+        </h2>
+        <div className="flex items-center gap-3 mt-1 flex-wrap">
+          {/* Service Intake Date */}
+          {intakeDate &&
+            (() => {
               try {
                 const d = new Date(intakeDate);
                 const day = d.getDate();
                 const month = d.toLocaleDateString("en-US", { month: "short" });
                 const year = d.getFullYear();
-                return `${day} ${month} ${year}`;
+                return (
+                  <div className="text-[11px] font-bold text-status-success font-sans flex items-center gap-1">
+                    <ArrowDown className="w-3 h-3 text-status-success shrink-0" />
+                    <span className="font-sans font-black tracking-normal uppercase inline-flex items-center gap-1">
+                      <NumberFlow value={day} locales="en-IN" />
+                      <RollingText text={month} />
+                      <NumberFlow value={year} locales="en-IN" format={{ useGrouping: false }} />
+                    </span>
+                  </div>
+                );
               } catch {
-                return "";
+                return null;
               }
             })()}
-          </span>
+
+          {/* Due Date with Up Arrow */}
+          {expectedDeliveryDate &&
+            (() => {
+              try {
+                const dueDate = parseISO(expectedDeliveryDate);
+                const today = startOfDay(new Date());
+                const normalizedDueDate = startOfDay(dueDate);
+                const isPast = isAfter(today, normalizedDueDate);
+                const isToday = isSameDay(normalizedDueDate, today);
+                const isOverdue = isPast && !isToday;
+                const textColorClass = isOverdue ? "text-status-urgent" : "text-status-pending";
+
+                const day = dueDate.getDate();
+                const month = dueDate.toLocaleDateString("en-US", { month: "short" });
+                const year = dueDate.getFullYear();
+
+                return (
+                  <div className={cn("text-[11px] font-bold font-sans flex items-center gap-1", textColorClass)}>
+                    <ArrowUp className="w-3 h-3 shrink-0 font-bold" />
+                    <span className="font-sans font-black tracking-normal uppercase inline-flex items-center gap-1">
+                      <NumberFlow value={day} locales="en-IN" />
+                      <RollingText text={month} />
+                      <NumberFlow value={year} locales="en-IN" format={{ useGrouping: false }} />
+                    </span>
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })()}
         </div>
-
-        {/* Due Date with Up Arrow */}
-        {expectedDeliveryDate &&
-          (() => {
-            try {
-              const dueDate = parseISO(expectedDeliveryDate);
-              const today = startOfDay(new Date());
-              const normalizedDueDate = startOfDay(dueDate);
-              const isPast = isAfter(today, normalizedDueDate);
-              const isToday = isSameDay(normalizedDueDate, today);
-              const isOverdue = isPast && !isToday;
-              const textColorClass = isOverdue ? "text-status-urgent" : "text-status-pending";
-
-              const day = dueDate.getDate();
-              const month = dueDate.toLocaleDateString("en-US", { month: "short" });
-              const year = dueDate.getFullYear();
-
-              return (
-                <div className={cn("text-xs font-bold font-sans flex items-center gap-1", textColorClass)}>
-                  <ArrowUp className="w-4 h-4 shrink-0 font-bold" />
-                  <span className="font-sans font-black tracking-normal uppercase">
-                    {`${day} ${month} ${year}`}
-                  </span>
-                </div>
-              );
-            } catch {
-              return null;
-            }
-          })()}
       </div>
+
+      {/* M3 Close 'X' Button with circle hover background */}
+      <button
+        type="button"
+        onClick={onClose}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="flex items-center justify-center w-8 h-8 rounded-full text-workshop-muted hover:text-workshop-text hover:bg-workshop-card transition-all duration-150 outline-none active:scale-95 group cursor-pointer shrink-0"
+        title="Close preview (Esc)"
+        aria-label="Close"
+      >
+        <X className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+      </button>
     </div>
   );
 }

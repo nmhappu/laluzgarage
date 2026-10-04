@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { Portal } from '../Portal';
+import { Portal } from './Portal';
 import { useBackHandler } from '../../contexts/UIContext';
 
 // Helper function to format date strings for display (e.g. "Fri, May 22, 2026" or "May 22, 2026")

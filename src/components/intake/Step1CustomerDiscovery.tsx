@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserPlus, ArrowLeft, ArrowRight, ChevronRight, Search, Key, User, Phone, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import type { Customer, Vehicle } from '../../types';
 
 const tapSpringTransition = {

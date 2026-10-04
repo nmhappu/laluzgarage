@@ -106,3 +106,13 @@ export function formatDateSafe(
     return fallback;
   }
 }
+
+/**
+ * Detects if a vehicle is an Ola vehicle.
+ */
+export function isOlaVehicle(make?: string, model?: string): boolean {
+  const m = (make || '').toLowerCase();
+  const mod = (model || '').toLowerCase();
+  return m.includes('ola') || mod.includes('ola');
+}
+

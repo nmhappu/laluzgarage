@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Receipt } from "lucide-react";
-import { Portal } from "../Portal";
+import { Portal } from "../ui/Portal";
 import { useBackHandler } from "../../contexts/UIContext";
 import type { ServiceRecord, Customer, Vehicle } from "../../types";
 import { formatCurrency, capitalizeName, cleanPhoneNumber, buildWhatsAppUrl, formatPartsListForWhatsApp } from "../../lib/utils";

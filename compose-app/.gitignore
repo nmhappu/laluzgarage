@@ -1,0 +1,41 @@
+# ==============================================================================
+# Jetpack Compose / Android Gradle Build & Ephemeral Files
+# ==============================================================================
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.idea_modules/
+/build/
+/app/build/
+.cxx/
+.externalNativeBuild/
+captures/
+.navigation/
+
+# Kotlin Compiler Caches & Compose Metrics
+.kotlin/
+.ksp/
+kotlin-daemon.*.log
+compose_metrics/
+compose_reports/
+compose_compiler/
+
+# Android Packaging & Binaries
+*.apk
+*.aab
+*.dex
+*.class
+*.hprof
+
+# Android Signing & Secrets
+google-services.json
+!google-services.json.example
+key.properties
+*.keystore
+*.jks
+debug.keystore
+
+# OS Files
+.DS_Store
+Thumbs.db

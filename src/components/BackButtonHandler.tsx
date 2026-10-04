@@ -67,12 +67,18 @@ export function BackButtonHandler() {
 
           const currentPath = locationRef.current.pathname;
 
-          // 2. If in full-screen sub-routes (/settings, /intake), navigate back in history or to dashboard
-          if (currentPath === '/settings' || currentPath === '/intake') {
+          // 2. If on root settings, navigate directly to dashboard
+          if (currentPath === '/settings' || currentPath === '/settings/') {
+            navigateRef.current('/', { replace: true });
+            return;
+          }
+
+          // If in full-screen sub-routes (/settings/*, /intake, /analytics/*), navigate back in history or to parent view
+          if (currentPath.startsWith('/settings') || currentPath.startsWith('/intake') || currentPath.startsWith('/analytics/')) {
             if (window.history.length > 1) {
               navigateRef.current(-1);
             } else {
-              navigateRef.current('/', { replace: true });
+              navigateRef.current(currentPath.startsWith('/analytics/') ? '/analytics' : '/', { replace: true });
             }
             return;
           }

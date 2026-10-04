@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ClipboardCheck, Gauge, Key, Lock, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Gauge, Key, Lock, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { MaterialCalendar } from '../ui/MaterialCalendar';
@@ -44,7 +44,7 @@ export interface Step3JobSpecificationProps {
   >;
   isMileageInvalid: boolean;
   loading: boolean;
-  onBackStep: () => void;
+  onBackStep?: () => void;
   onSubmit: () => void;
 }
 
@@ -56,7 +56,6 @@ export function Step3JobSpecification({
   setJobForm,
   isMileageInvalid,
   loading,
-  onBackStep,
   onSubmit,
 }: Step3JobSpecificationProps) {
   const pinOrKey = selectedVehicle

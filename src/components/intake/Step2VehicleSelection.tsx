@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, Car, Key, Shield, Hash, Palette } from 'lucide-react';
+import { ArrowRight, Car, Key, Shield, Hash, Palette } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { DEFAULT_PLATE_PLACEHOLDER } from '../../lib/constants';
@@ -34,7 +34,7 @@ export interface Step2VehicleSelectionProps {
   >;
   useKey: boolean;
   setUseKey: React.Dispatch<React.SetStateAction<boolean>>;
-  onBackStep: () => void;
+  onBackStep?: () => void;
   onProceedToJob: () => void;
 }
 
@@ -44,7 +44,6 @@ export function Step2VehicleSelection({
   setVehicleForm,
   useKey,
   setUseKey,
-  onBackStep,
   onProceedToJob,
 }: Step2VehicleSelectionProps) {
   const isFormValid =

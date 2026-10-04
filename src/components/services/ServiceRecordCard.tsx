@@ -4,15 +4,14 @@ import {
   Key,
   Trash2,
   Edit2,
-  ArrowRight,
   Package,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { format, differenceInDays, isAfter, parseISO, isSameDay, startOfDay } from "date-fns";
 import type { ServiceRecord, Vehicle, Customer } from "../../types";
 import { formatCurrency, capitalizeName, cn } from "../../lib/utils";
-import { OlaWatermark } from "../ui/BrandIcons";
 import { ServiceStatusBadge } from "../shared/ServiceStatusBadge";
+import { VehicleWatermark } from "../shared/VehicleWatermark";
 
 export interface ServiceRecordCardProps {
   record: ServiceRecord;
@@ -24,6 +23,7 @@ export interface ServiceRecordCardProps {
   canDelete?: boolean;
   canEdit?: boolean;
   onWhatsAppClick?: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
+  isSelected?: boolean;
 }
 
 export const ServiceRecordCard = memo(({
@@ -35,7 +35,7 @@ export const ServiceRecordCard = memo(({
   onDelete,
   canDelete = false,
   canEdit = true,
-  onWhatsAppClick,
+  isSelected = false,
 }: ServiceRecordCardProps) => {
   const formattedDate = useMemo(() => {
     try {
@@ -55,7 +55,7 @@ export const ServiceRecordCard = memo(({
       .map((line) =>
         line
           .replace(/^\[[x ]\]\s*/, "")
-          .replace(/^(\d+[\.\)]|[-*•])\s*/, "")
+          .replace(/^(\d+[.)]|[-*•])\s*/, "")
           .trim()
       )
       .filter(Boolean);
@@ -81,22 +81,20 @@ export const ServiceRecordCard = memo(({
     }
   }, [record.expectedDeliveryDate, record.status]);
 
-  const isOla = useMemo(() => {
-    const make = (v?.make || "").toLowerCase();
-    const model = (v?.model || "").toLowerCase();
-    return make.includes("ola") || model.includes("ola");
-  }, [v?.make, v?.model]);
-
   return (
     <motion.div
       onClick={() => onClick(record)}
       className={cn(
-        "relative bg-[#0A0C10] hover:bg-[#0C0E12] [html[data-theme=light]_&]:bg-workshop-card [html[data-theme=light]_&]:hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/30 shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
-        record.status === "completed"
-          ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
-          : record.status === "in-progress"
-            ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
-            : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5",
+        "relative w-full bg-[#0A0C10] hover:bg-[#0C0E12] [html[data-theme=light]_&]:bg-workshop-card [html[data-theme=light]_&]:hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/30 shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
+        isSelected
+          ? "ring-2 ring-workshop-accent border-workshop-accent/70 bg-workshop-surface/60 shadow-md"
+          : (
+            record.status === "completed"
+              ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
+              : record.status === "in-progress"
+                ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
+                : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5"
+          ),
       )}
     >
       {/* Status Accent (Top Mid Fading) */}
@@ -113,11 +111,7 @@ export const ServiceRecordCard = memo(({
         )}
       />
 
-      {isOla && (
-        <div className="absolute bottom-18 right-2 w-44 md:w-56 pointer-events-none opacity-[0.045] [html[data-theme=light]_&]:opacity-[0.07] flex items-end justify-end pr-4 pb-2 text-workshop-text overflow-hidden select-none">
-          <OlaWatermark className="w-full h-auto" />
-        </div>
-      )}
+      <VehicleWatermark make={v?.make} model={v?.model} />
       <div className="relative z-10 pt-5 pb-5 px-4 md:pt-6 md:pb-6 md:px-5 flex flex-col gap-3">
         <div className="flex items-center gap-4 mb-2">
           <div className="flex items-center gap-2 shrink-0">
@@ -133,16 +127,16 @@ export const ServiceRecordCard = memo(({
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <div className="flex-1 space-y-2 px-1">
+          <div className="flex-1 space-y-2 px-1 min-w-0">
             {/* Client Name at the top */}
-            <div className="text-workshop-text font-black text-base md:text-lg uppercase tracking-tight">
+            <div className="text-workshop-text font-black text-base md:text-lg uppercase tracking-tight truncate">
               {capitalizeName(customer?.name) || "Unknown Client"}
             </div>
 
             {/* Grouped Vehicle Details with even spacing */}
             <div className="space-y-2">
               {/* ROW 1: Plate and Vehicle Model only */}
-              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans min-w-0">
                 {/* Plate Number in prominent Blue */}
                 <span className="text-secondary font-plate font-black tracking-widest uppercase shrink-0 select-all text-base">
                   {v?.plateNumber || "NO PLATE"}
@@ -151,7 +145,7 @@ export const ServiceRecordCard = memo(({
                 <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
 
                 {/* Make & Model */}
-                <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base">
+                <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base truncate min-w-0">
                   {v?.make} {v?.model}
                 </span>
               </div>
@@ -160,29 +154,42 @@ export const ServiceRecordCard = memo(({
               <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5 text-left font-sans text-xs md:text-sm font-bold uppercase tracking-tight text-workshop-muted">
                 {/* Mileage Badge */}
                 <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
-                      record.isDeadVehicle
-                        ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                  {record.status === "completed" ? (
+                    <span
+                      className={cn(
+                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
+                        !record.completionMileage && record.isDeadVehicle
+                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : !record.completionMileage && record.isUnknownMileage
+                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                            : "text-status-success",
+                      )}
+                    >
+                      {record.completionMileage
+                        ? `${record.completionMileage.toLocaleString()} KM`
+                        : record.isDeadVehicle
+                          ? "DEAD"
+                          : record.isUnknownMileage
+                            ? "LOCKED"
+                            : `${record.mileage.toLocaleString()} KM`}
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "whitespace-nowrap shrink-0 font-black text-base font-google-sans",
+                        record.isDeadVehicle
+                          ? "inline-flex items-center justify-center text-white bg-status-urgent px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                          : record.isUnknownMileage
+                            ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
+                            : "text-status-pending",
+                      )}
+                    >
+                      {record.isDeadVehicle
+                        ? "DEAD"
                         : record.isUnknownMileage
-                          ? "inline-flex items-center justify-center text-black bg-white px-1.5 py-0.5 rounded text-[10px] tracking-widest leading-none font-sans"
-                          : "text-status-pending",
-                    )}
-                  >
-                    {record.isDeadVehicle
-                      ? "DEAD"
-                      : record.isUnknownMileage
-                        ? "LOCKED"
-                        : `${record.mileage.toLocaleString()} KM`}
-                  </span>
-                  {!!record.completionMileage && (
-                    <>
-                      <ArrowRight className="w-3.5 h-3.5 text-workshop-muted opacity-30 shrink-0" />
-                      <span className="text-status-success font-google-sans font-black whitespace-nowrap shrink-0 text-base">
-                        {record.completionMileage.toLocaleString()} KM
-                      </span>
-                    </>
+                          ? "LOCKED"
+                          : `${record.mileage.toLocaleString()} KM`}
+                    </span>
                   )}
                 </div>
 
@@ -279,11 +286,11 @@ export const ServiceRecordCard = memo(({
         <div className="h-px bg-workshop-border/15 w-full" />
 
         <div className="flex items-center justify-between gap-4 pt-1 px-1">
-          <div className="flex flex-col translate-x-1">
-            <p className="text-xs font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
+          <div className="flex flex-col translate-x-1 min-w-0">
+            <p className="text-xs font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5 truncate">
               Job Total
             </p>
-            <p className="text-2xl font-black text-workshop-text tracking-tighter leading-none">
+            <p className="text-2xl font-black text-workshop-text tracking-tighter leading-none whitespace-nowrap">
               {formatCurrency(record.totalCost)}
             </p>
           </div>

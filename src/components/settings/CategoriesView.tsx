@@ -4,25 +4,26 @@ import {
   User,
   Sliders,
   Tag,
-  BarChart2,
   Info,
   LogOut,
   ChevronRight,
   Shield,
   Wrench,
-  Sparkles,
   Calendar,
+  TrendingUp,
+  Download,
 } from "lucide-react";
 import type { User as FirebaseUser } from "firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { getHighQualityAvatarUrl } from "../../lib/avatar";
 import { WhatsAppIcon } from "../ui/BrandIcons";
 import { getUserRole } from "../../types";
+import { WorkshopPulseHeroChart } from "./WorkshopPulseHeroChart";
 
 export interface CategoriesViewProps {
   isAdmin: boolean;
   user: FirebaseUser | null;
-  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "performance" | "system" | "date_history") => void;
+  onSelectTab: (tab: "accounts" | "general" | "whatsapp_presets" | "tags" | "system" | "date_history" | "statistics" | "updates") => void;
   onLogoutClick: () => void;
   pageVariants?: Variants;
 }
@@ -74,63 +75,8 @@ export function CategoriesView({
     >
       {/* Edge-to-Edge Hero Waveform Banner */}
       <div className="w-full relative overflow-hidden bg-workshop-surface/20 border-b border-workshop-border/20 pt-6 pb-6">
-        {/* Sinusoidal Wave Graphic with Dotted Matrix Grid (Edge-to-Edge) */}
-        <div className="absolute top-0 right-0 left-0 h-32 sm:h-36 pointer-events-none overflow-hidden opacity-90">
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 500 130"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern
-                id="matrixDots"
-                x="0"
-                y="0"
-                width="8"
-                height="8"
-                patternUnits="userSpaceOnUse"
-              >
-                <circle
-                  cx="2"
-                  cy="2"
-                  r="1.1"
-                  fill="currentColor"
-                  className="text-indigo-400/25 dark:text-indigo-400/25"
-                />
-              </pattern>
-              <clipPath id="waveClip">
-                <path d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55 L500,130 L0,130 Z" />
-              </clipPath>
-            </defs>
-
-            {/* Dotted matrix fill area clipped by curve */}
-            <rect
-              x="0"
-              y="0"
-              width="500"
-              height="130"
-              fill="url(#matrixDots)"
-              clipPath="url(#waveClip)"
-            />
-
-            {/* Smooth waveform curve stroke */}
-            <path
-              d="M0,75 C70,75 85,20 135,20 C185,20 200,60 250,60 C290,60 310,30 350,30 C390,30 410,75 450,75 C475,75 490,55 500,55"
-              fill="none"
-              stroke="currentColor"
-              className="text-indigo-500/70 dark:text-indigo-400/80"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {/* Sparkle / Status Accent on top right of the wave */}
-          <div className="absolute right-5 sm:right-6 top-8 w-8 h-8 rounded-full bg-workshop-surface/80 border border-workshop-border/60 backdrop-blur-md flex items-center justify-center text-workshop-muted shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          </div>
-        </div>
+        {/* Animated 14-Day Throughput Pulse Background (Apache ECharts) */}
+        <WorkshopPulseHeroChart />
 
         {/* Profile Avatar overlapping wave */}
         <div className="relative z-10 pt-4 px-5 sm:px-6">
@@ -151,17 +97,29 @@ export function CategoriesView({
           </div>
 
           {/* User Display Info */}
-          <div className="mt-4">
+          <div className="mt-4.5 sm:mt-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-workshop-text font-sans">
               {displayName}
             </h1>
-            <div className="flex items-center justify-between gap-3 mt-1.5">
-              <p className="text-xs text-workshop-muted font-medium truncate min-w-0">
+            <div className="flex items-center justify-between gap-3 mt-0.5   flex-wrap">
+              <p className="text-xs sm:text-sm text-workshop-text/75 dark:text-workshop-muted font-medium truncate min-w-0">
                 {displayEmail}
               </p>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface border border-workshop-border/80 text-xs font-bold text-workshop-muted shadow-sm shrink-0">
-                <RoleIcon className="w-3.5 h-3.5 text-workshop-accent" />
-                <span>{roleLabel}</span>
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-workshop-surface/90 text-xs font-semibold text-workshop-text shadow-sm">
+                  <RoleIcon className="w-3.5 h-3.5 text-workshop-accent shrink-0" />
+                  <span>{roleLabel}</span>
+                </div>
+                {(profile?.tags || [])
+                  .filter((t) => !["admin", "technician", "tech", "assistant"].includes(t.toLowerCase()))
+                  .map((t) => (
+                    <span
+                      key={t}
+                      className="px-2.5 py-0.5 rounded-full bg-workshop-surface/70 border border-workshop-border/60 text-[11px] font-medium text-workshop-muted shadow-sm"
+                    >
+                      {t}
+                    </span>
+                  ))}
               </div>
             </div>
           </div>
@@ -195,30 +153,29 @@ export function CategoriesView({
           </button>
         )}
 
-        {/* Performance (Admin Only) */}
-        {isAdmin && (
-          <button
-            type="button"
-            id="settings-category-performance"
-            onClick={() => onSelectTab("performance")}
-            className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
-          >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-cyan-400 transition-colors shrink-0">
-                <BarChart2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-workshop-text group-hover:text-cyan-400 transition-colors">
-                  Performance
-                </p>
-                <p className="text-xs text-workshop-muted mt-0.5 truncate">
-                  Service revenue, logs & advisor metrics
-                </p>
-              </div>
+
+        {/* Statistics */}
+        <button
+          type="button"
+          id="settings-category-statistics"
+          onClick={() => onSelectTab("statistics")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors shrink-0">
+              <TrendingUp className="w-5 h-5" />
             </div>
-            <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
-          </button>
-        )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors">
+                Statistics
+              </p>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                Workshop throughput, financials & business intelligence
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
 
         {/* Date-wise Service History (Preview) */}
         <button
@@ -334,6 +291,34 @@ export function CategoriesView({
               </p>
               <p className="text-xs text-workshop-muted mt-0.5 truncate">
                 Database sync, connection latency & diagnostics
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-workshop-muted group-hover:text-workshop-text transition-colors shrink-0 ml-4" />
+        </button>
+
+        {/* App Updates */}
+        <button
+          type="button"
+          id="settings-category-updates"
+          onClick={() => onSelectTab("updates")}
+          className="w-full py-4.5 flex items-center justify-between text-left hover:bg-workshop-surface/30 transition-colors group px-5 sm:px-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-workshop-muted group-hover:text-workshop-accent transition-colors shrink-0">
+              <Download className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-workshop-text group-hover:text-workshop-accent transition-colors">
+                  App Updates
+                </p>
+                <span className="text-[10px] font-mono font-bold text-workshop-muted px-1.5 py-0.5 rounded bg-workshop-border/20 border border-workshop-border/40">
+                  OTA
+                </span>
+              </div>
+              <p className="text-xs text-workshop-muted mt-0.5 truncate">
+                GitHub release channels, APK installation & build info
               </p>
             </div>
           </div>

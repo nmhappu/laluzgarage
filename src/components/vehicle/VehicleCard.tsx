@@ -1,7 +1,8 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'motion/react';
 import { Car, Key, History, Phone } from 'lucide-react';
-import { WhatsAppIcon, OlaWatermark } from '../ui/BrandIcons';
+import { WhatsAppIcon } from '../ui/BrandIcons';
+import { VehicleWatermark } from '../shared/VehicleWatermark';
 import type { Vehicle } from '../../types';
 import { capitalizeName, cleanPhoneNumber, buildWhatsAppUrl } from '../../lib/utils';
 
@@ -33,11 +34,6 @@ export const VehicleCard = memo(function VehicleCard({
   onWhatsApp,
 }: VehicleCardProps) {
   const capOwnerName = capitalizeName(vehicle.ownerName);
-  const isOla = useMemo(() => {
-    const make = (vehicle.make || '').toLowerCase();
-    const model = (vehicle.model || '').toLowerCase();
-    return make.includes('ola') || model.includes('ola');
-  }, [vehicle.make, vehicle.model]);
 
   return (
     <motion.div
@@ -50,11 +46,7 @@ export const VehicleCard = memo(function VehicleCard({
       className="bg-workshop-surface/25 hover:bg-workshop-surface/50 p-5 rounded-xl transition-[background-color,border-color,box-shadow,transform] duration-200 group relative flex flex-col justify-between gap-5 overflow-hidden bg-clip-padding font-sans cursor-pointer border border-transparent hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/10 active:scale-[0.995] cv-vehicle-card"
       onClick={() => onSelect(vehicle)}
     >
-      {isOla && (
-        <div className="absolute bottom-18 right-0 w-40 md:w-48 pointer-events-none opacity-[0.045] [html[data-theme=light]_&]:opacity-[0.07] flex items-end justify-end pr-4 pb-2 text-workshop-text overflow-hidden select-none">
-          <OlaWatermark className="w-full h-auto" />
-        </div>
-      )}
+      <VehicleWatermark make={vehicle.make} model={vehicle.model} className="bottom-18 right-0 w-40 md:w-48" />
 
       {/* Row 1: Vehicle Identity with Plate opposite */}
       <div className="flex items-center justify-between gap-4 w-full">

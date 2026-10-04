@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Package, Layers, DollarSign, Info, MapPin, Trash2 } from 'lucide-react';
-import { Portal } from '../Portal';
+import { Portal } from '../ui/Portal';
 import type { Part } from '../../types';
 
 export interface PartFormModalProps {
@@ -42,7 +42,7 @@ export function PartFormModal({
           exit={{ x: '100%', opacity: 0.95 }}
           transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
           style={{ willChange: 'transform, opacity' }}
-          className="viewport-fill z-[100] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
+          className="viewport-fill z-[130] bg-workshop-bg flex flex-col w-full overflow-hidden font-sans text-workshop-text"
         >
           {/* Top Bar Header */}
           <div className="flex justify-between items-center pl-2 pr-6 sheet-header-safe pb-4 bg-workshop-bg border-b border-workshop-border/30 shrink-0 select-none">

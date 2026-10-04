@@ -273,3 +273,35 @@ Tire pressure check`;
   });
 });
 
+describe('Service History Sorting Logic', () => {
+  const records = [
+    { id: '1', date: '2026-01-10T10:00:00.000Z' },
+    { id: '2', date: '2026-03-15T10:00:00.000Z' },
+    { id: '3', date: '2025-12-01T10:00:00.000Z' },
+    { id: '4', date: '2026-03-15T10:00:00.000Z' },
+  ];
+
+  it('sorts by newest first (descending date)', () => {
+    const sorted = [...records].sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return b.id.localeCompare(a.id);
+    });
+
+    expect(sorted.map(r => r.id)).toEqual(['4', '2', '1', '3']);
+  });
+
+  it('sorts by oldest first (ascending date)', () => {
+    const sorted = [...records].sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
+    });
+
+    expect(sorted.map(r => r.id)).toEqual(['3', '1', '2', '4']);
+  });
+});
+
+

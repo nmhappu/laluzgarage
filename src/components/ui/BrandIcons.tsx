@@ -67,3 +67,4 @@ export function OlaWatermarkLight(props: OlaWatermarkProps) {
 }
 
 export { SearchIcon, Search } from './SearchIcon';
+export { LzLightningIcon } from './LzLightningIcon';

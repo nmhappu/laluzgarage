@@ -1,9 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-
-// kotlin {
-//     jvmToolchain(21)
-// }
 
 android {
     namespace = "dev.appu.laluzgarage"
@@ -25,9 +20,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = '21'
-    }
     buildTypes {
         release {
             minifyEnabled = true
@@ -42,7 +34,6 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
     implementation fileTree(include: ['*.jar', '*.aar'], dir: '../capacitor-cordova-android-plugins/src/main/libs')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     implementation "androidx.activity:activity-ktx:$androidxActivityVersion"
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "com.google.android.material:material:$materialVersion"

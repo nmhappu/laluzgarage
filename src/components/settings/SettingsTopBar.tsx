@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, RefreshCw, Plus, Search, Calendar, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { ThemeToggle } from '../ThemeToggle';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 export function getSettingsHeaderInfo(pathname: string): { title: string; colorClass: string } {
   if (pathname === '/settings' || pathname === '/settings/') {

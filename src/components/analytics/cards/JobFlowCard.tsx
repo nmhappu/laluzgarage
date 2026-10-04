@@ -17,7 +17,6 @@ export function JobFlowCard({
   total,
   completed,
   activeJobs,
-  completionRate,
   overdueCount,
   statusDonut,
   onClick,
@@ -58,20 +57,20 @@ export function JobFlowCard({
 
   return (
     <AnalyticsSquareCard
-      title="Job Flow & Bay WIP"
-      subtitle="Work Order Throughput"
+      title="Job Flow"
       icon={ClipboardList}
       iconColor="text-cyan-400"
-      primaryValue={`${total} Work Orders`}
-      badgeText={overdueCount > 0 ? `${overdueCount} Overdue` : `${completionRate}% Done`}
-      badgeType={overdueCount > 0 ? 'urgent' : 'info'}
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      primaryValue={`${total} Orders`}
+      badgeText={overdueCount > 0 ? `${overdueCount} Overdue` : undefined}
+      badgeType="urgent"
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          <strong className="text-status-success">{completed}</strong> Completed • <strong className="text-cyan-400">{activeJobs}</strong> Active in Bay
+          <strong className="text-status-success">{completed}</strong> Done • <strong className="text-cyan-400">{activeJobs}</strong> Active
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default JobFlowCard;

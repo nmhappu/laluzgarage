@@ -23,6 +23,7 @@ export interface ServiceRecordCardProps {
   canDelete?: boolean;
   canEdit?: boolean;
   onWhatsAppClick?: (record: ServiceRecord, customer?: Customer, vehicle?: Vehicle) => void;
+  isSelected?: boolean;
 }
 
 export const ServiceRecordCard = memo(({
@@ -34,6 +35,7 @@ export const ServiceRecordCard = memo(({
   onDelete,
   canDelete = false,
   canEdit = true,
+  isSelected = false,
 }: ServiceRecordCardProps) => {
   const formattedDate = useMemo(() => {
     try {
@@ -83,12 +85,16 @@ export const ServiceRecordCard = memo(({
     <motion.div
       onClick={() => onClick(record)}
       className={cn(
-        "relative bg-[#0A0C10] hover:bg-[#0C0E12] [html[data-theme=light]_&]:bg-workshop-card [html[data-theme=light]_&]:hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/30 shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
-        record.status === "completed"
-          ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
-          : record.status === "in-progress"
-            ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
-            : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5",
+        "relative w-full bg-[#0A0C10] hover:bg-[#0C0E12] [html[data-theme=light]_&]:bg-workshop-card [html[data-theme=light]_&]:hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/30 shadow-sm overflow-hidden transition-[background-color,border-color,box-shadow] duration-200 group cursor-pointer bg-clip-padding cv-record-card",
+        isSelected
+          ? "ring-2 ring-workshop-accent border-workshop-accent/70 bg-workshop-surface/60 shadow-md"
+          : (
+            record.status === "completed"
+              ? "hover:border-secondary/30 hover:shadow-lg hover:shadow-secondary/5"
+              : record.status === "in-progress"
+                ? "hover:border-status-pending/30 hover:shadow-lg hover:shadow-status-pending/5"
+                : "hover:border-status-urgent/30 hover:shadow-lg hover:shadow-status-urgent/5"
+          ),
       )}
     >
       {/* Status Accent (Top Mid Fading) */}
@@ -121,16 +127,16 @@ export const ServiceRecordCard = memo(({
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <div className="flex-1 space-y-2 px-1">
+          <div className="flex-1 space-y-2 px-1 min-w-0">
             {/* Client Name at the top */}
-            <div className="text-workshop-text font-black text-base md:text-lg uppercase tracking-tight">
+            <div className="text-workshop-text font-black text-base md:text-lg uppercase tracking-tight truncate">
               {capitalizeName(customer?.name) || "Unknown Client"}
             </div>
 
             {/* Grouped Vehicle Details with even spacing */}
             <div className="space-y-2">
               {/* ROW 1: Plate and Vehicle Model only */}
-              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans">
+              <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-2 text-left font-sans min-w-0">
                 {/* Plate Number in prominent Blue */}
                 <span className="text-secondary font-plate font-black tracking-widest uppercase shrink-0 select-all text-base">
                   {v?.plateNumber || "NO PLATE"}
@@ -139,7 +145,7 @@ export const ServiceRecordCard = memo(({
                 <span className="text-workshop-muted opacity-45 font-normal select-none">|</span>
 
                 {/* Make & Model */}
-                <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base">
+                <span className="text-workshop-text font-google-sans font-black uppercase tracking-tight text-base truncate min-w-0">
                   {v?.make} {v?.model}
                 </span>
               </div>
@@ -280,11 +286,11 @@ export const ServiceRecordCard = memo(({
         <div className="h-px bg-workshop-border/15 w-full" />
 
         <div className="flex items-center justify-between gap-4 pt-1 px-1">
-          <div className="flex flex-col translate-x-1">
-            <p className="text-xs font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5">
+          <div className="flex flex-col translate-x-1 min-w-0">
+            <p className="text-xs font-bold text-workshop-muted uppercase tracking-widest leading-none mb-1.5 truncate">
               Job Total
             </p>
-            <p className="text-2xl font-black text-workshop-text tracking-tighter leading-none">
+            <p className="text-2xl font-black text-workshop-text tracking-tighter leading-none whitespace-nowrap">
               {formatCurrency(record.totalCost)}
             </p>
           </div>

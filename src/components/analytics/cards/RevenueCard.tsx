@@ -28,7 +28,7 @@ export function RevenueCard({
     const totals = timeline.map((t) => t.total);
 
     return {
-      grid: { top: 6, right: 0, bottom: 6, left: 0, containLabel: false },
+      grid: { top: 4, right: 0, bottom: 4, left: 0, containLabel: false },
       xAxis: {
         type: 'category',
         data: dates.length > 0 ? dates : ['No Data'],
@@ -42,11 +42,12 @@ export function RevenueCard({
         {
           type: 'line',
           smooth: 0.35,
+          smoothMonotone: 'x',
           data: totals.length > 0 ? totals : [0],
           symbol: 'none',
           lineStyle: {
             color: '#10B981',
-            width: 2.5,
+            width: 2,
           },
           areaStyle: {
             color: {
@@ -68,20 +69,20 @@ export function RevenueCard({
 
   return (
     <AnalyticsSquareCard
-      title="Revenue & Billing"
-      subtitle="Workshop Invoicing Health"
+      title="Revenue"
       icon={DollarSign}
       iconColor="text-status-success"
       primaryValue={formatCurrency(totalRevenue)}
       badgeText={`${growth >= 0 ? '+' : ''}${growth}%`}
       badgeType={growth >= 0 ? 'success' : 'urgent'}
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          Avg Ticket: <strong className="text-workshop-text">{formatCurrency(avgTicket)}</strong> • Labor: {formatCurrency(laborRevenue)}
+          Avg: <strong className="text-workshop-text">{formatCurrency(avgTicket)}</strong> • Labor: {formatCurrency(laborRevenue)}
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default RevenueCard;

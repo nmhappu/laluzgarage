@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate, type Location } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -14,13 +14,16 @@ import { AppLoadingScreen } from './components/auth/AppLoadingScreen';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { UpdatePromptModal } from './components/shared/UpdatePromptModal';
 import { OtaUpdateService, type OtaReleaseInfo } from './services/otaUpdateService';
+import { cn } from './lib/utils';
 
 const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ default: m.Dashboard })));
 const VehicleHistory = lazy(() => import('./components/VehicleHistory').then((m) => ({ default: m.VehicleHistory })));
 const Inventory = lazy(() => import('./components/Inventory').then((m) => ({ default: m.Inventory })));
 const ServiceHistory = lazy(() => import('./components/ServiceHistory').then((m) => ({ default: m.ServiceHistory })));
+const Analytics = lazy(() => import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 const SettingsPage = lazy(() => import('./components/settings/SettingsLayout').then((m) => ({ default: m.SettingsLayout })));
 const ServiceIntakePage = lazy(() => import('./components/ServiceIntake').then((m) => ({ default: m.ServiceIntakePage })));
+const AnalyticsDetailPage = lazy(() => import('./components/analytics/detail/AnalyticsDetailPage').then((m) => ({ default: m.AnalyticsDetailPage })));
 
 const m3Variants = {
   enter: {
@@ -47,6 +50,8 @@ function RouteLoadingFallback() {
 }
 
 function StandardRoutes({ standardLocation }: { standardLocation: Location }) {
+  const isServicesPage = standardLocation.pathname === '/services';
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -57,7 +62,7 @@ function StandardRoutes({ standardLocation }: { standardLocation: Location }) {
         exit="exit"
         transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
         style={{ willChange: "transform, opacity" }}
-        className="w-full max-w-7xl mx-auto"
+        className={cn("w-full", isServicesPage && "h-full flex flex-col min-h-0")}
       >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={standardLocation}>
@@ -65,7 +70,7 @@ function StandardRoutes({ standardLocation }: { standardLocation: Location }) {
             <Route path="/vehicles" element={<VehicleHistory />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/services" element={<ServiceHistory />} />
-            <Route path="/analytics" element={<Navigate to="/settings/statistics" replace />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Routes>
         </Suspense>
       </motion.div>
@@ -74,23 +79,22 @@ function StandardRoutes({ standardLocation }: { standardLocation: Location }) {
 }
 
 function MainLayout() {
-  const { user, profile } = useAuth();
   const location = useLocation();
-  const isFullScreen = location.pathname.startsWith('/settings') || location.pathname.startsWith('/intake');
-  const role = getUserRole(profile);
+  const isFullScreen = location.pathname.startsWith('/settings') || location.pathname.startsWith('/intake') || location.pathname.startsWith('/analytics/');
 
-  // Preserve the last visited standard location so that background pages (like Dashboard or Vehicles)
+  // Preserve the last visited standard location so that background pages (like Dashboard or Analytics)
   // remain stably rendered in place without remounting, layout shifts, or unpadded stretching
-  // while full-screen views (Settings / Intake) enter or exit.
+  // while full-screen views enter or exit.
   const lastStandardLocationRef = useRef<Location>(
-    isFullScreen ? ({ ...location, pathname: '/' } as Location) : location
+    isFullScreen ? ({ ...location, pathname: location.pathname.startsWith('/analytics/') ? '/analytics' : '/' } as Location) : location
   );
 
-  if (!isFullScreen && !location.pathname.startsWith('/analytics')) {
+  if (!isFullScreen) {
     lastStandardLocationRef.current = location;
   }
 
   const standardLocation = isFullScreen ? lastStandardLocationRef.current : location;
+  const isServicesPage = standardLocation.pathname === '/services';
 
   return (
     <div className="relative h-mobile-screen overflow-hidden bg-workshop-bg text-workshop-text">
@@ -103,22 +107,16 @@ function MainLayout() {
         <Navigation />
 
         <main className="flex-1 flex flex-col min-h-0 min-w-0 bg-transparent text-workshop-text relative">
-          <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth main-content-scroll px-4 md:px-8 lg:px-10 md:pt-6.5 md:pb-8">
+          <div
+            className={cn(
+              "flex-1 min-h-0",
+              isServicesPage
+                ? "flex flex-col overflow-hidden"
+                : "overflow-y-auto scroll-smooth main-content-scroll px-4 md:px-8 lg:px-10 md:pt-6.5 md:pb-8"
+            )}
+          >
             <StandardRoutes standardLocation={standardLocation} />
           </div>
-
-          <footer className="hidden md:flex h-10 bg-workshop-surface border-t border-workshop-border px-8 items-center justify-between text-[10px] text-workshop-muted shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-colors">
-            <div className="flex items-center gap-8 h-full">
-              <div className="flex items-center gap-3">
-                <span className="opacity-40 uppercase tracking-[0.2em] font-bold">
-                  {role ? `${role}:` : 'User:'}
-                </span>
-                <span className="text-workshop-text font-black uppercase tracking-[0.2em] opacity-80">
-                  {profile?.name || user?.displayName || user?.email}
-                </span>
-              </div>
-            </div>
-          </footer>
         </main>
       </div>
 
@@ -138,6 +136,7 @@ function MainLayout() {
               <Routes location={location}>
                 <Route path="/settings/*" element={<SettingsPage />} />
                 <Route path="/intake" element={<ServiceIntakePage />} />
+                <Route path="/analytics/:metric" element={<AnalyticsDetailPage />} />
               </Routes>
             </Suspense>
           </motion.div>

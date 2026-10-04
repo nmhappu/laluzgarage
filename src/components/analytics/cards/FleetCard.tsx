@@ -14,7 +14,6 @@ interface FleetCardProps {
 
 export function FleetCard({
   totalVehiclesServiced,
-  repeatRate,
   brands,
   topBrand,
   onClick,
@@ -26,12 +25,12 @@ export function FleetCard({
     return {
       tooltip: {
         trigger: 'item',
-        formatter: '{b}: {c} vehicles ({d}%)',
+        formatter: '{b}: {c} ({d}%)',
       },
       series: [
         {
           type: 'pie',
-          radius: ['20%', '82%'],
+          radius: ['20%', '80%'],
           center: ['50%', '50%'],
           roseType: 'area',
           itemStyle: {
@@ -48,20 +47,18 @@ export function FleetCard({
 
   return (
     <AnalyticsSquareCard
-      title="Fleet & Brand Mix"
-      subtitle="Top Serviced Car Makes"
+      title="Fleet & Brands"
       icon={Car}
       iconColor="text-indigo-400"
       primaryValue={topBrand.name !== 'None' ? `${topBrand.name} (${topBrand.percentage}%)` : `${totalVehiclesServiced} Cars`}
-      badgeText={`${repeatRate}% Repeat Fleet`}
-      badgeType="info"
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          <strong className="text-workshop-text">{totalVehiclesServiced}</strong> unique cars serviced • {brands.length} brands
+          <strong className="text-workshop-text">{totalVehiclesServiced}</strong> cars serviced
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default FleetCard;

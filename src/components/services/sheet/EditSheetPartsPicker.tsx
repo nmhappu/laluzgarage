@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from "react";
-import { ChevronDown, X, Minus, Plus } from "lucide-react";
-import { Search } from "../../ui/SearchIcon";
-import { motion, AnimatePresence } from "motion/react";
+import React, { useState } from "react";
+import { Minus, Plus, Trash2, Package, X } from "lucide-react";
+import NumberFlow, { type Format } from "@number-flow/react";
 import type { Part, ServiceRecord } from "../../../types";
-import { formatCurrency, cn } from "../../../lib/utils";
-import { useBackHandler } from "../../../contexts/UIContext";
+import { cn } from "../../../lib/utils";
+import { InventoryPartPickerModal } from "./InventoryPartPickerModal";
 
 export interface EditSheetPartsPickerProps {
   parts: Part[];
@@ -12,39 +11,34 @@ export interface EditSheetPartsPickerProps {
   onChangePartsUsed: (updated: NonNullable<ServiceRecord["partsUsed"]>) => void;
 }
 
+const inrFormat: Format = {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+};
+
 export function EditSheetPartsPicker({
   parts,
   partsUsed = [],
   onChangePartsUsed,
 }: EditSheetPartsPickerProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  // Close parts picker dropdown before closing the parent sheet
-  useBackHandler(() => {
-    setDropdownOpen(false);
-    return true;
-  }, dropdownOpen, 70);
+  const partsSubtotal = (partsUsed || []).reduce(
+    (acc, p) => acc + p.unitPrice * p.quantity,
+    0
+  );
+  const totalPartsCount = (partsUsed || []).reduce(
+    (acc, p) => acc + p.quantity,
+    0
+  );
 
-  const filteredParts = useMemo(() => {
-    if (!searchQuery.trim()) return parts;
-    const q = searchQuery.toLowerCase();
-    return parts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.category && p.category.toLowerCase().includes(q))
-    );
-  }, [parts, searchQuery]);
-
-  const addPart = (partId: string) => {
-    const part = parts.find((p) => p.id === partId);
-    if (!part) return;
-
-    const existing = partsUsed.find((p) => p.partId === partId);
+  const handleSelectPart = (part: Part) => {
+    const existing = partsUsed.find((p) => p.partId === part.id);
     if (existing) {
       onChangePartsUsed(
         partsUsed.map((p) =>
-          p.partId === partId ? { ...p, quantity: p.quantity + 1 } : p
+          p.partId === part.id ? { ...p, quantity: p.quantity + 1 } : p
         )
       );
     } else {
@@ -73,185 +67,143 @@ export function EditSheetPartsPicker({
     }
   };
 
+  const removePart = (idx: number) => {
+    onChangePartsUsed(partsUsed.filter((_, i) => i !== idx));
+  };
+
   return (
-    <div className="space-y-3">
-      <label className="text-[11px] font-bold uppercase tracking-wider text-workshop-muted block px-1">
-        Replaced Parts and Spares
-      </label>
+    <div className="bg-workshop-card/80 border border-workshop-border/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 font-sans">
+      {/* Card Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-workshop-surface border border-workshop-border/60 flex items-center justify-center text-workshop-accent shrink-0">
+            <Package className="w-4 h-4" />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-wider text-workshop-text leading-tight">
+            Parts & Spares
+          </h3>
+        </div>
 
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full h-11 px-4 bg-workshop-surface/40 hover:bg-workshop-surface/60 border border-workshop-border rounded-xl shadow-sm text-sm font-medium transition-all focus:outline-none focus:ring-1 focus:ring-workshop-accent flex items-center justify-between group text-left"
-        >
-          <span className="text-workshop-muted/80 font-medium truncate">
-            Select parts...
+        {totalPartsCount > 0 ? (
+          <span className="text-[11px] font-black text-workshop-accent bg-workshop-accent/10 border border-workshop-accent/20 px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <NumberFlow value={partsSubtotal} locales="en-IN" format={inrFormat} />
+            <span className="opacity-40">•</span>
+            <span>
+              <NumberFlow value={totalPartsCount} />
+              <span className="ml-0.5 uppercase tracking-wider text-[10px]">
+                {totalPartsCount === 1 ? "unit" : "units"}
+              </span>
+            </span>
           </span>
-          <ChevronDown
-            className={cn(
-              "w-4 h-4 text-workshop-muted transition-transform duration-300 shrink-0",
-              dropdownOpen && "rotate-180"
-            )}
-          />
-        </button>
-
-        {dropdownOpen && (
-          <div
-            className="fixed inset-0 z-[120]"
-            onClick={() => {
-              setDropdownOpen(false);
-              setSearchQuery("");
-            }}
-          />
+        ) : (
+          <span className="text-[10px] font-bold text-workshop-muted bg-workshop-surface px-2 py-0.5 rounded-full border border-workshop-border/40">
+            0 items
+          </span>
         )}
-
-        <AnimatePresence>
-          {dropdownOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 4, scale: 0.99 }}
-              transition={{ duration: 0.15 }}
-              className="absolute top-full mt-2 w-full bg-workshop-card border border-workshop-border rounded-2xl shadow-2xl z-[130] overflow-hidden flex flex-col max-h-72"
-            >
-              <div className="p-2 border-b border-workshop-border bg-workshop-bg/50 flex items-center gap-2">
-                <Search className="w-4 h-4 text-workshop-muted shrink-0 ml-1.5" />
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Type parts name or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none text-sm text-workshop-text focus:outline-none placeholder:text-workshop-muted/60 py-1"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="p-1 hover:bg-workshop-surface rounded-md transition-colors"
-                  >
-                    <X className="w-3 h-3 text-workshop-muted hover:text-workshop-text" />
-                  </button>
-                )}
-              </div>
-
-              <div className="overflow-y-auto max-h-56 p-1.5 space-y-1 scrollbar-thin scrollbar-thumb-workshop-border">
-                {filteredParts.length > 0 ? (
-                  filteredParts.map((p) => {
-                    const isOutOfStock = p.stockQuantity <= 0;
-                    const isLowStock = !isOutOfStock && p.stockQuantity < 10;
-
-                    return (
-                      <button
-                        type="button"
-                        key={p.id}
-                        disabled={isOutOfStock}
-                        onClick={() => addPart(p.id!)}
-                        className={cn(
-                          "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item",
-                          isOutOfStock
-                            ? "opacity-4 relative shadow-none cursor-not-allowed bg-transparent"
-                            : "hover:bg-workshop-surface/60 active:scale-[0.98]"
-                        )}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-xs text-workshop-text uppercase group-hover/item:text-workshop-accent transition-colors">
-                              {p.name}
-                            </span>
-                            {p.category && (
-                              <span className="text-[9px] bg-workshop-surface text-workshop-muted px-1.5 py-0.5 rounded-md font-mono tracking-wider uppercase">
-                                {p.category}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-1.5">
-                            {isOutOfStock ? (
-                              <span className="flex items-center gap-1.5 text-[10px] font-black text-status-urgent uppercase tracking-widest">
-                                <span className="w-1.5 h-1.5 bg-status-urgent rounded-full animate-pulse" />
-                                Out of Stock
-                              </span>
-                            ) : isLowStock ? (
-                              <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                                Low Stock: {p.stockQuantity} rem.
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-workshop-secondary uppercase tracking-widest opacity-80">
-                                <span className="w-1.5 h-1.5 bg-workshop-accent rounded-full" />
-                                In Stock: {p.stockQuantity}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="text-right pl-3 shrink-0">
-                          <span className="text-xs font-black text-workshop-accent bg-workshop-accent/5 px-2 py-1 rounded-lg border border-workshop-accent/15">
-                            {formatCurrency(p.price)}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-4 text-xs text-workshop-muted italic">
-                    No parts match "{searchQuery}"
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
+      {/* Button to Open Inventory Screen */}
+      <button
+        type="button"
+        onClick={() => setIsPickerOpen(true)}
+        className="w-full h-11 px-4 bg-workshop-surface/50 hover:bg-workshop-surface/80 border border-dashed border-workshop-border/80 hover:border-workshop-accent/60 rounded-xl text-xs font-black text-workshop-accent uppercase tracking-wider transition-all flex items-center justify-center gap-2 group cursor-pointer active:scale-98 shadow-xs"
+      >
+        <Plus className="w-4 h-4 stroke-[3]" />
+        <span>Add Parts From Inventory</span>
+      </button>
+
+      {/* Selected Parts List */}
+      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
         {partsUsed && partsUsed.length > 0 ? (
-          partsUsed.map((up, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-3 bg-workshop-surface/20 rounded-2xl border border-workshop-border/60 hover:bg-workshop-surface/30 transition-all shadow-sm"
-            >
-              <div className="flex-1 min-w-0 pr-3">
-                <p className="text-xs font-bold text-workshop-text truncate">
-                  {up.name}
-                </p>
-                <p className="text-[10px] font-bold text-workshop-muted tracking-wide flex items-center gap-1.5 mt-0.5">
-                  <span className="text-workshop-accent">{formatCurrency(up.unitPrice)}</span>
-                  <span>×</span>
-                  <span>{up.quantity} units</span>
-                </p>
+          partsUsed.map((up, idx) => {
+            const lineTotal = up.unitPrice * up.quantity;
+
+            return (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2.5 sm:p-3 bg-workshop-surface/40 hover:bg-workshop-surface/60 rounded-xl border border-workshop-border/60 transition-all shadow-xs"
+              >
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-xs font-bold text-workshop-text truncate">
+                    {up.name}
+                  </p>
+                  <p className="text-[10px] font-semibold text-workshop-muted tracking-wide flex items-center gap-1.5 mt-0.5">
+                    <NumberFlow
+                      value={up.unitPrice}
+                      locales="en-IN"
+                      format={inrFormat}
+                      className="text-workshop-accent"
+                    />
+                    <span>×</span>
+                    <span>{up.quantity}</span>
+                    <span className="opacity-40">=</span>
+                    <span className="font-bold text-workshop-text">
+                      <NumberFlow value={lineTotal} locales="en-IN" format={inrFormat} />
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(idx, -1)}
+                    className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-all border outline-none cursor-pointer active:scale-95",
+                      up.quantity <= 1
+                        ? "bg-status-urgent/10 border-status-urgent/30 text-status-urgent hover:bg-status-urgent/20"
+                        : "bg-workshop-card border-workshop-border/80 text-workshop-muted hover:text-workshop-text hover:bg-workshop-surface"
+                    )}
+                    title={up.quantity <= 1 ? "Remove part" : "Decrease quantity"}
+                  >
+                    {up.quantity <= 1 ? (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Minus className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  <span className="w-6 text-center font-black text-xs text-workshop-text inline-flex justify-center select-none">
+                    <NumberFlow value={up.quantity} />
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(idx, 1)}
+                    className="w-7 h-7 bg-workshop-card border border-workshop-border/80 rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-workshop-accent hover:border-workshop-accent/40 hover:bg-workshop-accent/10 transition-all outline-none cursor-pointer active:scale-95"
+                    title="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => removePart(idx)}
+                    className="p-1 rounded-lg text-workshop-muted/60 hover:text-status-urgent transition-colors cursor-pointer outline-none ml-1"
+                    title="Delete item"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(idx, -1)}
-                  className="w-7 h-7 bg-workshop-surface border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-status-urgent hover:bg-status-urgent/15 hover:border-status-urgent/30 transition-all text-sm outline-none"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-5 text-center font-black text-xs text-workshop-text">
-                  {up.quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(idx, 1)}
-                  className="w-7 h-7 bg-workshop-surface border border-workshop-border rounded-lg flex items-center justify-center font-bold text-workshop-muted hover:text-workshop-accent hover:bg-workshop-accent/15 hover:border-workshop-accent/30 transition-all text-sm outline-none"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div className="text-center py-5 border border-dashed border-workshop-border/60 rounded-2xl bg-workshop-surface/5">
-            <p className="text-xs text-workshop-muted italic">
-              No spare parts assigned to this repair.
+          <div className="text-center py-5 border border-dashed border-workshop-border/70 rounded-xl bg-workshop-surface/10">
+            <p className="text-xs text-workshop-muted font-medium">
+              No spare parts assigned to this job.
             </p>
           </div>
         )}
       </div>
+
+      {/* Full-Screen Inventory Part Picker Screen */}
+      <InventoryPartPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        parts={parts}
+        partsUsed={partsUsed}
+        onSelectPart={handleSelectPart}
+      />
     </div>
   );
 }

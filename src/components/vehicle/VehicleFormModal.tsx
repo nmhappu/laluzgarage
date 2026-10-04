@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, X, Key, PlusCircle, Check } from 'lucide-react';
 import { cn, capitalizeName } from '../../lib/utils';
 import { DEFAULT_PLATE_PLACEHOLDER } from '../../lib/constants';
-import { Portal } from '../Portal';
+import { Portal } from '../ui/Portal';
 import { useBackHandler } from '../../contexts/UIContext';
 import type { Customer, Vehicle } from '../../types';
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { motion, type Transition } from 'motion/react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, type Transition } from 'motion/react';
+import { Plus } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
   navItems,
@@ -47,6 +48,7 @@ const NavTabItem = memo(function NavTabItem({
 }: NavTabItemProps) {
   const [measuredTextWidth, setMeasuredTextWidth] = useState<number>(0);
   const textRef = useRef<HTMLSpanElement>(null);
+  const [isSm, setIsSm] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 : false));
 
   // Measure rendered text width without layout thrashing via requestAnimationFrame
   const measureWidth = useCallback(() => {
@@ -61,15 +63,20 @@ const NavTabItem = memo(function NavTabItem({
   useEffect(() => {
     measureWidth();
 
+    const handleResize = () => {
+      setIsSm(window.innerWidth >= 640);
+      measureWidth();
+    };
+
     // Use ResizeObserver for batched, jitter-free display scaling and zoom detection
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && textRef.current) {
       resizeObserver = new ResizeObserver(() => {
-        measureWidth();
+        handleResize();
       });
       resizeObserver.observe(document.documentElement);
     } else {
-      window.addEventListener('resize', measureWidth, { passive: true });
+      window.addEventListener('resize', handleResize, { passive: true });
     }
 
     if ('fonts' in document) {
@@ -80,7 +87,7 @@ const NavTabItem = memo(function NavTabItem({
       if (resizeObserver) {
         resizeObserver.disconnect();
       } else {
-        window.removeEventListener('resize', measureWidth);
+        window.removeEventListener('resize', handleResize);
       }
     };
   }, [measureWidth]);
@@ -88,12 +95,12 @@ const NavTabItem = memo(function NavTabItem({
   const accentColor = useMemo(() => getTabAccentColor(item.to), [item.to]);
   const pillClass = useMemo(() => getActiveTabPillClass(item.to), [item.to]);
 
-  // Fallback estimation if not measured yet (scales comfortably with font size)
-  const textWidth = measuredTextWidth || Math.max(item.label.length * 9, 45);
+  const baseDim = isSm ? 48 : 44;
+  const activePad = isSm ? 16 : 12;
+  const textWidth = measuredTextWidth || Math.max(item.label.length * (isSm ? 8.5 : 7.8), 40);
 
-  // Touch target: 48px circle (h-12 w-12) + measured label width + 16px right padding
-  const activeWidth = 48 + textWidth + 16;
-  const targetWidth = isActive ? activeWidth : 48;
+  const activeWidth = baseDim + textWidth + activePad;
+  const targetWidth = isActive ? activeWidth : baseDim;
 
   return (
     <motion.div
@@ -109,13 +116,19 @@ const NavTabItem = memo(function NavTabItem({
           animate={{ width: targetWidth }}
           transition={{ width: EXPAND_TRANSITION }}
           style={{ willChange: 'width' }}
-          className="relative flex items-center h-12 rounded-full overflow-hidden border-0 border-none outline-none"
+          className={cn(
+            "relative flex items-center rounded-full overflow-hidden border-0 border-none outline-none",
+            isSm ? "h-12" : "h-11"
+          )}
         >
           {/* Instant touch-down circular ripple highlight disk */}
           {!isActive && (
             <span
               aria-hidden="true"
-              className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-workshop-muted/20 opacity-0 group-active:opacity-100 scale-75 group-active:scale-100 transition-all duration-150 pointer-events-none"
+              className={cn(
+                "absolute inset-0 m-auto rounded-full bg-workshop-muted/20 opacity-0 group-active:opacity-100 scale-75 group-active:scale-100 transition-all duration-150 pointer-events-none",
+                isSm ? "w-12 h-12" : "w-11 h-11"
+              )}
             />
           )}
 
@@ -129,11 +142,15 @@ const NavTabItem = memo(function NavTabItem({
             )}
           />
 
-          {/* Centered Icon Container (Comfortable 48px M3 touch target) */}
-          <div className="w-12 h-12 flex items-center justify-center shrink-0 relative z-10">
+          {/* Centered Icon Container */}
+          <div className={cn(
+            "flex items-center justify-center shrink-0 relative z-10",
+            isSm ? "w-12 h-12" : "w-11 h-11"
+          )}>
             <span
               className={cn(
-                "material-symbols-outlined transition-colors text-[26px] select-none",
+                "material-symbols-outlined transition-colors select-none",
+                isSm ? "text-[26px]" : "text-[24px]",
                 isActive
                   ? accentColor
                   : "text-workshop-muted group-hover:text-workshop-text"
@@ -150,18 +167,22 @@ const NavTabItem = memo(function NavTabItem({
           <motion.div
             animate={{
               opacity: isActive ? 1 : 0,
-              x: isActive ? 0 : -8,
+              x: isActive ? 0 : -6,
             }}
             transition={{
               duration: 0.24,
               ease: [0.2, 0, 0, 1],
             }}
-            className="relative z-10 overflow-hidden flex items-center whitespace-nowrap select-none shrink-0 pr-4"
+            className={cn(
+              "relative z-10 overflow-hidden flex items-center whitespace-nowrap select-none shrink-0",
+              isSm ? "pr-4" : "pr-3"
+            )}
           >
             <span
               ref={textRef}
               className={cn(
-                "text-sm font-semibold tracking-tight font-google-sans select-none",
+                "font-semibold tracking-tight font-google-sans select-none",
+                isSm ? "text-sm" : "text-[13px]",
                 accentColor
               )}
             >
@@ -176,9 +197,11 @@ const NavTabItem = memo(function NavTabItem({
 
 export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Active path memoization to avoid redundant path checking on sub-renders
   const currentPath = location.pathname;
+  const isDashboard = currentPath === '/';
 
   return (
     <div
@@ -187,16 +210,42 @@ export function MobileBottomNav({ isModalOpen }: MobileBottomNavProps) {
         isModalOpen && "opacity-0"
       )}
     >
+      {/* Floating Action Button (FAB) for Vehicle Intake positioned above the dock on the right side */}
+      <AnimatePresence>
+        {isDashboard && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.93 }}
+            transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+            className="absolute right-4 sm:right-6 bottom-[calc(100%+0.75rem)] sm:bottom-[calc(100%+1rem)] pointer-events-auto z-10"
+          >
+            <button
+              type="button"
+              onClick={() => navigate('/intake')}
+              title="Vehicle Intake"
+              aria-label="Vehicle Intake"
+              className="w-14 h-14 rounded-2xl bg-workshop-accent text-workshop-bg shadow-lg shadow-workshop-accent/25 hover:shadow-xl hover:shadow-workshop-accent/35 flex items-center justify-center cursor-pointer border-0 outline-none focus-visible:ring-2 focus-visible:ring-workshop-accent transition-shadow"
+            >
+              <Plus className="w-7 h-7 stroke-[2.5]" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Floating Capsule Dock (GPU accelerated, isolated layout containment) */}
       <nav
         aria-label="Mobile Navigation"
         style={{ contain: 'layout style' }}
         className={cn(
-          "pointer-events-auto flex items-center gap-2 p-2 rounded-full shrink-0",
+          "pointer-events-auto flex items-center gap-1 sm:gap-2 rounded-full shrink-0 flex-nowrap",
           "bg-bottomnav/95 backdrop-blur-xl transform-gpu",
           "border-0 border-none outline-none ring-0",
           "shadow-[0_12px_36px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)]",
-          "transition-colors max-w-[calc(100vw-1.5rem)]"
+          "transition-colors max-w-[calc(100vw-1rem)]",
+          "py-1.5 sm:py-2 pl-2.5 sm:pl-3.5 pr-4 sm:pr-5"
         )}
       >
         {navItems.map((item) => {

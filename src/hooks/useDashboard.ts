@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { ClipboardList, Clock, Package, Wrench } from 'lucide-react';
-import { format } from 'date-fns';
 import type { ServiceRecord, Customer, Vehicle } from '../types';
-import type { StatTrendItem } from '../components/dashboard/StatTile';
+import { calculateAdaptiveDateKeys, type StatTrendItem } from '../components/dashboard/sparkline';
 
+export type { StatTrendItem };
 export type HistoryItem = StatTrendItem;
 
 export interface EnrichedActivity extends ServiceRecord {
@@ -35,6 +35,7 @@ export interface DashboardMetrics {
 export function useDashboard() {
   const [pendingQueue, setPendingQueue] = useState<EnrichedActivity[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalCustomers: 0,
     totalVehicles: 0,
@@ -70,22 +71,24 @@ export function useDashboard() {
       const vehicleMap = new Map<string, Vehicle>();
       vehicles.forEach((v) => vehicleMap.set(v.id, v));
 
-      // Build 14-day date keys
-      const days = 14;
-      const dateKeys: string[] = [];
-      const now = new Date();
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        dateKeys.push(format(d, 'yyyy-MM-dd'));
-      }
+      // Build adaptive date keys optimized for active window
+      const recordDates = serviceRecords
+        .map((r) => (r.date ? r.date.split('T')[0] : ''))
+        .filter(Boolean);
+
+      // 45-day momentum window for Total Services
+      const servicesDateKeys = calculateAdaptiveDateKeys(recordDates, undefined, 45, false);
+      const dateKeys = calculateAdaptiveDateKeys(recordDates, undefined, 30);
 
       const servicesFreq = new Map<string, number>();
+      servicesDateKeys.forEach((k) => {
+        servicesFreq.set(k, 0);
+      });
+
       const pendingFreq = new Map<string, number>();
       const completedFreq = new Map<string, number>();
       const issuesFreq = new Map<string, number>();
       dateKeys.forEach((k) => {
-        servicesFreq.set(k, 0);
         pendingFreq.set(k, 0);
         completedFreq.set(k, 0);
         issuesFreq.set(k, 0);
@@ -111,6 +114,8 @@ export function useDashboard() {
         const dateStr = record.date ? record.date.split('T')[0] : '';
         if (servicesFreq.has(dateStr)) {
           servicesFreq.set(dateStr, (servicesFreq.get(dateStr) || 0) + 1);
+        }
+        if (pendingFreq.has(dateStr)) {
           if (isPending) {
             pendingFreq.set(dateStr, (pendingFreq.get(dateStr) || 0) + 1);
           } else if (isCompleted) {
@@ -131,7 +136,7 @@ export function useDashboard() {
         };
       });
 
-      const servicesHistory = dateKeys.map((k) => ({ date: k, value: servicesFreq.get(k) || 0 }));
+      const servicesHistory = servicesDateKeys.map((k) => ({ date: k, value: servicesFreq.get(k) || 0 }));
       const pendingHistory = dateKeys.map((k) => ({ date: k, value: pendingFreq.get(k) || 0 }));
       const completedHistory = dateKeys.map((k) => ({ date: k, value: completedFreq.get(k) || 0 }));
       const issuesHistory = dateKeys.map((k) => ({ date: k, value: issuesFreq.get(k) || 0 }));
@@ -163,6 +168,8 @@ export function useDashboard() {
     } catch (e: unknown) {
       console.error('Dashboard data fetch error:', e);
       handleFirestoreError(e, 'list', 'dashboard_data');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -213,6 +220,7 @@ export function useDashboard() {
     metrics,
     pendingQueue,
     isMounted,
+    loading,
     refreshDashboard: fetchDashboardData,
     stats,
   };

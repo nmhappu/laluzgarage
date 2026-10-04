@@ -6,7 +6,7 @@ import { VehicleCard } from './vehicle/VehicleCard';
 import { VehicleFormModal } from './vehicle/VehicleFormModal';
 import { DeleteVehicleModal } from './vehicle/DeleteVehicleModal';
 import { VehicleLedgerDrawer } from './vehicle/VehicleLedgerDrawer';
-import { WhatsAppPopup } from './WhatsAppPopup';
+import { WhatsAppPopup } from './shared/WhatsAppPopup';
 import { useResponsiveSearch } from '../hooks/useResponsiveSearch';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useAuth } from '../contexts/AuthContext';

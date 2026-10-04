@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { ServiceRecord, Vehicle, Part, WorkshopUser } from '../types';
+import type { ServiceRecord, Vehicle, Part, WorkshopUser, Customer } from '../types';
 import { isWithinInterval } from 'date-fns';
 import { parseDateSafe } from '../lib/utils';
 import {
@@ -14,11 +14,21 @@ import {
   calculateFleetMetrics,
   calculateCustomerMetrics,
   calculateWorkloadMetrics,
+  calculateServiceCategoryMetrics,
+  calculateInvoiceTierMetrics,
+  calculateVehicleHealthMetrics,
+  calculateTopClientsMetrics,
   type TimeRangeKey,
   type TimelineDataPoint,
   type TechMetric,
   type PartUsageMetric,
   type BrandShareMetric,
+  type ServiceCategoryMetric,
+  type InvoiceTierMetric,
+  type MileageBracketMetric,
+  type VehicleHealthMetric,
+  type ClientSpendMetric,
+  type TopClientsMetrics,
 } from '../lib/analyticsCalculators';
 
 export type {
@@ -27,6 +37,12 @@ export type {
   TechMetric,
   PartUsageMetric,
   BrandShareMetric,
+  ServiceCategoryMetric,
+  InvoiceTierMetric,
+  MileageBracketMetric,
+  VehicleHealthMetric,
+  ClientSpendMetric,
+  TopClientsMetrics,
 };
 
 export function useAnalytics(
@@ -41,23 +57,26 @@ export function useAnalytics(
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [users, setUsers] = useState<WorkshopUser[]>([]);
+  const [customersList, setCustomersList] = useState<Customer[]>([]);
 
   // Fetch collections
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rSnap, vSnap, pSnap, uSnap] = await Promise.all([
+      const [rSnap, vSnap, pSnap, uSnap, cSnap] = await Promise.all([
         getDocs(collection(db, 'serviceRecords')),
         getDocs(collection(db, 'vehicles')),
         getDocs(collection(db, 'parts')),
         getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'customers')),
       ]);
 
       setServiceRecords(rSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ServiceRecord)));
       setVehicles(vSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Vehicle)));
       setParts(pSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Part)));
       setUsers(uSnap.docs.map((d) => ({ id: d.id, ...d.data() } as WorkshopUser)));
+      setCustomersList(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Customer)));
     } catch (err: unknown) {
       console.error('Error fetching analytics data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load analytics data.');
@@ -83,6 +102,14 @@ export function useAnalytics(
     });
     return map;
   }, [vehicles]);
+
+  const customerMap = useMemo(() => {
+    const map = new Map<string, Customer>();
+    customersList.forEach((c) => {
+      if (c.id) map.set(c.id, c);
+    });
+    return map;
+  }, [customersList]);
 
   // Filter records within current period
   const currentRecords = useMemo(() => {
@@ -147,6 +174,26 @@ export function useAnalytics(
     [currentRecords]
   );
 
+  const categories = useMemo(
+    () => calculateServiceCategoryMetrics(currentRecords),
+    [currentRecords]
+  );
+
+  const invoiceTiers = useMemo(
+    () => calculateInvoiceTierMetrics(currentRecords),
+    [currentRecords]
+  );
+
+  const vehicleHealth = useMemo(
+    () => calculateVehicleHealthMetrics(currentRecords),
+    [currentRecords]
+  );
+
+  const topClients = useMemo(
+    () => calculateTopClientsMetrics(currentRecords, customerMap),
+    [currentRecords, customerMap]
+  );
+
   return {
     loading,
     error,
@@ -160,5 +207,9 @@ export function useAnalytics(
     fleet,
     customers,
     workload,
+    categories,
+    invoiceTiers,
+    vehicleHealth,
+    topClients,
   };
 }

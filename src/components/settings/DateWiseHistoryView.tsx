@@ -5,7 +5,7 @@ import { Calendar, Search, RefreshCw, X, ChevronRight } from "lucide-react";
 import { useServiceHistory } from "../../hooks/useServiceHistory";
 import type { ServiceRecord, Vehicle } from "../../types";
 import { EditRecordSheet } from "../services/EditRecordSheet";
-import { WhatsAppPopup } from "../WhatsAppPopup";
+import { WhatsAppPopup } from "../shared/WhatsAppPopup";
 import { cn } from "../../lib/utils";
 
 export interface DateWiseHistoryViewProps {

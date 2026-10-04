@@ -23,7 +23,7 @@ export function TechnicianCard({
     const values = top3.map((t) => t.completed);
 
     return {
-      grid: { top: 2, right: 6, bottom: 2, left: 38, containLabel: false },
+      grid: { top: 2, right: 4, bottom: 2, left: 34, containLabel: false },
       xAxis: {
         type: 'value',
         show: false,
@@ -35,7 +35,7 @@ export function TechnicianCard({
         axisTick: { show: false },
         axisLabel: {
           color: '#94A3B8',
-          fontSize: 9,
+          fontSize: 8.5,
           fontFamily: '"Google Sans", sans-serif',
         },
       },
@@ -43,7 +43,7 @@ export function TechnicianCard({
         {
           type: 'bar',
           data: values.length > 0 ? values : [0],
-          barWidth: 7,
+          barWidth: 6,
           itemStyle: {
             color: '#3B82F6',
             borderRadius: [0, 3, 3, 0],
@@ -60,20 +60,18 @@ export function TechnicianCard({
 
   return (
     <AnalyticsSquareCard
-      title="Advisor Productivity"
-      subtitle="Workforce Bay Output"
+      title="Tech Output"
       icon={Wrench}
       iconColor="text-blue-400"
       primaryValue={topTech ? `${topTech.name.split(' ')[0]} (${topTech.completed})` : `${totalAdvisors} Advisors`}
-      badgeText={`${totalAdvisors} Active Techs`}
-      badgeType="info"
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          Top Lead: <strong className="text-workshop-text">{topTech ? `${topTech.completed} completed` : 'N/A'}</strong>
+          Lead: <strong className="text-workshop-text">{topTech ? `${topTech.completed} completed` : 'N/A'}</strong>
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default TechnicianCard;

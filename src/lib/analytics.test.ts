@@ -6,18 +6,24 @@ import {
   calculateJobFlowMetrics,
   calculateCustomerMetrics,
   calculateAnalyticsInterval,
+  calculateServiceCategoryMetrics,
+  calculateInvoiceTierMetrics,
+  calculateVehicleHealthMetrics,
+  calculateTopClientsMetrics,
 } from './analyticsCalculators';
-import type { ServiceRecord } from '../types';
+import type { ServiceRecord, Customer } from '../types';
 
 describe('Analytics & Nav Integration Tests', () => {
-  it('excludes /analytics from navItems (moved to Settings as Statistics)', () => {
+  it('includes /analytics in navItems', () => {
     const analyticsNav = navItems.find((item) => item.to === '/analytics');
-    expect(analyticsNav).toBeUndefined();
-    expect(navItems.map((item) => item.to)).toEqual(['/', '/vehicles', '/inventory', '/services']);
+    expect(analyticsNav).toBeDefined();
+    expect(analyticsNav?.label).toBe('Analytics');
+    expect(analyticsNav?.m3Icon).toBe('monitoring');
+    expect(navItems.map((item) => item.to)).toEqual(['/', '/vehicles', '/inventory', '/services', '/analytics']);
   });
 
-  it('correctly maps /analytics to Statistics label and m3Icon', () => {
-    expect(getActiveTabLabel('/analytics')).toBe('Statistics');
+  it('correctly maps /analytics to Analytics label and m3Icon', () => {
+    expect(getActiveTabLabel('/analytics')).toBe('Analytics');
     expect(getActiveTabM3Icon('/analytics')).toBe('monitoring');
   });
 
@@ -124,5 +130,116 @@ describe('Analytics & Nav Integration Tests', () => {
       expect(int7.currentInterval.end).toBeInstanceOf(Date);
       expect(int7.previousInterval.start).toBeInstanceOf(Date);
     });
+
+    it('calculates service category metrics and identifies top categories', () => {
+      const mockRecords = [
+        { id: '1', description: 'Periodic general service and engine oil filter change', status: 'completed', totalCost: 3500 },
+        { id: '2', description: 'Front brake pad replacement and disc skimming', status: 'completed', totalCost: 2200 },
+        { id: '3', description: 'AC refrigerant gas recharge and cooling coil clean', status: 'completed', totalCost: 4000 },
+        { id: '4', description: 'Brake fluid bleeding and rear shoes check', status: 'pending', totalCost: 1500 },
+      ] as unknown as ServiceRecord[];
+
+      const result = calculateServiceCategoryMetrics(mockRecords);
+      expect(result.totalCategorized).toBe(4);
+      expect(result.categories.length).toBeGreaterThanOrEqual(3);
+
+      const brakeCat = result.categories.find((c) => c.name === 'Brakes & Safety');
+      expect(brakeCat).toBeDefined();
+      expect(brakeCat?.count).toBe(2);
+      expect(brakeCat?.percentage).toBe(50);
+      expect(brakeCat?.revenue).toBe(2200); // Only completed records count toward revenue
+
+      const periodicCat = result.categories.find((c) => c.name === 'Periodic Service');
+      expect(periodicCat).toBeDefined();
+      expect(periodicCat?.count).toBe(1);
+
+      expect(result.topCategory.name).toBe('Brakes & Safety');
+      expect(result.topRevenueCategory.name).toBe('AC & Climate Control');
+    });
+
+    it('calculates invoice value tiers, median ticket, and high-value share', () => {
+      const mockRecords = [
+        { id: '1', status: 'completed', totalCost: 1200 },  // Minor (< 2K)
+        { id: '2', status: 'completed', totalCost: 3500 },  // Standard (2K - 5K)
+        { id: '3', status: 'completed', totalCost: 8000 },  // Major (5K - 15K)
+        { id: '4', status: 'completed', totalCost: 20000 }, // Heavy (> 15K)
+        { id: '5', status: 'pending', totalCost: 5000 },    // Pending should not count in invoiced tiers
+      ] as unknown as ServiceRecord[];
+
+      const result = calculateInvoiceTierMetrics(mockRecords);
+      expect(result.totalInvoices).toBe(4);
+      expect(result.tiers).toHaveLength(4);
+
+      const minor = result.tiers.find((t) => t.id === 'minor')!;
+      const standard = result.tiers.find((t) => t.id === 'standard')!;
+      const major = result.tiers.find((t) => t.id === 'major')!;
+      const heavy = result.tiers.find((t) => t.id === 'heavy')!;
+
+      expect(minor.count).toBe(1);
+      expect(standard.count).toBe(1);
+      expect(major.count).toBe(1);
+      expect(heavy.count).toBe(1);
+
+      // Median of [1200, 3500, 8000, 20000] is (3500 + 8000) / 2 = 5750
+      expect(result.medianTicket).toBe(5750);
+      expect(result.highestTicket).toBe(20000);
+
+      // High value (major 8000 + heavy 20000 = 28000) out of total 32700 = 86%
+      expect(result.highValueShare).toBe(86);
+    });
+
+    it('calculates vehicle health, mileage distribution, and tow-in / breakdown rates', () => {
+      const mockRecords = [
+        { id: '1', vehicleId: 'v1', mileage: 25000, isDeadVehicle: false, date: '2026-09-01' },
+        { id: '2', vehicleId: 'v2', mileage: 45000, isDeadVehicle: true, date: '2026-09-02' },
+        { id: '3', vehicleId: 'v3', mileage: 120000, isDeadVehicle: false, date: '2026-09-03' },
+        { id: '4', vehicleId: 'v1', mileage: 30000, isDeadVehicle: false, date: '2026-09-15' }, // Repeat car v1: +5000 km
+      ] as unknown as ServiceRecord[];
+
+      const result = calculateVehicleHealthMetrics(mockRecords);
+      expect(result.deadVehicleCount).toBe(1);
+      expect(result.deadVehicleRate).toBe(25); // 1 out of 4 records
+      expect(result.highMileageCount).toBe(1); // 120000 km > 100k
+      expect(result.avgMileage).toBe(Math.round((25000 + 45000 + 120000 + 30000) / 4));
+      expect(result.avgDeltaKm).toBe(5000); // 30000 - 25000
+
+      expect(result.mileageBrackets).toHaveLength(4);
+      const lowBracket = result.mileageBrackets.find((b) => b.bracket === '< 30k')!;
+      expect(lowBracket.count).toBe(1);
+      const veteranBracket = result.mileageBrackets.find((b) => b.bracket === '> 100k')!;
+      expect(veteranBracket.count).toBe(1);
+    });
+
+    it('calculates top spending customer accounts and customer lifetime value (LTV)', () => {
+      const mockRecords = [
+        { id: '1', customerId: 'cust-1', status: 'completed', totalCost: 15000, date: '2026-09-01' },
+        { id: '2', customerId: 'cust-1', status: 'completed', totalCost: 5000, date: '2026-09-10' },
+        { id: '3', customerId: 'cust-2', status: 'completed', totalCost: 6000, date: '2026-09-05' },
+        { id: '4', customerId: 'cust-3', status: 'completed', totalCost: 1200, date: '2026-09-08' },
+      ] as unknown as ServiceRecord[];
+
+      const customerMap = new Map<string, Customer>([
+        ['cust-1', { id: 'cust-1', name: 'Rajesh Kumar', phone: '9876543210' } as Customer],
+        ['cust-2', { id: 'cust-2', name: 'Ananya Sharma', phone: '9123456780' } as Customer],
+      ]);
+
+      const result = calculateTopClientsMetrics(mockRecords, customerMap);
+      expect(result.topClients.length).toBe(3);
+
+      const top1 = result.topClient!;
+      expect(top1.id).toBe('cust-1');
+      expect(top1.name).toBe('Rajesh Kumar');
+      expect(top1.totalSpent).toBe(20000);
+      expect(top1.visitsCount).toBe(2);
+      expect(top1.avgSpend).toBe(10000);
+
+      // VIP accounts (> 10000): Rajesh has 20000 -> 1 VIP
+      expect(result.vipCount).toBe(1);
+      expect(result.totalTrackedSpend).toBe(27200);
+      expect(result.avgCustomerSpend).toBe(Math.round(27200 / 3));
+      // Top 5 share is 100% since total customers <= 5
+      expect(result.top5Share).toBe(100);
+    });
   });
 });
+

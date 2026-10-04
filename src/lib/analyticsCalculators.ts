@@ -6,7 +6,7 @@ import {
   differenceInCalendarDays,
   differenceInHours,
 } from 'date-fns';
-import type { ServiceRecord, Vehicle, Part, WorkshopUser } from '../types';
+import type { ServiceRecord, Vehicle, Part, WorkshopUser, Customer } from '../types';
 import { parseDateSafe } from './utils';
 
 export type TimeRangeKey = 'today' | '7d' | '30d' | 'thisMonth' | 'thisYear' | 'all' | 'custom';
@@ -47,6 +47,65 @@ export interface BrandShareMetric {
 export interface DateInterval {
   start: Date;
   end: Date;
+}
+
+export interface ServiceCategoryMetric {
+  name: string;
+  count: number;
+  percentage: number;
+  revenue: number;
+  avgTicket: number;
+}
+
+export interface InvoiceTierMetric {
+  id: string;
+  name: string;
+  label: string;
+  range: string;
+  min: number;
+  max: number;
+  count: number;
+  percentage: number;
+  totalRevenue: number;
+  avgTicket: number;
+  color: string;
+}
+
+export interface MileageBracketMetric {
+  bracket: string;
+  rangeLabel: string;
+  count: number;
+  percentage: number;
+}
+
+export interface VehicleHealthMetric {
+  avgMileage: number;
+  deadVehicleCount: number;
+  deadVehicleRate: number;
+  unknownMileageCount: number;
+  highMileageCount: number;
+  highMileageRate: number;
+  mileageBrackets: MileageBracketMetric[];
+  avgDeltaKm: number;
+}
+
+export interface ClientSpendMetric {
+  id: string;
+  name: string;
+  phone: string;
+  visitsCount: number;
+  totalSpent: number;
+  avgSpend: number;
+  lastVisitDate: string;
+}
+
+export interface TopClientsMetrics {
+  topClients: ClientSpendMetric[];
+  topClient: ClientSpendMetric | null;
+  avgCustomerSpend: number;
+  top5Share: number;
+  vipCount: number;
+  totalTrackedSpend: number;
 }
 
 /**
@@ -526,3 +585,333 @@ export function calculateWorkloadMetrics(currentRecords: ServiceRecord[]) {
     weekendPercent,
   };
 }
+
+/**
+ * Classifies a service record into an automotive domain category based on text analysis
+ */
+export function classifyServiceRecordCategory(record: ServiceRecord): string {
+  const partsText = Array.isArray(record.partsUsed)
+    ? record.partsUsed.map((p) => p.name || '').join(' ')
+    : '';
+  const text = `${record.description || ''} ${record.remarks || ''} ${record.finalRemarks || ''} ${partsText}`.toLowerCase();
+
+  if (/\b(brake|pad|pads|rotor|caliper|disc|shoe|drum|abs|bleeding|braking)\b/.test(text)) {
+    return 'Brakes & Safety';
+  }
+  if (/\b(oil|filter|fluid|periodic|lube|scheduled|tune.?up|general service|service pack|greasing|coolant)\b/.test(text)) {
+    return 'Periodic Service';
+  }
+  if (/\b(suspension|shock|strut|steering|alignment|bushing|tie.?rod|ball.?joint|arm|rack|wheel bearing|spring)\b/.test(text)) {
+    return 'Suspension & Steering';
+  }
+  if (/\b(ac|air.?con|hvac|compressor|condenser|cooling|refrigerant|gas|freon|blower|heater|radiator)\b/.test(text)) {
+    return 'AC & Climate Control';
+  }
+  if (/\b(electrical|battery|starter|alternator|wiring|fuse|sensor|light|bulb|horn|ignition|spark|ecu|scanner)\b/.test(text)) {
+    return 'Electrical & Diagnostic';
+  }
+  if (/\b(engine|clutch|gearbox|transmission|belt|chain|valve|piston|injector|exhaust|overhaul|head gasket|turbo)\b/.test(text)) {
+    return 'Engine & Drivetrain';
+  }
+  if (/\b(body|paint|dent|scratch|bumper|fender|panel|polish|wash|ceramic|towing|glass|windshield|mirror)\b/.test(text)) {
+    return 'Body & Detailing';
+  }
+  return 'General Repairs';
+}
+
+/**
+ * Calculates service category breakdown, counts, percentages, and category revenue
+ */
+export function calculateServiceCategoryMetrics(currentRecords: ServiceRecord[]) {
+  const catMap = new Map<string, { count: number; revenue: number }>();
+
+  currentRecords.forEach((r) => {
+    const cat = classifyServiceRecordCategory(r);
+    if (!catMap.has(cat)) {
+      catMap.set(cat, { count: 0, revenue: 0 });
+    }
+    const entry = catMap.get(cat)!;
+    entry.count++;
+    if (r.status === 'completed') {
+      entry.revenue += Number(r.totalCost || 0);
+    }
+  });
+
+  const total = currentRecords.length;
+  const categories: ServiceCategoryMetric[] = Array.from(catMap.entries())
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      percentage: total > 0 ? Math.round((data.count / total) * 100) : 0,
+      revenue: data.revenue,
+      avgTicket: data.count > 0 ? Math.round(data.revenue / data.count) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const topCategory = categories[0] || {
+    name: 'None',
+    count: 0,
+    percentage: 0,
+    revenue: 0,
+    avgTicket: 0,
+  };
+
+  const topRevenueCategory = [...categories].sort((a, b) => b.revenue - a.revenue)[0] || topCategory;
+
+  return {
+    categories,
+    topCategory,
+    topRevenueCategory,
+    totalCategorized: total,
+  };
+}
+
+/**
+ * Calculates invoice value distribution across price tiers
+ */
+export function calculateInvoiceTierMetrics(currentRecords: ServiceRecord[]) {
+  const completedWithCost = currentRecords
+    .filter((r) => r.status === 'completed' && Number(r.totalCost || 0) > 0)
+    .map((r) => Number(r.totalCost || 0));
+
+  const totalInvoices = completedWithCost.length;
+
+  const tierConfigs = [
+    { id: 'minor', name: 'Minor / Quick', label: '< ₹2K', range: '< ₹2,000', min: 0, max: 2000, color: '#06B6D4' },
+    { id: 'standard', name: 'Standard Service', label: '₹2K - ₹5K', range: '₹2,000 - ₹5,000', min: 2000, max: 5000, color: '#3B82F6' },
+    { id: 'major', name: 'Major Repair', label: '₹5K - ₹15K', range: '₹5,000 - ₹15,000', min: 5000, max: 15000, color: '#F59E0B' },
+    { id: 'heavy', name: 'Heavy Overhaul', label: '> ₹15K', range: '> ₹15,000', min: 15000, max: Infinity, color: '#EC4899' },
+  ];
+
+  const tierStats = tierConfigs.map((cfg) => ({
+    ...cfg,
+    count: 0,
+    totalRevenue: 0,
+    percentage: 0,
+    avgTicket: 0,
+  }));
+
+  completedWithCost.forEach((cost) => {
+    for (const t of tierStats) {
+      if (t.min === 0 ? cost <= t.max : (cost > t.min && cost <= t.max)) {
+        t.count++;
+        t.totalRevenue += cost;
+        break;
+      }
+    }
+  });
+
+  tierStats.forEach((t) => {
+    t.percentage = totalInvoices > 0 ? Math.round((t.count / totalInvoices) * 100) : 0;
+    t.avgTicket = t.count > 0 ? Math.round(t.totalRevenue / t.count) : 0;
+  });
+
+  // Calculate Median Ticket
+  let medianTicket = 0;
+  if (completedWithCost.length > 0) {
+    const sorted = [...completedWithCost].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    medianTicket = sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  }
+
+  const highestTicket = completedWithCost.length > 0 ? Math.max(...completedWithCost) : 0;
+  const totalBilled = tierStats.reduce((sum, t) => sum + t.totalRevenue, 0);
+  const highValueRevenue = tierStats
+    .filter((t) => t.id === 'major' || t.id === 'heavy')
+    .reduce((sum, t) => sum + t.totalRevenue, 0);
+
+  const highValueShare = totalBilled > 0 ? Math.round((highValueRevenue / totalBilled) * 100) : 0;
+  const dominantTier = [...tierStats].sort((a, b) => b.count - a.count)[0] || tierStats[0];
+
+  return {
+    tiers: tierStats as InvoiceTierMetric[],
+    medianTicket,
+    highestTicket,
+    dominantTier,
+    highValueShare,
+    totalInvoices,
+  };
+}
+
+/**
+ * Calculates vehicle health, mileage distribution, and breakdown intake stats
+ */
+export function calculateVehicleHealthMetrics(
+  currentRecords: ServiceRecord[]
+): VehicleHealthMetric {
+  let totalMileage = 0;
+  let validMileageCount = 0;
+  let deadVehicleCount = 0;
+  let unknownMileageCount = 0;
+  let highMileageCount = 0;
+
+  const bracketCounts = {
+    low: 0,      // < 30,000 km
+    mid: 0,      // 30,000 - 60,000 km
+    high: 0,     // 60,000 - 100,000 km
+    veteran: 0,  // > 100,000 km
+  };
+
+  // Group by vehicle for delta calculation
+  const vehicleVisits = new Map<string, Array<{ date: string; mileage: number }>>();
+
+  currentRecords.forEach((r) => {
+    if (r.isDeadVehicle) {
+      deadVehicleCount++;
+    }
+
+    const mileage = Number(r.mileage || 0);
+    if (r.isUnknownMileage || mileage <= 0) {
+      unknownMileageCount++;
+    } else {
+      totalMileage += mileage;
+      validMileageCount++;
+
+      if (mileage < 30000) bracketCounts.low++;
+      else if (mileage <= 60000) bracketCounts.mid++;
+      else if (mileage <= 100000) bracketCounts.high++;
+      else {
+        bracketCounts.veteran++;
+        highMileageCount++;
+      }
+
+      if (r.vehicleId) {
+        if (!vehicleVisits.has(r.vehicleId)) {
+          vehicleVisits.set(r.vehicleId, []);
+        }
+        vehicleVisits.get(r.vehicleId)!.push({ date: r.date || '', mileage });
+      }
+    }
+  });
+
+  const avgMileage = validMileageCount > 0 ? Math.round(totalMileage / validMileageCount) : 0;
+  const deadVehicleRate = currentRecords.length > 0
+    ? Math.round((deadVehicleCount / currentRecords.length) * 100)
+    : 0;
+  const highMileageRate = validMileageCount > 0
+    ? Math.round((highMileageCount / validMileageCount) * 100)
+    : 0;
+
+  const mileageBrackets: MileageBracketMetric[] = [
+    {
+      bracket: '< 30k',
+      rangeLabel: '< 30,000 km (Low / New)',
+      count: bracketCounts.low,
+      percentage: validMileageCount > 0 ? Math.round((bracketCounts.low / validMileageCount) * 100) : 0,
+    },
+    {
+      bracket: '30k-60k',
+      rangeLabel: '30,000 - 60,000 km (Mid)',
+      count: bracketCounts.mid,
+      percentage: validMileageCount > 0 ? Math.round((bracketCounts.mid / validMileageCount) * 100) : 0,
+    },
+    {
+      bracket: '60k-100k',
+      rangeLabel: '60,000 - 100,000 km (High)',
+      count: bracketCounts.high,
+      percentage: validMileageCount > 0 ? Math.round((bracketCounts.high / validMileageCount) * 100) : 0,
+    },
+    {
+      bracket: '> 100k',
+      rangeLabel: '> 100,000 km (Veteran)',
+      count: bracketCounts.veteran,
+      percentage: validMileageCount > 0 ? Math.round((bracketCounts.veteran / validMileageCount) * 100) : 0,
+    },
+  ];
+
+  // Average km driven between visits for repeat cars
+  let deltaSum = 0;
+  let deltaCount = 0;
+  vehicleVisits.forEach((visits) => {
+    if (visits.length > 1) {
+      visits.sort((a, b) => a.date.localeCompare(b.date));
+      for (let i = 1; i < visits.length; i++) {
+        const diff = visits[i].mileage - visits[i - 1].mileage;
+        if (diff > 0 && diff < 50000) {
+          deltaSum += diff;
+          deltaCount++;
+        }
+      }
+    }
+  });
+
+  const avgDeltaKm = deltaCount > 0 ? Math.round(deltaSum / deltaCount) : 0;
+
+  return {
+    avgMileage,
+    deadVehicleCount,
+    deadVehicleRate,
+    unknownMileageCount,
+    highMileageCount,
+    highMileageRate,
+    mileageBrackets,
+    avgDeltaKm,
+  };
+}
+
+/**
+ * Calculates top spending customer accounts and customer lifetime value
+ */
+export function calculateTopClientsMetrics(
+  currentRecords: ServiceRecord[],
+  customerMap: Map<string, Customer>
+): TopClientsMetrics {
+  const clientMap = new Map<string, {
+    id: string;
+    name: string;
+    phone: string;
+    visitsCount: number;
+    totalSpent: number;
+    lastVisitDate: string;
+  }>();
+
+  currentRecords.forEach((r) => {
+    const custId = r.customerId || 'unassigned';
+    if (!clientMap.has(custId)) {
+      const cust = customerMap.get(custId);
+      clientMap.set(custId, {
+        id: custId,
+        name: cust?.name || (custId === 'unassigned' ? 'Walk-in Customer' : `Customer #${custId.slice(0, 5)}`),
+        phone: cust?.phone || '—',
+        visitsCount: 0,
+        totalSpent: 0,
+        lastVisitDate: r.date || '',
+      });
+    }
+
+    const entry = clientMap.get(custId)!;
+    entry.visitsCount++;
+    if (r.status === 'completed') {
+      entry.totalSpent += Number(r.totalCost || 0);
+    }
+    if (r.date && r.date > entry.lastVisitDate) {
+      entry.lastVisitDate = r.date;
+    }
+  });
+
+  const clientsList: ClientSpendMetric[] = Array.from(clientMap.values())
+    .map((c) => ({
+      ...c,
+      avgSpend: c.visitsCount > 0 ? Math.round(c.totalSpent / c.visitsCount) : 0,
+    }))
+    .sort((a, b) => b.totalSpent - a.totalSpent);
+
+  const totalTrackedSpend = clientsList.reduce((acc, c) => acc + c.totalSpent, 0);
+  const avgCustomerSpend = clientsList.length > 0 ? Math.round(totalTrackedSpend / clientsList.length) : 0;
+
+  const top5 = clientsList.slice(0, 5);
+  const top5Revenue = top5.reduce((acc, c) => acc + c.totalSpent, 0);
+  const top5Share = totalTrackedSpend > 0 ? Math.round((top5Revenue / totalTrackedSpend) * 100) : 0;
+
+  const vipCount = clientsList.filter((c) => c.totalSpent >= 10000).length;
+
+  return {
+    topClients: clientsList.slice(0, 10),
+    topClient: clientsList[0] || null,
+    avgCustomerSpend,
+    top5Share,
+    vipCount,
+    totalTrackedSpend,
+  };
+}
+

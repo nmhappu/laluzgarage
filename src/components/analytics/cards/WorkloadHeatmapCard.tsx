@@ -20,7 +20,7 @@ export function WorkloadHeatmapCard({
 }: WorkloadHeatmapCardProps) {
   const chartOption = useMemo(() => {
     return {
-      grid: { top: 4, right: 4, bottom: 16, left: 4, containLabel: false },
+      grid: { top: 4, right: 4, bottom: 14, left: 4, containLabel: false },
       xAxis: {
         type: 'category',
         data: days,
@@ -48,7 +48,7 @@ export function WorkloadHeatmapCard({
               borderRadius: [2, 2, 0, 0],
             },
           })),
-          barWidth: 8,
+          barWidth: 7,
         },
       ],
     };
@@ -56,20 +56,18 @@ export function WorkloadHeatmapCard({
 
   return (
     <AnalyticsSquareCard
-      title="Intake & Peak Days"
-      subtitle="Workshop Arrival Schedule"
+      title="Peak Arrivals"
       icon={Calendar}
       iconColor="text-rose-400"
       primaryValue={`Peak: ${peakDay}`}
-      badgeText={`${weekendPercent}% Weekend Vol`}
-      badgeType="urgent"
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          Busiest Drop-off: <strong className="text-status-urgent">{peakDay}</strong> • Plan bay capacity
+          Busiest: <strong className="text-status-urgent">{peakDay}</strong> • {weekendPercent}% weekend
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default WorkloadHeatmapCard;

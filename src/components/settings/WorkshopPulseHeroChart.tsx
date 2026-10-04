@@ -148,7 +148,8 @@ export function WorkshopPulseHeroChart({ records: propRecords, className, showBa
         {
           name: 'Intakes',
           type: 'line' as const,
-          smooth: 0.45,
+          smooth: 0.35,
+          smoothMonotone: 'x' as const,
           data: intakeData,
           symbol: 'none',
           z: 1,
@@ -177,7 +178,8 @@ export function WorkshopPulseHeroChart({ records: propRecords, className, showBa
         {
           name: 'Completed',
           type: 'line' as const,
-          smooth: 0.45,
+          smooth: 0.35,
+          smoothMonotone: 'x' as const,
           data: completedData,
           symbol: 'none',
           z: 2,

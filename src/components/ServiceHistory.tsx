@@ -8,7 +8,7 @@ import type { ServiceRecord, Vehicle } from "../types";
 import { getUserRole } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { useBackHandler } from "../contexts/UIContext";
-import { WhatsAppPopup } from "./WhatsAppPopup";
+import { WhatsAppPopup } from "./shared/WhatsAppPopup";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ServiceRecordCard } from "./services/ServiceRecordCard";
 import { EditRecordSheet } from "./services/EditRecordSheet";
@@ -18,6 +18,7 @@ import { DeliveryBillModal, type CompletedJobPayload } from "./services/Delivery
 import { ServiceHistoryTabs } from "./services/ServiceHistoryTabs";
 import { EmptyState } from "./shared/EmptyState";
 import { InfiniteScrollFooter } from "./shared/InfiniteScrollFooter";
+import { cn } from "../lib/utils";
 
 const contentVariants = {
   enter: { opacity: 0, y: 16 },
@@ -215,160 +216,174 @@ export function ServiceHistory() {
   });
 
   return (
-    <div className="space-y-6 pb-24 md:pb-0">
+    <div className="w-full h-full flex flex-col md:flex-row min-h-0 overflow-hidden relative">
+      {/* Master List Pane:
+          Mobile: Centered phone layout with dedicated margins (max-w-xl mx-auto w-full)
+          Desktop: Adaptive full-width left pane alongside side sheet, scrolling independently
+      */}
+      <div
+        className={cn(
+          "flex-1 h-full min-h-0 min-w-0 overflow-y-auto scroll-smooth main-content-scroll",
+          "px-4 md:pt-6.5 md:pb-8 md:pl-8 lg:pl-10",
+          editingRecord ? "md:pr-6" : "md:pr-8 lg:pr-10"
+        )}
+      >
+        <div className="w-full max-w-xl mx-auto md:max-w-none md:mx-0 space-y-6">
+          {/* Status Tabs Controls */}
+          <ServiceHistoryTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+            sortOrder={sortOrder}
+            onToggleSort={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+          />
 
-      {/* Status Tabs Controls */}
-      <ServiceHistoryTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        sortOrder={sortOrder}
-        onToggleSort={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-      />
-
-      {/* Active Search Summary */}
-      {isSearching && !loading && filteredRecords.length > 0 && (
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-workshop-surface/60 border border-workshop-border/40 rounded-xl text-xs">
-          <div className="flex items-center gap-2 text-workshop-muted min-w-0">
-            <Search className="w-3.5 h-3.5 text-workshop-accent shrink-0" />
-            <span className="truncate">
-              Results for <strong className="text-workshop-text font-bold">"{deferredSearch}"</strong> ({filteredRecords.length} {filteredRecords.length === 1 ? "match" : "matches"}{activeTab !== "all" ? ` in ${activeTab}` : ""})
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSearchTerm("")}
-            className="text-workshop-muted hover:text-workshop-text text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 ml-2 px-2 py-1 rounded-lg hover:bg-workshop-card/80 transition-colors cursor-pointer active:scale-95"
-          >
-            <X className="w-3 h-3" />
-            Clear
-          </button>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              key="loading-skeletons"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
-              className="space-y-4 font-sans accelerate-gpu will-change-transform-opacity"
-            >
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={`skeleton-${i}`} className="skeleton-card-m3 p-5 md:p-6 space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-6 skeleton-element-m3" />
-                    <div className="flex-1 h-px bg-workshop-border/30" />
-                    <div className="w-20 h-6 skeleton-element-m3" />
-                  </div>
-                  <div className="space-y-2.5">
-                    <div className="h-4 w-48 skeleton-element-m3" />
-                    <div className="h-3 w-32 skeleton-element-m3" />
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          ) : filteredRecords.length === 0 ? (
-            isSearching && searchMatchingRecordsCount > 0 ? (
-              <EmptyState
-                key="empty-cross-tab-search-state"
-                variants={contentVariants}
-                icon={Search}
-                iconClassName="text-workshop-accent"
-                className="py-12 bg-workshop-surface/30"
-                title={`No ${activeTab} logs match "${deferredSearch}"`}
-                description={`Found ${searchMatchingRecordsCount} matching ${searchMatchingRecordsCount === 1 ? "record" : "records"} in other status tabs.`}
-                action={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("all")}
-                      className="px-4 py-2 rounded-xl bg-workshop-accent text-workshop-bg font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
-                    >
-                      View all {searchMatchingRecordsCount} {searchMatchingRecordsCount === 1 ? "result" : "results"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSearchTerm("")}
-                      className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
-                    >
-                      Clear search
-                    </button>
-                  </>
-                }
-              />
-            ) : isSearching ? (
-              <EmptyState
-                key="empty-search-state"
-                variants={contentVariants}
-                icon={Search}
-                title={`No logs match "${deferredSearch}"`}
-                description="Try searching by customer name, phone number, vehicle plate, model, advisor, problem, or spare parts."
-                action={
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-text hover:border-workshop-accent/50 hover:text-workshop-accent font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-sm"
-                  >
-                    Clear search
-                  </button>
-                }
-              />
-            ) : (
-              <EmptyState
-                key="empty-state"
-                variants={contentVariants}
-                icon={Search}
-                title="No logs found"
-                description="No logs match your filter criteria."
-              />
-            )
-          ) : (
-            <motion.div
-              key="records-list"
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-              className="space-y-3 font-sans"
-            >
-              {visibleRecords.map((r) => {
-                const v = vehicleMap.get(r.vehicleId);
-                const c = customerMap.get(r.customerId);
-
-                return (
-                  <ServiceRecordCard
-                    key={r.id}
-                    record={r}
-                    v={v}
-                    customer={c}
-                    onClick={handleCardClick}
-                    onUpdateDetails={handleCardUpdateDetails}
-                    onDelete={handleCardDelete}
-                    canDelete={isAdmin}
-                    canEdit={isTechnician}
-                  />
-                );
-              })}
-
-              <InfiniteScrollFooter
-                sentinelRef={sentinelRef}
-                hasMore={hasMore}
-                isLoadingMore={isLoadingMore}
-                remainingCount={remainingCount}
-                onLoadMore={loadMore}
-                itemName="records"
-              />
-            </motion.div>
+          {/* Active Search Summary */}
+          {isSearching && !loading && filteredRecords.length > 0 && (
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-workshop-surface/60 border border-workshop-border/40 rounded-xl text-xs">
+              <div className="flex items-center gap-2 text-workshop-muted min-w-0">
+                <Search className="w-3.5 h-3.5 text-workshop-accent shrink-0" />
+                <span className="truncate">
+                  Results for <strong className="text-workshop-text font-bold">"{deferredSearch}"</strong> ({filteredRecords.length} {filteredRecords.length === 1 ? "match" : "matches"}{activeTab !== "all" ? ` in ${activeTab}` : ""})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="text-workshop-muted hover:text-workshop-text text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 ml-2 px-2 py-1 rounded-lg hover:bg-workshop-card/80 transition-colors cursor-pointer active:scale-95"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </button>
+            </div>
           )}
-        </AnimatePresence>
+
+          <div className="space-y-4">
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-skeletons"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
+                  className="space-y-4 font-sans accelerate-gpu will-change-transform-opacity"
+                >
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={`skeleton-${i}`} className="skeleton-card-m3 p-5 md:p-6 space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-6 skeleton-element-m3" />
+                        <div className="flex-1 h-px bg-workshop-border/30" />
+                        <div className="w-20 h-6 skeleton-element-m3" />
+                      </div>
+                      <div className="space-y-2.5">
+                        <div className="h-4 w-48 skeleton-element-m3" />
+                        <div className="h-3 w-32 skeleton-element-m3" />
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              ) : filteredRecords.length === 0 ? (
+                isSearching && searchMatchingRecordsCount > 0 ? (
+                  <EmptyState
+                    key="empty-cross-tab-search-state"
+                    variants={contentVariants}
+                    icon={Search}
+                    iconClassName="text-workshop-accent"
+                    className="py-12 bg-workshop-surface/30"
+                    title={`No ${activeTab} logs match "${deferredSearch}"`}
+                    description={`Found ${searchMatchingRecordsCount} matching ${searchMatchingRecordsCount === 1 ? "record" : "records"} in other status tabs.`}
+                    action={
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("all")}
+                          className="px-4 py-2 rounded-xl bg-workshop-accent text-workshop-bg font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
+                        >
+                          View all {searchMatchingRecordsCount} {searchMatchingRecordsCount === 1 ? "result" : "results"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSearchTerm("")}
+                          className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-muted hover:text-workshop-text font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                        >
+                          Clear search
+                        </button>
+                      </>
+                    }
+                  />
+                ) : isSearching ? (
+                  <EmptyState
+                    key="empty-search-state"
+                    variants={contentVariants}
+                    icon={Search}
+                    title={`No logs match "${deferredSearch}"`}
+                    description="Try searching by customer name, phone number, vehicle plate, model, advisor, problem, or spare parts."
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => setSearchTerm("")}
+                        className="px-4 py-2 rounded-xl bg-workshop-surface border border-workshop-border text-workshop-text hover:border-workshop-accent/50 hover:text-workshop-accent font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-sm"
+                      >
+                        Clear search
+                      </button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    key="empty-state"
+                    variants={contentVariants}
+                    icon={Search}
+                    title="No logs found"
+                    description="No logs match your filter criteria."
+                  />
+                )
+              ) : (
+                <motion.div
+                  key="records-list"
+                  variants={contentVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                  className="space-y-3 font-sans"
+                >
+                  {visibleRecords.map((r) => {
+                    const v = vehicleMap.get(r.vehicleId);
+                    const c = customerMap.get(r.customerId);
+
+                    return (
+                      <ServiceRecordCard
+                        key={r.id}
+                        record={r}
+                        v={v}
+                        customer={c}
+                        onClick={handleCardClick}
+                        onUpdateDetails={handleCardUpdateDetails}
+                        onDelete={handleCardDelete}
+                        canDelete={isAdmin}
+                        canEdit={isTechnician}
+                        isSelected={editingRecord?.id === r.id}
+                      />
+                    );
+                  })}
+
+                  <InfiniteScrollFooter
+                    sentinelRef={sentinelRef}
+                    hasMore={hasMore}
+                    isLoadingMore={isLoadingMore}
+                    remainingCount={remainingCount}
+                    onLoadMore={loadMore}
+                    itemName="records"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
-      {/* Edit Record Fullscreen Sheet */}
+      {/* Edit Record Sheet (Side Sheet on desktop, Bottom Sheet on mobile via Portal) */}
       <EditRecordSheet
         editingRecord={editingRecord}
         setEditingRecord={setEditingRecord}

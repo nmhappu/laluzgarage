@@ -1,8 +1,10 @@
 import React from "react";
 import { Key, Phone } from "lucide-react";
+import NumberFlow from "@number-flow/react";
 import type { ServiceRecord, Vehicle, Customer } from "../../../types";
 import { capitalizeName, cn } from "../../../lib/utils";
 import { WhatsAppIcon } from "../../ui/BrandIcons";
+import { RollingText } from "../../ui/RollingText";
 
 export interface EditSheetVehicleHeroProps {
   vehicle?: Vehicle;
@@ -25,29 +27,21 @@ export function EditSheetVehicleHero({
   return (
     <div className="text-left space-y-1.5 font-sans">
       <div className="flex flex-row items-baseline justify-between w-full gap-4">
-        {vehicle?.plateNumber ? (
-          <h1 className="text-[31px] sm:text-[55px] md:text-[67px] font-black text-blue-500 tracking-tight uppercase leading-none font-sans truncate">
-            {vehicle.plateNumber}
-          </h1>
-        ) : (
-          <h1 className="text-[31px] sm:text-[55px] md:text-[67px] font-black text-blue-500 tracking-tight uppercase leading-none font-sans truncate">
-            -
-          </h1>
-        )}
+        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black text-blue-500 tracking-tight uppercase leading-none font-sans truncate">
+          <RollingText text={vehicle?.plateNumber || "-"} />
+        </h1>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight text-workshop-text font-sans">
-        <span className="text-workshop-text font-black">{capitalizeName(customer?.name)}</span>
+        <RollingText text={capitalizeName(customer?.name) || "Customer"} className="text-workshop-text font-black" />
         <span className="opacity-40 text-workshop-muted font-normal">|</span>
-        <span className="text-workshop-muted font-semibold font-sans">
-          {colorFormatted}
-        </span>
+        <RollingText text={colorFormatted} className="text-workshop-muted font-semibold font-sans" />
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-base sm:text-lg font-bold uppercase tracking-tight font-sans">
         <span
           className={cn(
-            "font-sans font-extrabold whitespace-nowrap",
+            "font-sans font-extrabold whitespace-nowrap inline-flex items-baseline",
             editingRecord.isDeadVehicle
               ? "text-status-urgent italic font-black text-xs uppercase bg-status-urgent/10 border border-status-urgent/20 px-2 py-0.5 rounded"
               : editingRecord.isUnknownMileage
@@ -55,11 +49,20 @@ export function EditSheetVehicleHero({
                 : "text-status-pending"
           )}
         >
-          {editingRecord.isDeadVehicle
-            ? "Dead"
-            : editingRecord.isUnknownMileage
-              ? "Locked"
-              : `${editingRecord.mileage?.toLocaleString() || 0} KM`}
+          {editingRecord.isDeadVehicle ? (
+            "Dead"
+          ) : editingRecord.isUnknownMileage ? (
+            "Locked"
+          ) : (
+            <>
+              <NumberFlow
+                value={editingRecord.mileage || 0}
+                locales="en-IN"
+                format={{ maximumFractionDigits: 0 }}
+              />
+              <span className="ml-1">KM</span>
+            </>
+          )}
         </span>
 
         {vehicle?.passwordOrPin && (
@@ -71,11 +74,14 @@ export function EditSheetVehicleHero({
               ) : (
                 <span className="text-status-success font-bold font-sans text-base select-none pr-0.5">#</span>
               )}
-              <span className="font-sans text-base sm:text-lg">
-                {vehicle.passwordOrPin.toUpperCase() === "KEY"
-                  ? "Key"
-                  : `PIN: ${vehicle.passwordOrPin}`}
-              </span>
+              <RollingText
+                text={
+                  vehicle.passwordOrPin.toUpperCase() === "KEY"
+                    ? "Key"
+                    : `PIN: ${vehicle.passwordOrPin}`
+                }
+                className="font-sans text-base sm:text-lg"
+              />
             </span>
           </>
         )}

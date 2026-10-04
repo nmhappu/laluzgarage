@@ -28,7 +28,7 @@ import { AppUpdatesView } from "./AppUpdatesView";
 import { DateWiseHistoryView } from "./DateWiseHistoryView";
 import { DeleteUserModal } from "./DeleteUserModal";
 import { LogoutModal } from "../nav/LogoutModal";
-import { Analytics } from "../Analytics";
+import { AnalyticsView as Analytics } from "../analytics/AnalyticsView";
 import type { WorkshopUser } from "../../types";
 
 const pageVariants: Variants = {

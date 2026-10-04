@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Package, AlertTriangle } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { AnalyticsSquareCard } from '../AnalyticsSquareCard';
 import { EChartsReact } from '../EChartsReact';
 import { formatCurrency } from '../../../lib/utils';
@@ -18,7 +18,6 @@ export function InventoryCard({
   totalBilled,
   totalItemsDispatched,
   lowStockCount,
-  topParts,
   categoryBreakdown,
   onClick,
 }: InventoryCardProps) {
@@ -28,7 +27,7 @@ export function InventoryCard({
     const values = categories.map((c) => c.value);
 
     return {
-      grid: { top: 4, right: 4, bottom: 16, left: 4, containLabel: false },
+      grid: { top: 4, right: 4, bottom: 14, left: 4, containLabel: false },
       xAxis: {
         type: 'category',
         data: names.length > 0 ? names : ['Parts'],
@@ -48,7 +47,7 @@ export function InventoryCard({
         {
           type: 'bar',
           data: values.length > 0 ? values : [1],
-          barWidth: 8,
+          barWidth: 7,
           itemStyle: {
             color: '#F59E0B',
             borderRadius: [2, 2, 0, 0],
@@ -60,23 +59,20 @@ export function InventoryCard({
 
   return (
     <AnalyticsSquareCard
-      title="Parts & Inventory"
-      subtitle="Spares Consumption & Stock"
+      title="Parts & Stock"
       icon={Package}
       iconColor="text-amber-500"
       primaryValue={formatCurrency(totalBilled)}
-      badgeText={lowStockCount > 0 ? `${lowStockCount} Low Stock` : 'Stock Healthy'}
-      badgeType={lowStockCount > 0 ? 'urgent' : 'success'}
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      badgeText={lowStockCount > 0 ? `${lowStockCount} Low Stock` : undefined}
+      badgeType="urgent"
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
-        <span className="flex items-center gap-1.5">
-          {lowStockCount > 0 && <AlertTriangle className="w-3.5 h-3.5 text-status-urgent shrink-0" />}
-          <span>
-            <strong className="text-workshop-text">{totalItemsDispatched}</strong> parts dispatched • {topParts.length} fast-movers
-          </span>
+        <span>
+          <strong className="text-workshop-text">{totalItemsDispatched}</strong> parts dispatched
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default InventoryCard;

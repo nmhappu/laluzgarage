@@ -16,11 +16,9 @@ export function TurnaroundCard({
   avgDays,
   onTimeRate,
   expressCount,
-  longStayCount,
   onClick,
 }: TurnaroundCardProps) {
   const chartOption = useMemo(() => {
-    // Normalizing cycle time to a gauge scale from 0 to 5 days
     const normalizedVal = Math.min(5, Math.max(0.2, avgDays));
 
     return {
@@ -36,11 +34,11 @@ export function TurnaroundCard({
           splitNumber: 5,
           axisLine: {
             lineStyle: {
-              width: 7,
+              width: 6,
               color: [
-                [0.3, '#10B981'], // <1.5 days: fast
-                [0.7, '#FBBF24'], // 1.5 - 3.5 days: standard
-                [1, '#F43F5E'],   // >3.5 days: bottleneck
+                [0.3, '#10B981'],
+                [0.7, '#FBBF24'],
+                [1, '#F43F5E'],
               ],
             },
           },
@@ -57,9 +55,7 @@ export function TurnaroundCard({
           splitLine: { show: false },
           axisLabel: { show: false },
           title: { show: false },
-          detail: {
-            show: false,
-          },
+          detail: { show: false },
           data: [{ value: normalizedVal }],
         },
       ],
@@ -68,20 +64,18 @@ export function TurnaroundCard({
 
   return (
     <AnalyticsSquareCard
-      title="Turnaround Velocity"
-      subtitle="Intake to Handover Duration"
+      title="Turnaround"
       icon={Clock}
       iconColor="text-amber-400"
       primaryValue={`${avgDays} Days Avg`}
-      badgeText={`${onTimeRate}% On-Time`}
-      badgeType={onTimeRate >= 85 ? 'success' : 'neutral'}
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          <strong className="text-status-success">{expressCount}</strong> Express (&lt;24h) • <strong className="text-status-urgent">{longStayCount}</strong> Long-stay (&gt;3d)
+          <strong className="text-status-success">{onTimeRate}%</strong> on-time • {expressCount} express
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default TurnaroundCard;

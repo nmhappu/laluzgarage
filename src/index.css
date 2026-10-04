@@ -363,6 +363,16 @@
   }
 }
 
+@utility no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
 /* Material 3 Skeleton Loading Animation */
 @keyframes shimmer-m3-anim {
   0% {

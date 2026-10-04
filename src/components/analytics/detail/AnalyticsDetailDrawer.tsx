@@ -1,20 +1,29 @@
 import { useEffect, useMemo } from 'react';
-import { X, Download, TrendingUp, DollarSign, ClipboardList, Clock, Wrench, Package, Car, Users, Calendar } from 'lucide-react';
+import {
+  X,
+  Download,
+  TrendingUp,
+  DollarSign,
+  ClipboardList,
+  Clock,
+  Wrench,
+  Package,
+  Car,
+  Users,
+  Calendar,
+  Layers,
+  Receipt,
+  Gauge,
+  Crown,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { EChartsReact } from '../EChartsReact';
 import { useBackHandler } from '../../../contexts/UIContext';
 import { formatCurrency, cn } from '../../../lib/utils';
 import type { useAnalytics } from '../../../hooks/useAnalytics';
 
-export type CardKey =
-  | 'revenue'
-  | 'jobFlow'
-  | 'turnaround'
-  | 'technicians'
-  | 'inventory'
-  | 'fleet'
-  | 'retention'
-  | 'workload';
+export type { CardKey } from './types';
+import type { CardKey } from './types';
 
 interface AnalyticsDetailDrawerProps {
   activeCard: CardKey | null;
@@ -75,6 +84,29 @@ export function AnalyticsDetailDrawer({
       csvContent += 'Vehicle Brand,Vehicle Count,Share (%)\n';
       analyticsData.fleet.brands.forEach((b) => {
         csvContent += `"${b.name}",${b.count},${b.percentage}\n`;
+      });
+    } else if (activeCard === 'categories') {
+      csvContent += 'Category,Jobs Count,Share (%),Total Revenue (INR),Avg Ticket (INR)\n';
+      analyticsData.categories.categories.forEach((c) => {
+        csvContent += `"${c.name}",${c.count},${c.percentage},${c.revenue},${c.avgTicket}\n`;
+      });
+    } else if (activeCard === 'ticketTiers') {
+      csvContent += 'Tier,Range,Invoices Count,Share (%),Total Revenue (INR),Avg Ticket (INR)\n';
+      analyticsData.invoiceTiers.tiers.forEach((t) => {
+        csvContent += `"${t.name}","${t.range}",${t.count},${t.percentage},${t.totalRevenue},${t.avgTicket}\n`;
+      });
+    } else if (activeCard === 'vehicleHealth') {
+      csvContent += 'Mileage Bracket,Range,Vehicles Count,Share (%)\n';
+      analyticsData.vehicleHealth.mileageBrackets.forEach((b) => {
+        csvContent += `"${b.bracket}","${b.rangeLabel}",${b.count},${b.percentage}\n`;
+      });
+      csvContent += `\n"Average Mileage",${analyticsData.vehicleHealth.avgMileage}\n`;
+      csvContent += `"Dead/Breakdown Intakes",${analyticsData.vehicleHealth.deadVehicleCount}\n`;
+      csvContent += `"Tow-in Rate (%)",${analyticsData.vehicleHealth.deadVehicleRate}%\n`;
+    } else if (activeCard === 'clientSpend') {
+      csvContent += 'Rank,Customer Name,Phone,Visits Count,Total Invoiced (INR),Avg Spend per Visit (INR),Last Visit\n';
+      analyticsData.topClients.topClients.forEach((c, idx) => {
+        csvContent += `${idx + 1},"${c.name}","${c.phone}",${c.visitsCount},${c.totalSpent},${c.avgSpend},"${c.lastVisitDate}"\n`;
       });
     } else {
       csvContent += 'Metric,Value\n';
@@ -255,6 +287,8 @@ export function AnalyticsDetailDrawer({
               name: 'Labor Revenue (₹)',
               type: 'line',
               yAxisIndex: 1,
+              smooth: 0.3,
+              smoothMonotone: 'x',
               data: labor,
               itemStyle: { color: '#3B82F6' },
               lineStyle: { width: 3 },
@@ -365,6 +399,133 @@ export function AnalyticsDetailDrawer({
         };
       }
 
+      case 'categories': {
+        const top = analyticsData.categories.categories.slice(0, 8);
+        return {
+          tooltip: { trigger: 'item', formatter: '{b}: {c} jobs ({d}%)' },
+          legend: { orient: 'horizontal', bottom: 6 },
+          series: [
+            {
+              name: 'Service Categories',
+              type: 'pie',
+              radius: ['35%', '70%'],
+              center: ['50%', '45%'],
+              avoidLabelOverlap: false,
+              itemStyle: { borderRadius: 6, borderColor: '#07080A', borderWidth: 2 },
+              label: { show: true, formatter: '{b}\n{c} ({d}%)', color: '#94A3B8', fontSize: 11 },
+              data: top.map((c) => ({ name: c.name, value: c.count })),
+            },
+          ],
+        };
+      }
+
+      case 'ticketTiers': {
+        const tiers = analyticsData.invoiceTiers.tiers;
+        return {
+          tooltip: {
+            trigger: 'axis',
+            formatter: (params: unknown) => {
+              const item = (Array.isArray(params) ? params[0] : params) as { dataIndex: number } | undefined;
+              if (!item) return '';
+              const tier = tiers[item.dataIndex];
+              if (!tier) return '';
+              return `${tier.name} (${tier.range})<br/>Orders: <b>${tier.count}</b> (${tier.percentage}%)<br/>Revenue: <b>₹${tier.totalRevenue.toLocaleString()}</b>`;
+            },
+          },
+          grid: { top: 35, right: 16, bottom: 35, left: 16, containLabel: true },
+          xAxis: {
+            type: 'category',
+            data: tiers.map((t) => t.label),
+          },
+          yAxis: [
+            { type: 'value', name: 'Orders' },
+            {
+              type: 'value',
+              name: 'Revenue',
+              axisLabel: { formatter: (v: number) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}` },
+            },
+          ],
+          series: [
+            {
+              name: 'Orders',
+              type: 'bar',
+              data: tiers.map((t) => ({ value: t.count, itemStyle: { color: t.color, borderRadius: [4, 4, 0, 0] } })),
+            },
+            {
+              name: 'Revenue (₹)',
+              type: 'line',
+              yAxisIndex: 1,
+              smooth: 0.3,
+              smoothMonotone: 'x',
+              data: tiers.map((t) => t.totalRevenue),
+              itemStyle: { color: '#10B981' },
+              lineStyle: { width: 3 },
+            },
+          ],
+        };
+      }
+
+      case 'vehicleHealth': {
+        const brackets = analyticsData.vehicleHealth.mileageBrackets;
+        const colors = ['#38BDF8', '#34D399', '#FBBF24', '#F43F5E'];
+        return {
+          tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} vehicles ({d}%)',
+          },
+          legend: { bottom: 6 },
+          series: [
+            {
+              name: 'Mileage Brackets',
+              type: 'pie',
+              radius: ['35%', '70%'],
+              center: ['50%', '45%'],
+              itemStyle: { borderRadius: 6, borderColor: '#07080A', borderWidth: 2 },
+              label: { show: true, formatter: '{b}\n{c} ({d}%)', color: '#94A3B8', fontSize: 11 },
+              data: brackets.map((b, i) => ({
+                name: b.bracket,
+                value: b.count,
+                itemStyle: { color: colors[i % colors.length] },
+              })),
+            },
+          ],
+        };
+      }
+
+      case 'clientSpend': {
+        const top = analyticsData.topClients.topClients.slice(0, 8);
+        return {
+          tooltip: {
+            trigger: 'axis',
+            formatter: (params: unknown) => {
+              const item = (Array.isArray(params) ? params[0] : params) as { dataIndex: number } | undefined;
+              if (!item) return '';
+              const client = top[top.length - 1 - item.dataIndex];
+              if (!client) return '';
+              return `${client.name}<br/>Total Spent: <b>₹${client.totalSpent.toLocaleString()}</b><br/>Visits: <b>${client.visitsCount}</b> (Avg ₹${client.avgSpend.toLocaleString()})`;
+            },
+          },
+          grid: { top: 20, right: 16, bottom: 20, left: 110, containLabel: false },
+          xAxis: {
+            type: 'value',
+            axisLabel: { formatter: (v: number) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}` },
+          },
+          yAxis: {
+            type: 'category',
+            data: top.map((c) => (c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name)).reverse(),
+            axisLabel: { color: '#94A3B8', fontSize: 11 },
+          },
+          series: [
+            {
+              name: 'Spend (₹)',
+              type: 'bar',
+              data: top.map((c) => c.totalSpent).reverse(),
+              itemStyle: { color: '#F43F5E', borderRadius: [0, 6, 6, 0] },
+            },
+          ],
+        };
+      }
+
       default:
         return {};
     }
@@ -418,6 +579,30 @@ export function AnalyticsDetailDrawer({
       title: 'Intake & Peak Workload Schedule',
       subtitle: 'Day-of-week drop-offs for technician scheduling & bay capacity',
       icon: Calendar,
+      color: 'text-rose-400',
+    },
+    categories: {
+      title: 'Service Categories & Job Demand',
+      subtitle: 'Distribution of repairs, scheduled maintenance & bay workload',
+      icon: Layers,
+      color: 'text-teal-400',
+    },
+    ticketTiers: {
+      title: 'Invoice Value Tiers & Ticket Spread',
+      subtitle: 'Repair order price distribution, ticket median & high-value work',
+      icon: Receipt,
+      color: 'text-emerald-400',
+    },
+    vehicleHealth: {
+      title: 'Vehicle Health, Mileage & Tow-in Rate',
+      subtitle: 'Odometer readings, wear brackets and breakdown intake tracking',
+      icon: Gauge,
+      color: 'text-sky-400',
+    },
+    clientSpend: {
+      title: 'VIP Clients & Customer Spend (LTV)',
+      subtitle: 'Highest spending accounts, average spend per client & revenue concentration',
+      icon: Crown,
       color: 'text-rose-400',
     },
   }[activeCard || 'revenue'];
@@ -586,6 +771,235 @@ export function AnalyticsDetailDrawer({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {activeCard === 'categories' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Top Category</p>
+                      <p className="text-base font-black font-google-sans text-teal-400 mt-0.5 truncate">
+                        {analyticsData.categories.topCategory.name}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">
+                        {analyticsData.categories.topCategory.count} orders ({analyticsData.categories.topCategory.percentage}%)
+                      </p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Highest Revenue</p>
+                      <p className="text-base font-black font-google-sans text-status-success mt-0.5 truncate">
+                        {analyticsData.categories.topRevenueCategory.name}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">
+                        {formatCurrency(analyticsData.categories.topRevenueCategory.revenue)}
+                      </p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40 col-span-2 sm:col-span-1">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Categorized Work</p>
+                      <p className="text-base font-black font-google-sans text-workshop-text mt-0.5">
+                        {analyticsData.categories.totalCategorized} Orders
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">
+                        Across {analyticsData.categories.categories.length} job groups
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-workshop-muted tracking-wider">
+                      Workload by Service Discipline
+                    </h4>
+                    <div className="divide-y divide-workshop-border/30 border border-workshop-border/40 rounded-xl overflow-hidden bg-workshop-card">
+                      {analyticsData.categories.categories.map((cat) => (
+                        <div key={cat.name} className="p-3.5 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-workshop-text">{cat.name}</p>
+                            <p className="text-[10px] text-workshop-muted">
+                              {cat.count} jobs • {cat.percentage}% of bay throughput
+                            </p>
+                          </div>
+                          <div className="text-right font-numeric font-bold">
+                            <p className="text-teal-400">{formatCurrency(cat.revenue)}</p>
+                            <p className="text-[10px] text-workshop-muted font-normal">
+                              Avg ticket: {formatCurrency(cat.avgTicket)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeCard === 'ticketTiers' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Median Ticket</p>
+                      <p className="text-base font-black font-google-sans text-emerald-400 mt-0.5">
+                        {formatCurrency(analyticsData.invoiceTiers.medianTicket)}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">50th percentile order</p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Highest Invoice</p>
+                      <p className="text-base font-black font-google-sans text-status-success mt-0.5">
+                        {formatCurrency(analyticsData.invoiceTiers.highestTicket)}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">Peak single repair ticket</p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40 col-span-2 sm:col-span-1">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">High-Value Share</p>
+                      <p className="text-base font-black font-google-sans text-amber-400 mt-0.5">
+                        {analyticsData.invoiceTiers.highValueShare}%
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">From tickets &gt; ₹5,000</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-workshop-muted tracking-wider">
+                      Invoice Tier Breakdown
+                    </h4>
+                    <div className="divide-y divide-workshop-border/30 border border-workshop-border/40 rounded-xl overflow-hidden bg-workshop-card">
+                      {analyticsData.invoiceTiers.tiers.map((tier) => (
+                        <div key={tier.id} className="p-3.5 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: tier.color }}
+                            />
+                            <div>
+                              <p className="font-bold text-workshop-text">{tier.name}</p>
+                              <p className="text-[10px] text-workshop-muted font-numeric">
+                                {tier.range} • {tier.count} orders ({tier.percentage}%)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right font-numeric font-bold">
+                            <p className="text-workshop-text">{formatCurrency(tier.totalRevenue)}</p>
+                            <p className="text-[10px] text-workshop-muted font-normal">
+                              Avg {formatCurrency(tier.avgTicket)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeCard === 'vehicleHealth' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Average Odometer</p>
+                      <p className="text-base font-black font-google-sans text-sky-400 mt-0.5">
+                        {analyticsData.vehicleHealth.avgMileage > 0
+                          ? `${analyticsData.vehicleHealth.avgMileage.toLocaleString()} km`
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Tow-in / Dead In</p>
+                      <p className={cn(
+                        "text-base font-black font-google-sans mt-0.5",
+                        analyticsData.vehicleHealth.deadVehicleCount > 0 ? "text-status-urgent" : "text-status-success"
+                      )}>
+                        {analyticsData.vehicleHealth.deadVehicleCount} cars ({analyticsData.vehicleHealth.deadVehicleRate}%)
+                      </p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">High-Mileage Fleet</p>
+                      <p className="text-base font-black font-google-sans text-amber-400 mt-0.5">
+                        {analyticsData.vehicleHealth.highMileageCount} cars ({analyticsData.vehicleHealth.highMileageRate}%)
+                      </p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">KM Between Visits</p>
+                      <p className="text-base font-black font-google-sans text-workshop-text mt-0.5">
+                        {analyticsData.vehicleHealth.avgDeltaKm > 0
+                          ? `${analyticsData.vehicleHealth.avgDeltaKm.toLocaleString()} km`
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-workshop-muted tracking-wider">
+                      Odometer Distribution Brackets
+                    </h4>
+                    <div className="divide-y divide-workshop-border/30 border border-workshop-border/40 rounded-xl overflow-hidden bg-workshop-card">
+                      {analyticsData.vehicleHealth.mileageBrackets.map((bracket) => (
+                        <div key={bracket.bracket} className="p-3.5 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-workshop-text">{bracket.rangeLabel}</p>
+                            <p className="text-[10px] text-workshop-muted">Tier: {bracket.bracket}</p>
+                          </div>
+                          <div className="text-right font-numeric font-bold">
+                            <span className="text-sky-400">{bracket.count} vehicles</span>
+                            <span className="text-workshop-muted text-[10px] ml-2">({bracket.percentage}%)</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeCard === 'clientSpend' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Avg Customer Spend</p>
+                      <p className="text-base font-black font-google-sans text-rose-400 mt-0.5">
+                        {formatCurrency(analyticsData.topClients.avgCustomerSpend)}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">Per unique account</p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">Top 5 Concentration</p>
+                      <p className="text-base font-black font-google-sans text-purple-400 mt-0.5">
+                        {analyticsData.topClients.top5Share}%
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">Of all invoiced revenue</p>
+                    </div>
+                    <div className="bg-workshop-card p-4 rounded-xl border border-workshop-border/40 col-span-2 sm:col-span-1">
+                      <p className="text-[10px] font-bold uppercase text-workshop-muted">VIP Accounts</p>
+                      <p className="text-base font-black font-google-sans text-status-success mt-0.5">
+                        {analyticsData.topClients.vipCount}
+                      </p>
+                      <p className="text-[10px] text-workshop-muted mt-0.5">&gt; ₹10,000 billed</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-workshop-muted tracking-wider">
+                      High-Value Customer Leaderboard
+                    </h4>
+                    <div className="divide-y divide-workshop-border/30 border border-workshop-border/40 rounded-xl overflow-hidden bg-workshop-card">
+                      {analyticsData.topClients.topClients.map((client, idx) => (
+                        <div key={client.id} className="p-3.5 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-3">
+                            <span className="w-5 text-center font-bold text-workshop-muted text-[11px]">#{idx + 1}</span>
+                            <div>
+                              <p className="font-bold text-workshop-text">{client.name}</p>
+                              <p className="text-[10px] text-workshop-muted font-numeric">
+                                {client.visitsCount} visits • {client.phone !== '—' ? client.phone : 'No phone'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right font-numeric font-bold">
+                            <p className="text-rose-400">{formatCurrency(client.totalSpent)}</p>
+                            <p className="text-[10px] text-workshop-muted font-normal">
+                              Avg {formatCurrency(client.avgSpend)}/visit
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

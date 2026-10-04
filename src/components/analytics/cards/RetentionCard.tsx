@@ -12,7 +12,6 @@ interface RetentionCardProps {
 }
 
 export function RetentionCard({
-  uniqueCustomers,
   returningCustomers,
   newCustomers,
   repeatPercent,
@@ -39,7 +38,7 @@ export function RetentionCard({
           },
           axisLine: {
             lineStyle: {
-              width: 7,
+              width: 6,
               color: [[1, 'rgba(255, 255, 255, 0.08)']],
             },
           },
@@ -51,9 +50,7 @@ export function RetentionCard({
               value: repeatPercent,
               name: 'Retention',
               title: { show: false },
-              detail: {
-                show: false,
-              },
+              detail: { show: false },
             },
           ],
         },
@@ -63,20 +60,18 @@ export function RetentionCard({
 
   return (
     <AnalyticsSquareCard
-      title="Customer Loyalty"
-      subtitle="Repeat Customer Retention"
+      title="Retention"
       icon={Users}
       iconColor="text-purple-400"
-      primaryValue={`${repeatPercent}% Returning`}
-      badgeText={`${uniqueCustomers} Customers`}
-      badgeType="neutral"
-      chartNode={<EChartsReact option={chartOption} className="w-full h-full" />}
+      primaryValue={`${repeatPercent}% Repeat`}
+      chartNode={<EChartsReact option={chartOption} className="w-full h-full min-h-0" />}
       secondaryContext={
         <span>
-          <strong className="text-purple-400">{returningCustomers}</strong> repeat visits • <strong className="text-workshop-text">{newCustomers}</strong> new customers
+          <strong className="text-purple-400">{returningCustomers}</strong> repeat • {newCustomers} new
         </span>
       }
       onClick={onClick}
     />
   );
 }
+export default RetentionCard;

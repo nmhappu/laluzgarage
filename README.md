@@ -154,7 +154,6 @@ LaluZ Garage can be deployed instantly using Docker and Docker Compose. The offi
 1. Copy the example compose file:
    ```bash
    cp compose.example.yml compose.yml
-   # Or: cp compose.example compose.yml
    ```
 2. Configure your Firebase credentials in `compose.yml` (or in a `.env` file).
 3. Start the container:

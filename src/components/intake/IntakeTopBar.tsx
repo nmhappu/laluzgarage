@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { ThemeToggle } from '../ThemeToggle';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHighQualityAvatarUrl } from '../../lib/avatar';
 import { getUserRole } from '../../types';

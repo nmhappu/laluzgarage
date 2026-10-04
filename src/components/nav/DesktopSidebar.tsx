@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { ThemeToggle } from '../ThemeToggle';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHighQualityAvatarUrl } from '../../lib/avatar';
 import { getUserRole } from '../../types';

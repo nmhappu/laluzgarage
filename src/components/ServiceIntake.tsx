@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Portal } from './Portal';
+import { Portal } from './ui/Portal';
 import { useServiceIntake } from '../hooks/useServiceIntake';
 import { AdvisorVerification } from './intake/AdvisorVerification';
 import { IntakeSuccessModal } from './intake/IntakeSuccessModal';

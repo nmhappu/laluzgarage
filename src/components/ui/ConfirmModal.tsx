@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, LucideIcon, Loader2 } from 'lucide-react';
-import { Portal } from '../Portal';
+import { Portal } from './Portal';
 import { useBackHandler } from '../../contexts/UIContext';
 import { cn } from '../../lib/utils';
 

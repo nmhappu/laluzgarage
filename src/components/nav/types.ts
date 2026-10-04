@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ClipboardList, History, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, History, TrendingUp, LucideIcon } from 'lucide-react';
 
 export interface NavItemConfig {
   to: string;
@@ -12,6 +12,7 @@ export const navItems: NavItemConfig[] = [
   { to: '/vehicles', icon: History, m3Icon: 'directions_car', label: 'Vehicle' },
   { to: '/inventory', icon: Package, m3Icon: 'inventory_2', label: 'Inventory' },
   { to: '/services', icon: ClipboardList, m3Icon: 'build', label: 'Services' },
+  { to: '/analytics', icon: TrendingUp, m3Icon: 'monitoring', label: 'Analytics' },
 ];
 
 export const getActiveTabLabel = (pathname: string): string => {
@@ -19,7 +20,7 @@ export const getActiveTabLabel = (pathname: string): string => {
   if (pathname.startsWith('/vehicles')) return 'Vehicle Registry';
   if (pathname.startsWith('/inventory')) return 'Parts Inventory';
   if (pathname.startsWith('/services')) return 'Service History';
-  if (pathname.startsWith('/analytics')) return 'Statistics';
+  if (pathname.startsWith('/analytics')) return 'Analytics';
   if (pathname.startsWith('/settings')) return 'Settings';
   if (pathname.startsWith('/intake')) return 'Vehicle Intake';
   return 'Dashboard';
@@ -63,6 +64,7 @@ export const TAB_ACTIVE_WIDTHS: Record<string, number> = {
   '/vehicles': 102,   // Vehicle
   '/inventory': 114, // Inventory
   '/services': 110,  // Services
+  '/analytics': 114, // Analytics
 };
 
 export const SERVICE_STATUS_FILTERS = [

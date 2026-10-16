@@ -61,67 +61,81 @@ Technicians share rugged tablets in service bays while also having the app on pe
 
 ---
 
-## 4. Execution Roadmap (Milestones A -> B -> C -> D)
+## 4. Execution Roadmap (Step-by-Step Milestones)
 
-### Phase A: Auth, PIN Pad & Adaptive Navigation Shell (COMPLETED)
-- [x] Bootstrap `compose-app/` Gradle structure with Version Catalog (`libs.versions.toml`).
-- [x] Setup `LaluzTheme` with dark/light dynamic tokens, Google Sans typography, and vector logo.
-- [x] Implement **1:1 Login Screen**:
-  - Email/Password form with smooth mode transitions, password toggle, and error alert banners.
-  - Pending approval screen for unassigned workshop users.
-- [x] Implement **1:1 Advisor PIN Verification (`AdvisorVerification`)**:
-  - 4-digit input slots, custom numeric keypad, haptic feedback, and error shake animation.
-- [x] Implement **1:1 Adaptive Navigation Shell (`WindowSizeClass`)**:
-  - Phone: `NavigationBar` + `TopAppBar` with dynamic operator switcher and "+ Intake" FAB.
-  - Rugged Tablet: `NavigationRail` with persistent side rail, "+ Intake" FAB, and operator lock button.
-- [x] Verified full Debug APK compilation (`app-debug.apk`).
+### Milestone 1: Clean Foundation, Toolchain & Design Tokens (COMPLETED)
+- [x] Clean wipe of previous source files while safely preserving `google-services.json` and `local.properties`.
+- [x] Version Catalog (`gradle/libs.versions.toml`) configured with AGP 8.8.2, Kotlin 2.1.0, Compose BOM, Material 3, Hilt 2.55, KSP, Firebase BOM 33.8.0, Navigation Compose, and Coil.
+- [x] Edge-to-edge transparent system bars setup with `enableEdgeToEdge()`.
+- [x] 1:1 Design tokens in `Color.kt`, `Theme.kt`, and `Type.kt` matching web tokens (`#07080A` Obsidian dark, `#10B981` Emerald primary, `#3B82F6` Electric blue, `#F43F5E` urgent rose, `#FBBF24` amber).
+- [x] Application class `@HiltAndroidApp LaluzApplication` and `@AndroidEntryPoint MainActivity`.
+- [x] Verified full compilation of debug APK (`assembleDebug` passing with zero errors).
 
-### Phase B: Service History, Job Cards & Vehicle Ledger Drawer (COMPLETED)
-- [x] Live Firestore service records query with status filtering (`all`, `pending`, `in-progress`, `completed`).
-- [x] Implemented **1:1 ServiceRecordCard**:
-  - Calendar date pill, monospace plate styling, vehicle make/model, customer & phone.
-  - Overdue delta calculator (`X days overdue`, `Due today`, `Due in X days`).
-  - Mileage / Dead Vehicle status chips, allocated parts badge, and formatted grand total.
-- [x] Implemented **1:1 EditRecordSheetContent (Vehicle Ledger)**:
-  - Vehicle Hero card with plate, customer, phone, and odometer.
-  - Segmented status selector pills (`Pending`, `In Progress`, `Completed`) with final completion mileage input.
-  - Interactive task checklist with dynamic checkbox toggling and custom task creation.
-  - Parts allocation picker with stock quantity checks, increment/decrement controls, and line item calculations.
-  - Billing summary card with live labor charge input and auto-tallied grand total.
-  - Final remarks & advice text area.
-- [x] Implemented **Adaptive Dual-Pane Services View (`ServicesScreen`)**:
-  - **Phones**: Single-column `LazyColumn` + gesture-driven `ModalBottomSheet`.
-  - **Rugged Tablets**: Master-Detail Two-Pane layout (45% job list on the left, 55% embedded vehicle ledger on the right).
-- [x] Verified full Debug APK compilation with Phase B integrated (`app-debug.apk`).
+### Milestone 2: Auth Flow, Zero-Admin Bootstrap & Adaptive Navigation Shell (COMPLETED)
+- [x] Kotlin domain models aligned with `types.ts` & `firestore.rules` (`WorkshopUser`, `UserRole`, `Customer`, `Vehicle`, `Part`, `ServiceRecord`).
+- [x] Hilt `AppModule` injecting `FirebaseAuth`, `FirebaseFirestore`, and `Dispatchers.IO`.
+- [x] `AuthRepository` with Firestore presence tracking (`online`/`offline`), profile sync, and automated zero-admin bootstrap.
+- [x] `AuthViewModel` with clean state machine (`LOADING`, `UNAUTHENTICATED`, `PENDING_APPROVAL`, `AUTHENTICATED`).
+- [x] 1:1 `LoginScreen`:
+  - Progressive sign-in flow (Choice between Google and Email).
+  - Clean M3 `OutlinedTextFields`, password visibility toggle, error alert banner.
+  - Top header with brand title and `ThemeToggle` (Dark/Light mode).
+  - Custom brand vector logo (`LaluzLogo`) and footer with attribution.
+  - Device back handler returning from Email form to initial options.
+- [x] 1:1 `PendingApprovalScreen`:
+  - Shield alert icon with amber glow.
+  - User profile summary with 1-click clipboard UID copy.
+  - "Check Activation Status" and "Sign Out" actions.
+- [x] Adaptive `AdaptiveScaffold`:
+  - Compact (Phones): Bottom `NavigationBar` + TopAppBar with active technician name and "+ INTAKE" FAB.
+  - Tablets: Left `NavigationRail` with persistent brand emblem, "+ Intake" FAB, and navigation items.
 
-### Phase C: Multi-Step Vehicle Intake Wizard (COMPLETED)
-- [x] Multi-step pager (`IntakeWizardScreen` with linear progress indicator and step animations):
-  - [x] Step 1: Customer Discovery (`Step1CustomerDiscovery` with live search, selection card, and inline new customer registration).
-  - [x] Step 2: Vehicle Selection & Registration (`Step2VehicleSelection` with customer fleet lookup, uppercase plate formatting, make/model, color, and Key Tag vs. Screen PIN passcode selector).
-  - [x] Step 3: Job Specification (`Step3JobSpecification` with odometer input, dead vehicle toggle, quick task preset chips, custom task adder, personal belongings tracking, and advisor handover remarks).
-- [x] Implemented **1:1 IntakeSuccessScreen**:
-  - Green checkmark status badge with summary card (plate, customer, tasks).
-  - Direct WhatsApp URL intent trigger with pre-filled registration alert.
-  - Immediate "Open Active Job Card" navigation.
-- [x] Integrated into `LaluzNavigation` with floating action triggers and draft discard protection dialog.
-- [x] Verified full Debug APK compilation with Phase C integrated (`app-debug.apk`).
+### Milestone 3: Services Screen & Dedicated Full-Screen Vehicle Ledger (COMPLETED)
+- [x] Real-time Firestore stream of service records, vehicles, customers, and parts (`ServiceRepository`).
+- [x] Compact, dense job cards list view (`CompactServiceRow`) with monospace license plate pill, customer name, vehicle model, status dot, overdue days calculator, and formatted total cost.
+- [x] Status filter tabs row (`All Logs`, `Pending`, `In Progress`, `Completed`) with badge counts and quick search bar.
+- [x] Dedicated full-screen `VehicleLedgerScreen`:
+  - Customer hero card with instant phone dial and WhatsApp trigger buttons.
+  - Segmented status selector pills (`Pending`, `In Progress`, `Completed`) with completion mileage input.
+  - Interactive task checklist with dynamic checkbox toggling and "+ Add Task" quick input.
+  - Spare parts allocation with stock quantity checks, increment (+) and decrement (-) buttons.
+  - Billing summary card with editable labor charges and auto-calculated grand total.
+  - Handover remarks & advice text area with instant Firestore update.
+- [x] Verified full Debug APK compilation with Milestone 1, 2, and 3 integrated (`assembleDebug` SUCCESSFUL).
 
-### Phase D: Inventory & Parts Management (COMPLETED)
-- [x] Real-time inventory parts stream with live stock calculations and warehouse valuation (`InventoryRepository`).
-- [x] Implemented **1:1 PartCard**:
-  - Uppercase bold title, category chip, warehouse shelf location tag with `Place` icon in electric blue.
-  - Low stock visual alert badge (`LOW STOCK` in rose `#F43F5E`) when `stockQuantity <= minStockLevel`.
-  - Tabular price formatting in Indian Rupees and green/rose stock status text.
-- [x] Implemented **1:1 PartFormDialog**:
-  - Add & Edit spare parts with validation (name, category dropdown, price, stock quantity, min stock alert, warehouse shelf location).
-  - Admin deletion safeguard confirmation dialog.
-- [x] Implemented **Adaptive Inventory View (`InventoryScreen`)**:
-  - Metric summary header (total parts count, active low-stock alerts).
-  - Category filter chips row with toggleable "Low Stock Only" filter pill.
-  - **Phone**: Single-column scrollable list.
-  - **Rugged Tablet**: 2-column responsive card grid (`LazyVerticalGrid`).
-  - Floating action button "+ Add Part".
-- [x] Verified full Debug APK compilation with Phase A, B, C, and D fully integrated (`app-debug.apk`).
+### Milestone 4: Multi-Step Vehicle Intake Wizard (COMPLETED)
+- [x] Advisor PIN Verification Dialog (`AdvisorPinDialog`):
+  - 4-digit PIN verification modal prior to accessing the wizard.
+  - Verification against `WorkshopUser.pin` with fallback to default PIN `1234`.
+- [x] Multi-step animated wizard (`IntakeWizardScreen`):
+  - Top progress bar indicator tracking Step 1 of 3, 2 of 3, 3 of 3.
+  - Smooth horizontal slide transitions between steps with system back handling.
+  - Step 1: Customer Discovery — search existing customer records by phone, name, or plate; inline new customer creation.
+  - Step 2: Vehicle Selection — select from customer's existing fleet or register new vehicle (make, model, color, physical key vs PIN).
+  - Step 3: Job Specification — odometer reading with dead vehicle toggle, service checklist presets chips, custom complaint input, belongings, internal remarks.
+  - Form validation: Next and Submit buttons selectively enabled based on step criteria.
+  - Direct atomic Firestore creation for customer, vehicle, and `serviceRecords`.
+  - Simple confirmation toast on completion returning directly to the Services list.
+- [x] Verified compilation and Gradle test passes with 0 errors.
+
+### Milestone 5: Inventory & Parts Management (NEXT)
+- [ ] Real-time stock counts and low stock warnings.
+- [ ] `PartCard` with warehouse shelf location tag.
+- [ ] `PartFormDialog` for adding and editing spare parts.
+
+### Milestone 8: Vehicle History & Customer Fleet
+- [ ] Vehicle search and fleet cards.
+- [ ] Vehicle Ledger drawer / history viewer.
+- [ ] Add/Edit vehicle modal.
+
+### Milestone 9: Dashboard & Workshop Analytics
+- [ ] KPI summary cards (active jobs, daily intake, inventory alert count).
+- [ ] Workshop performance analytics.
+
+### Milestone 10: Settings, Team Roster & WhatsApp Presets
+- [ ] User profile and dark/light theme switch.
+- [ ] Team management: technician roles, tags, and PIN assignment.
+- [ ] WhatsApp message template presets.
 
 ---
 

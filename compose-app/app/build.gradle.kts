@@ -1,15 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
     namespace = "dev.appu.laluzgarage"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "dev.appu.laluzgarage"
@@ -54,8 +54,22 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
+composeCompiler {
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose_stability.conf"))
+    // Run with -PcomposeReports to dump stability/skippability reports to build/compose_reports
+    if (project.hasProperty("composeReports")) {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+        metricsDestination = layout.buildDirectory.dir("compose_reports")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -69,6 +83,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.window)
     implementation(libs.androidx.compose.material.icons)
+    implementation(libs.coil.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation & Hilt
@@ -79,9 +94,18 @@ dependencies {
 
     // Firebase
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
+
+    // Google sign-in via Credential Manager
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
+
+    // Baseline profile: installer applies the profile at install/first run
+    implementation(libs.androidx.profileinstaller)
+    "baselineProfile"(project(":baselineprofile"))
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)

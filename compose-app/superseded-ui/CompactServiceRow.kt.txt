@@ -1,0 +1,173 @@
+package dev.appu.laluzgarage.ui.services
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import dev.appu.laluzgarage.ui.components.formatInr
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.appu.laluzgarage.data.model.Customer
+import dev.appu.laluzgarage.data.model.ServiceRecord
+import dev.appu.laluzgarage.data.model.Vehicle
+import dev.appu.laluzgarage.ui.theme.ElectricBlue
+import dev.appu.laluzgarage.ui.theme.EmeraldPrimary
+import dev.appu.laluzgarage.ui.theme.StatusPending
+import dev.appu.laluzgarage.ui.theme.StatusUrgent
+import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.Locale
+
+@Composable
+fun CompactServiceRow(
+    record: ServiceRecord,
+    vehicle: Vehicle?,
+    customer: Customer?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val plate = vehicle?.plateNumber?.ifEmpty { null } ?: "NO PLATE"
+    val customerName = customer?.name?.ifEmpty { null } ?: "Walk-in Customer"
+    val vehicleModel = if (vehicle != null && (vehicle.make.isNotEmpty() || vehicle.model.isNotEmpty())) {
+        "${vehicle.make} ${vehicle.model}".trim()
+    } else {
+        "General Service"
+    }
+
+    val (statusColor, statusLabel) = when (record.status.lowercase()) {
+        "completed" -> EmeraldPrimary to "Completed"
+        "in-progress" -> ElectricBlue to "In Progress"
+        "cancelled" -> MaterialTheme.colorScheme.onSurfaceVariant to "Cancelled"
+        else -> StatusPending to "Pending"
+    }
+
+    // Overdue or Date Calculation
+    val overdueNotice = calculateOverdueNotice(record.expectedDeliveryDate, record.status)
+
+    val formattedTotal = remember(record.totalCost) { formatInr(record.totalCost) }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left Column: Plate + Sub-title (Customer · Model)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Plate Monospace Pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = plate.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                if (overdueNotice != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = overdueNotice.first,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = overdueNotice.second,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            Text(
+                text = "$customerName · $vehicleModel",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Right Column: Status pill + Total Price
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(statusColor)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = statusColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = formattedTotal,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+}
+
+private fun calculateOverdueNotice(dateStr: String?, status: String): Pair<String, Color>? {
+    if (dateStr == null || status.equals("completed", ignoreCase = true)) return null
+    return try {
+        val today = LocalDate.now()
+        val expected = LocalDate.parse(dateStr.trim().take(10))
+        val daysDiff = ChronoUnit.DAYS.between(today, expected)
+
+        when {
+            daysDiff < 0 -> "${-daysDiff}d overdue" to StatusUrgent
+            daysDiff == 0L -> "Due today" to StatusPending
+            daysDiff in 1..2 -> "Due in ${daysDiff}d" to StatusPending
+            else -> null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}

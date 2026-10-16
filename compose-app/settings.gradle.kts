@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "laluzgarage-compose"
 include(":app")
+include(":baselineprofile")

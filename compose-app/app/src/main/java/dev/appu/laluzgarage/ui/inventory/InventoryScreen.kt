@@ -1,282 +1,212 @@
 package dev.appu.laluzgarage.ui.inventory
 
+import dev.appu.laluzgarage.ui.components.rememberContainerSource
+import dev.appu.laluzgarage.ui.components.containerSource
+import dev.appu.laluzgarage.ui.components.LocalContainerTransform
+import dev.appu.laluzgarage.ui.components.TopBarTitleSearch
+import dev.appu.laluzgarage.ui.components.rememberHeaderScrolledAway
+import dev.appu.laluzgarage.ui.components.syncTitleAlpha
+import dev.appu.laluzgarage.ui.components.PinnedBand
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import dev.appu.laluzgarage.data.model.Part
-import dev.appu.laluzgarage.ui.theme.LocalWorkshopColors
+import dev.appu.laluzgarage.data.sync.SyncUiState
+import dev.appu.laluzgarage.ui.components.AccountActions
+import dev.appu.laluzgarage.ui.components.ChipTone
+import dev.appu.laluzgarage.ui.components.LaluzFilterChip
+import dev.appu.laluzgarage.ui.components.LaluzIcons
+import dev.appu.laluzgarage.ui.components.LaluzSearchField
+import dev.appu.laluzgarage.ui.components.LaluzSyncTopBar
+import dev.appu.laluzgarage.ui.components.LaluzTextButton
+import dev.appu.laluzgarage.ui.components.MaxContentWidth
+import dev.appu.laluzgarage.ui.components.OperatorAvatarButton
+import dev.appu.laluzgarage.ui.components.ScreenHeader
+import dev.appu.laluzgarage.ui.components.StatusChip
+import dev.appu.laluzgarage.ui.components.connectedRowShape
+import dev.appu.laluzgarage.ui.theme.Spacing
 
+/** Inventory tab: parts in a connected list with category / low-stock filters and a stock sort. */
 @Composable
 fun InventoryScreen(
-    windowWidthSizeClass: WindowWidthSizeClass,
-    viewModel: InventoryViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
+    inventory: InventoryUi,
+    sync: SyncUiState,
+    searchQuery: String,
+    selectedFilter: String,
+    account: AccountActions,
+    onSearchQueryChange: (String) -> Unit,
+    onFilterChange: (String) -> Unit,
+    onToggleSort: () -> Unit,
+    onOpenPart: (Part) -> Unit,
+    listState: LazyListState = rememberLazyListState()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val showLowStockOnly by viewModel.showLowStockOnly.collectAsState()
-
-    val selectedPartForEdit by viewModel.selectedPartForEdit.collectAsState()
-    val isAddModalOpen by viewModel.isAddModalOpen.collectAsState()
-    val isSaving by viewModel.isSaving.collectAsState()
-
-    val isTablet = windowWidthSizeClass != WindowWidthSizeClass.Compact
-    val workshopColors = LocalWorkshopColors.current
-
-    // Filter logic
-    val filteredParts = remember(uiState.parts, searchQuery, selectedCategory, showLowStockOnly) {
-        uiState.parts.filter { part ->
-            // Category filter
-            val matchesCategory = selectedCategory == "All" || part.category.equals(selectedCategory, ignoreCase = true)
-            if (!matchesCategory) return@filter false
-
-            // Low stock filter
-            if (showLowStockOnly && part.stockQuantity > part.minStockLevel) return@filter false
-
-            // Search query
-            if (searchQuery.isBlank()) return@filter true
-
-            val q = searchQuery.trim().lowercase()
-            part.name.lowercase().contains(q) ||
-            part.category.lowercase().contains(q) ||
-            part.location.lowercase().contains(q)
+    val cs = MaterialTheme.colorScheme
+    val rows = inventory.rows
+    val container = LocalContainerTransform.current
+    Column(Modifier.fillMaxSize().background(cs.surface)) {
+        LaluzSyncTopBar(sync = sync, scrolled = listState.canScrollBackward) {
+            TopBarTitleSearch(
+                title = "Inventory",
+                summary = inventory.summary,
+                headerGone = rememberHeaderScrolledAway(listState),
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                placeholder = "Search parts or category",
+                titleAlpha = syncTitleAlpha(sync)
+            )
+            OperatorAvatarButton(account)
+        }
+        LazyColumn(
+            state = listState,
+            // Shrinks above the keyboard while searching, so the last rows can still be scrolled to.
+            modifier = Modifier.fillMaxSize().imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(bottom = 168.dp)
+        ) {
+            // Title and search scroll away; the filters stay pinned under the top bar, which takes over the title.
+            item(key = "title", contentType = "title") {
+                ScreenHeader("Inventory", inventory.summary, Modifier.widthIn(max = MaxContentWidth).fillMaxWidth())
+            }
+            item(key = "search", contentType = "search") {
+                LaluzSearchField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = "Search parts or category",
+                    onClear = { onSearchQueryChange("") },
+                    modifier = Modifier
+                        .widthIn(max = MaxContentWidth)
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md)
+                )
+            }
+            stickyHeader(key = "filters", contentType = "filters") {
+                PinnedBand {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md)
+                            .semantics { contentDescription = "Filter parts" },
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        inventory.chips.forEach { chip ->
+                            LaluzFilterChip(
+                                label = chip.label,
+                                count = chip.count,
+                                selected = selectedFilter == chip.key,
+                                onClick = { onFilterChange(chip.key) }
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = Spacing.xl, end = Spacing.xs, top = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "${rows.size} ${if (rows.size == 1) "part" else "parts"}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = cs.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        LaluzTextButton(
+                            text = if (inventory.byStock) "Lowest stock first" else "Name A to Z",
+                            onClick = onToggleSort,
+                            icon = LaluzIcons.Sort,
+                            contentDescription = if (inventory.byStock) "Sorted by lowest stock first. Switch to name A to Z"
+                            else "Sorted by name A to Z. Switch to lowest stock first"
+                        )
+                    }
+                }
+            }
+            itemsIndexed(rows, key = { _, row -> row.part.id }, contentType = { _, _ -> "part" }) { index, row ->
+                val source = rememberContainerSource()
+                PartRow(
+                    row = row,
+                    index = index,
+                    count = rows.size,
+                    onClick = { container.from("part:${row.part.id}", source); onOpenPart(row.part) },
+                    modifier = Modifier
+                        .widthIn(max = MaxContentWidth)
+                        .fillMaxWidth()
+                        .padding(start = Spacing.md, end = Spacing.md, bottom = 2.dp)
+                        // Connected rows: mostly the small inner corner.
+                        .containerSource(source, 4.dp)
+                )
+            }
+            if (rows.isEmpty()) {
+                item(key = "empty", contentType = "empty") {
+                    Text(
+                        if (inventory.isLoading) "Loading parts…" else "No parts match.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = cs.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.xl, vertical = 48.dp)
+                    )
+                }
+            }
         }
     }
+}
 
-    if (isAddModalOpen) {
-        PartFormDialog(
-            initialPart = null,
-            onSave = { viewModel.savePart(it) },
-            onDelete = {},
-            onDismiss = { viewModel.isAddModalOpen.value = false },
-            isSaving = isSaving
-        )
-    }
-
-    if (selectedPartForEdit != null) {
-        PartFormDialog(
-            initialPart = selectedPartForEdit,
-            onSave = { viewModel.savePart(it) },
-            onDelete = { viewModel.deletePart(it) },
-            onDismiss = { viewModel.selectedPartForEdit.value = null },
-            isSaving = isSaving
-        )
-    }
-
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.isAddModalOpen.value = true },
-                shape = RoundedCornerShape(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Part")
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
+/** 72dp connected row: name and category · location, price and stock on the right. */
+@Composable
+private fun PartRow(row: PartRowModel, index: Int, count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = connectedRowShape(index, count),
+        color = cs.surfaceContainerLow,
+        contentColor = cs.onSurface,
         modifier = modifier
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            Modifier
+                .heightIn(min = 72.dp)
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // Header: Title & Stats
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "PARTS INVENTORY",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = "${uiState.totalPartsCount} items registered • ${uiState.lowStockCount} low stock alerts",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (uiState.lowStockCount > 0) workshopColors.statusUrgent else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            Column(Modifier.weight(1f)) {
+                Text(row.name, style = MaterialTheme.typography.titleMedium, color = cs.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (row.meta.isNotEmpty()) {
+                    Text(row.meta, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.searchQuery.value = it },
-                placeholder = { Text("Search parts by name, category, or shelf location...") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                )
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Category Filter Chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Low Stock Pill Toggle
-                FilterChip(
-                    selected = showLowStockOnly,
-                    onClick = { viewModel.showLowStockOnly.value = !showLowStockOnly },
-                    label = { Text("Low Stock Only", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = if (showLowStockOnly) workshopColors.statusUrgent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = workshopColors.statusUrgent.copy(alpha = 0.2f),
-                        selectedLabelColor = workshopColors.statusUrgent
-                    )
-                )
-
-                InventoryCategories.forEach { cat ->
-                    val isSelected = selectedCategory == cat
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.selectedCategory.value = cat },
-                        label = { Text(cat, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            } else if (filteredParts.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(56.dp))
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("No spare parts found", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            } else {
-                if (isTablet) {
-                    // Rugged Tablet: 2-Column Responsive Card Grid
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(filteredParts, key = { it.id }) { part ->
-                            PartCard(
-                                part = part,
-                                onClick = { viewModel.selectedPartForEdit.value = part }
-                            )
-                        }
-                    }
-                } else {
-                    // Phone: Single-Column List
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(filteredParts, key = { it.id }) { part ->
-                            PartCard(
-                                part = part,
-                                onClick = { viewModel.selectedPartForEdit.value = part }
-                            )
-                        }
-                    }
-                }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(row.price, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = cs.onSurface)
+                if (row.isLow) StatusChip(row.stockLabel, ChipTone.PENDING)
+                else Text(row.stockLabel, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             }
         }
     }

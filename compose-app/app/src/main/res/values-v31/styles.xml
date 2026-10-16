@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+: the wordmark animates from wireframe to solid (drawable/splash_logo_animated).
+         Android 8-11 keep the static splash_logo from values/styles.xml. -->
+    <style name="Theme.LaluzGarage.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_animated</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="postSplashScreenTheme">@style/Theme.LaluzGarage</item>
+    </style>
+</resources>

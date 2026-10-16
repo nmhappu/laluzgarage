@@ -1,6 +1,8 @@
 package dev.appu.laluzgarage
 
+import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,7 +26,16 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        // Android 12+ animates the splash icon (splash_logo_animated, 800 ms); hold the splash
+        // until it has played so a fast launch doesn't cut it short. Older versions show the
+        // static logo, so they don't wait.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val splashShownAt = SystemClock.uptimeMillis()
+            splashScreen.setKeepOnScreenCondition {
+                SystemClock.uptimeMillis() - splashShownAt < SPLASH_ANIMATION_MS
+            }
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -45,5 +56,10 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private companion object {
+        /** Matches windowSplashScreenAnimationDuration in values-v31/styles.xml. */
+        const val SPLASH_ANIMATION_MS = 800L
     }
 }

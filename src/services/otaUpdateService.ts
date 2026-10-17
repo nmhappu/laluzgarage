@@ -286,8 +286,10 @@ export const OtaUpdateService = {
           eligibleReleases = releases.filter(r => !r.draft);
         }
       } else {
-        // Dev: any non-draft release (pre-release or stable)
-        eligibleReleases = releases.filter(r => !r.draft);
+        // Dev: only dev builds (pre-releases or dev-tagged), never plain stable tags
+        eligibleReleases = releases.filter(
+          r => !r.draft && (r.prerelease || /-(?:dev|alpha|beta|canary|rc)/i.test(r.tag_name))
+        );
       }
 
       // Find the first eligible release that contains an APK asset

@@ -144,11 +144,21 @@ export function AnalyticsDetailDrawer({
             data: ['Labor Revenue', 'Parts Revenue'],
             top: 4,
           },
-          grid: { top: 40, right: 16, bottom: 65, left: 16, containLabel: true },
-          dataZoom: [
-            { type: 'inside', start: 0, end: 100 },
-            { type: 'slider', bottom: 10, height: 20 },
-          ],
+          grid: {
+            top: 40,
+            right: 16,
+            bottom: dates.length > 10 ? 65 : 16,
+            left: 16,
+            containLabel: true,
+          },
+          // Few points (e.g. 7D): zoom/pan only makes the chart slide around
+          dataZoom:
+            dates.length > 10
+              ? [
+                  { type: 'inside', start: 0, end: 100 },
+                  { type: 'slider', bottom: 10, height: 20 },
+                ]
+              : [],
           xAxis: {
             type: 'category',
             data: dates,

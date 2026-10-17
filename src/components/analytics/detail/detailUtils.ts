@@ -234,11 +234,21 @@ export function getDetailChartOption(
           top: 4,
           textStyle: { color: '#94A3B8' },
         },
-        grid: { top: 40, right: 12, bottom: 60, left: 12, containLabel: true },
-        dataZoom: [
-          { type: 'inside', start: 0, end: 100 },
-          { type: 'slider', bottom: 10, height: 18 },
-        ],
+        grid: {
+          top: 40,
+          right: 12,
+          bottom: dates.length > 10 ? 60 : 12,
+          left: 12,
+          containLabel: true,
+        },
+        // Few points (e.g. 7D): zoom/pan only makes the chart slide around
+        dataZoom:
+          dates.length > 10
+            ? [
+                { type: 'inside', start: 0, end: 100 },
+                { type: 'slider', bottom: 10, height: 18 },
+              ]
+            : [],
         xAxis: {
           type: 'category',
           data: dates,

@@ -3,6 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAnalytics, type TimeRangeKey } from '../../../hooks/useAnalytics';
+import { useMonthParam } from '../../../hooks/useMonthParam';
+import { MonthNavigator } from '../MonthNavigator';
 import { useBackHandler } from '../../../contexts/UIContext';
 import { cn } from '../../../lib/utils';
 import type { CardKey } from './types';
@@ -36,7 +38,8 @@ export function AnalyticsDetailPage() {
   const customStart = customStartParam ? new Date(customStartParam) : null;
   const customEnd = customEndParam ? new Date(customEndParam) : null;
 
-  const analyticsData = useAnalytics(rangeParam, customStart, customEnd);
+  const { monthAnchor, isCurrentMonth, shiftMonth } = useMonthParam();
+  const analyticsData = useAnalytics(rangeParam, customStart, customEnd, monthAnchor);
 
   // Validate metric
   const activeCard: CardKey = (VALID_METRICS.includes(metric as CardKey)
@@ -124,10 +127,17 @@ export function AnalyticsDetailPage() {
 
       {/* 2. Scrollable Body Content */}
       <main className="flex-1 overflow-y-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 max-w-5xl mx-auto w-full">
-        <MetricDetailContent
-          activeCard={activeCard}
-          analyticsData={analyticsData}
-        />
+        <MonthNavigator
+          enabled={rangeParam === 'thisMonth'}
+          monthAnchor={monthAnchor}
+          isCurrentMonth={isCurrentMonth}
+          onShift={shiftMonth}
+        >
+          <MetricDetailContent
+            activeCard={activeCard}
+            analyticsData={analyticsData}
+          />
+        </MonthNavigator>
       </main>
     </motion.div>
   );

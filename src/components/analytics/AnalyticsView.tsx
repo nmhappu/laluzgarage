@@ -7,6 +7,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useAnalytics, type TimeRangeKey } from '../../hooks/useAnalytics';
+import { useMonthParam } from '../../hooks/useMonthParam';
+import { MonthNavigator } from './MonthNavigator';
 import {
   RevenueCard,
   JobFlowCard,
@@ -65,7 +67,8 @@ export function Analytics() {
   );
   const [showCustomPicker, setShowCustomPicker] = useState(timeRange === 'custom');
 
-  const analytics = useAnalytics(timeRange, customStart, customEnd);
+  const { monthAnchor, isCurrentMonth, shiftMonth } = useMonthParam();
+  const analytics = useAnalytics(timeRange, customStart, customEnd, monthAnchor);
 
   const timeRangeTabs: Array<{ id: TimeRangeKey; label: string }> = [
     { id: 'today', label: 'Today' },
@@ -117,6 +120,13 @@ export function Analytics() {
           DESKTOP VIEW (Redesigned Executive Bento Grid with Inline Deep-Dive Cards)
           ========================================================================= */}
       <div className="hidden md:block">
+        {timeRange === 'thisMonth' && (
+          <MonthNavigator
+            monthAnchor={monthAnchor}
+            isCurrentMonth={isCurrentMonth}
+            onShift={shiftMonth}
+          />
+        )}
         <DesktopAnalyticsBento
           analytics={analytics}
           timeRange={timeRange}
@@ -204,6 +214,13 @@ export function Analytics() {
           </div>
         )}
 
+        <MonthNavigator
+          enabled={timeRange === 'thisMonth'}
+          monthAnchor={monthAnchor}
+          isCurrentMonth={isCurrentMonth}
+          onShift={shiftMonth}
+          className="space-y-3.5 sm:space-y-5"
+        >
         {/* Executive Quick-Glance KPI Ribbon */}
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-workshop-surface border border-workshop-border/60 rounded-xl p-3">
@@ -441,6 +458,7 @@ export function Analytics() {
             </motion.div>
           </motion.div>
         )}
+        </MonthNavigator>
       </div>
     </>
   );

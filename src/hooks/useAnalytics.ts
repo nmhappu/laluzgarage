@@ -48,7 +48,8 @@ export type {
 export function useAnalytics(
   timeRange: TimeRangeKey = '30d',
   customStart?: Date | null,
-  customEnd?: Date | null
+  customEnd?: Date | null,
+  monthAnchor?: Date | null
 ) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,8 +92,8 @@ export function useAnalytics(
 
   // Compute current & previous date intervals
   const { currentInterval, previousInterval } = useMemo(() => {
-    return calculateAnalyticsInterval(timeRange, customStart, customEnd);
-  }, [timeRange, customStart, customEnd]);
+    return calculateAnalyticsInterval(timeRange, customStart, customEnd, monthAnchor);
+  }, [timeRange, customStart, customEnd, monthAnchor]);
 
   // Maps for O(1) enrichment
   const vehicleMap = useMemo(() => {
@@ -194,22 +195,43 @@ export function useAnalytics(
     [currentRecords, customerMap]
   );
 
-  return {
-    loading,
-    error,
-    refresh: fetchData,
-    recordsCount: currentRecords.length,
-    revenue,
-    jobFlow,
-    turnaround,
-    technicians,
-    inventory,
-    fleet,
-    customers,
-    workload,
-    categories,
-    invoiceTiers,
-    vehicleHealth,
-    topClients,
-  };
+  // Stable identity so chart options are not rebuilt (and re-animated) on unrelated re-renders
+  return useMemo(
+    () => ({
+      loading,
+      error,
+      refresh: fetchData,
+      recordsCount: currentRecords.length,
+      revenue,
+      jobFlow,
+      turnaround,
+      technicians,
+      inventory,
+      fleet,
+      customers,
+      workload,
+      categories,
+      invoiceTiers,
+      vehicleHealth,
+      topClients,
+    }),
+    [
+      loading,
+      error,
+      fetchData,
+      currentRecords.length,
+      revenue,
+      jobFlow,
+      turnaround,
+      technicians,
+      inventory,
+      fleet,
+      customers,
+      workload,
+      categories,
+      invoiceTiers,
+      vehicleHealth,
+      topClients,
+    ]
+  );
 }

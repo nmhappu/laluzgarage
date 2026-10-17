@@ -114,11 +114,25 @@ export interface TopClientsMetrics {
 export function calculateAnalyticsInterval(
   timeRange: TimeRangeKey,
   customStart?: Date | null,
-  customEnd?: Date | null
+  customEnd?: Date | null,
+  monthAnchor?: Date | null
 ): { currentInterval: DateInterval; previousInterval: DateInterval } {
   const now = new Date();
   const end = now;
   let start = subDays(now, 30);
+
+  // A past month: whole calendar month, compared against the month before it
+  if (timeRange === 'thisMonth' && monthAnchor && monthAnchor < startOfMonth(now)) {
+    const mStart = startOfMonth(monthAnchor);
+    const mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 1, 0, 0, 0, -1);
+    return {
+      currentInterval: { start: mStart, end: mEnd },
+      previousInterval: {
+        start: new Date(mStart.getFullYear(), mStart.getMonth() - 1, 1),
+        end: mStart,
+      },
+    };
+  }
 
   if (timeRange === 'today') {
     start = new Date(now.getFullYear(), now.getMonth(), now.getDate());

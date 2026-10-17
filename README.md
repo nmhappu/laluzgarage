@@ -1,17 +1,15 @@
 # LaluZ Garage
 
-LaluZ Garage is an app for running a vehicle repair workshop. It keeps track of customers, their vehicles, repair jobs, spare parts and bills, and it lets staff send WhatsApp messages to customers.
-
-All data is stored in Google Firebase, so every phone, tablet and computer that uses the app sees the same information at the same time.
+Workshop management for vehicle service centres: customers, vehicles, job cards, spare-parts inventory, billing and WhatsApp notifications. Backed entirely by Firebase Authentication and Cloud Firestore; there is no application server.
 
 ---
 
 ## Contents
 
-1. [The apps in this repository](#1-the-apps-in-this-repository)
+1. [Applications](#1-applications)
 2. [Screenshots](#2-screenshots)
 3. [Features](#3-features)
-4. [How it works](#4-how-it-works)
+4. [Architecture](#4-architecture)
 5. [Data model](#5-data-model)
 6. [Sources](#6-sources)
 7. [File structure](#7-file-structure)
@@ -22,25 +20,23 @@ All data is stored in Google Firebase, so every phone, tablet and computer that 
 
 ---
 
-## 1. The apps in this repository
+## 1. Applications
 
-This repository holds three versions of the same app. They all read and write the same Firebase data.
-
-| App | Folder | Built with | Runs on |
+| Application | Path | Stack | Target |
 | :--- | :--- | :--- | :--- |
-| **Web app** | `src/` | React, TypeScript, Vite, Tailwind CSS | Any web browser (desktop and mobile) |
-| **Android app (web wrapper)** | `android/` | Capacitor | Android 7.0 (API 24) and newer. It shows the web app inside an Android app. |
-| **Native Android app** | `compose-app/` | Kotlin, Jetpack Compose, Material 3 | Android 8.0 (API 26) and newer |
+| Web app | `src/` | React 19, TypeScript, Vite, Tailwind CSS v4 | Browser (desktop and mobile layouts) |
+| Android (Capacitor) | `android/` | Capacitor 8 wrapping the web build (`dist/`) | minSdk 24, targetSdk 36, compileSdk 37 |
+| Android (native) | `compose-app/` | Kotlin, Jetpack Compose, Material 3 Expressive, Hilt | minSdk 26, targetSdk 35, compileSdk 37 |
 
-> **Note:** Both Android apps use the same package name, `dev.appu.laluzgarage`. A phone can only have one of them installed at a time.
+All three share one Firebase project and the same Firestore schema. Both Android builds use the application ID `dev.appu.laluzgarage`, so only one can be installed on a device at a time.
 
 ---
 
 ## 2. Screenshots
 
-These screenshots of the native Android app were taken while testing the app on a device. They are stored in [`compose-app/design-qa/`](compose-app/design-qa/).
+Native Android app, captured during device testing ([`compose-app/design-qa/`](compose-app/design-qa/)).
 
-| Sign in | Sign in with email | Dashboard | Services | Job card |
+| Sign in | Sign in (email) | Dashboard | Services | Job card |
 | :---: | :---: | :---: | :---: | :---: |
 | <img src="compose-app/design-qa/01-login-light.png" width="160" alt="Sign in, light"> | <img src="compose-app/design-qa/02-login-mail-light.png" width="160" alt="Sign in with email, light"> | <img src="compose-app/design-qa/03-dashboard-light-1.png" width="160" alt="Dashboard, light"> | <img src="compose-app/design-qa/04-services-light-1.png" width="160" alt="Services, light"> | <img src="compose-app/design-qa/05-jobcard-light-1.png" width="160" alt="Job card, light"> |
 | <img src="compose-app/design-qa/01-login-dark.png" width="160" alt="Sign in, dark"> | <img src="compose-app/design-qa/02-login-mail-dark.png" width="160" alt="Sign in with email, dark"> | <img src="compose-app/design-qa/03-dashboard-dark-1.png" width="160" alt="Dashboard, dark"> | <img src="compose-app/design-qa/04-services-dark-1.png" width="160" alt="Services, dark"> | <img src="compose-app/design-qa/05-jobcard-dark-1.png" width="160" alt="Job card, dark"> |
@@ -49,215 +45,235 @@ These screenshots of the native Android app were taken while testing the app on 
 
 ## 3. Features
 
-| Feature | What it does |
+| Feature | Description |
 | :--- | :--- |
-| **Sign in** | Sign in with a Google account or with an email and password. |
-| **Dashboard** | Shows how many jobs there are, how many are open, how many are done, and which jobs need attention. |
-| **Vehicle intake** | A short 3-step form to check in a vehicle: pick the customer, pick the vehicle, describe the job. |
-| **Services (job cards)** | A list of all repair jobs. Each job has a status, a task checklist, parts used, labour charge and a total bill. |
-| **Vehicles** | A list of all vehicles, with the service history and total spend for each one. |
-| **Inventory** | A list of spare parts with price, stock count, category and shelf location. Parts with low stock are marked. |
-| **WhatsApp messages** | Opens WhatsApp with a ready-made message for the customer when a vehicle is checked in or handed back. |
-| **Analytics** (web app) | Charts for revenue, job flow, turnaround time, technicians, customers, fleet, inventory and workload. |
-| **Settings** | Staff accounts, roles and PINs, WhatsApp message templates, tags, date-wise history, system info and app updates. |
-| **Light and dark theme** | Both themes are available in every app. |
-| **App updates** (Android) | The Android apps can download and install new versions from GitHub Releases. |
+| Authentication | Google sign-in and email/password. New accounts wait for an admin to assign a role. |
+| Dashboard | Service totals with a trend sparkline (45 days on web; 7 / 30 / 45-day ranges on native), open vs. completed jobs, overdue jobs. |
+| Vehicle intake | PIN-gated, three-step wizard: customer → vehicle → job specification. |
+| Services | Job cards with status, task checklist, parts allocation, labour charge and computed total. |
+| Vehicles | Vehicle registry with per-vehicle service history and lifetime spend. |
+| Inventory | Parts with category, price, stock count, minimum stock level and shelf location. |
+| WhatsApp | Templated intake and delivery messages opened through `wa.me` links. |
+| Analytics (web) | Revenue, job flow, turnaround, technician, client spend, fleet, inventory, invoice tiers, retention, service categories, vehicle health and workload heatmap. |
+| Settings | Accounts and roles (admin only), general, WhatsApp templates, tags, date-wise history, system, statistics, app updates. |
+| Theming | Light and dark themes in all apps. |
+| OTA updates (Android) | Download and install APKs from GitHub Releases on a stable or dev channel. |
 
 ---
 
-## 4. How it works
+## 4. Architecture
 
-### 4.1 The big picture
-
-The apps have **no server of their own**. Each app talks straight to Google Firebase:
+### 4.1 Overview
 
 ```text
- Web browser ─┐
- Android app ─┼──►  Firebase Authentication  (who are you?)
- Native app  ─┘     Cloud Firestore          (all workshop data)
-                    firestore.rules          (who may read or change what)
+Web app ─────────────┐
+Android (Capacitor) ─┼──► Firebase Authentication
+Android (native) ────┘    Cloud Firestore  ◄── firestore.rules
 ```
 
-- **Firebase Authentication** checks who the user is.
-- **Cloud Firestore** is the database. The apps listen to it live, so a change made on one device shows up on the others.
-- **`firestore.rules`** decides what each user is allowed to do. Because there is no server, these rules are the only thing that protects the data.
+Clients call Firebase directly. Authorization is enforced only by `firestore.rules`; anyone holding the client config can call Firestore without the UI, so the rules are the security boundary.
 
-### 4.2 Users and roles
+**Data loading:**
 
-Each user has a profile in the `users` collection. A user's **role** decides what they can do. The rules read the `role` field first. If it is missing, they fall back to the older `tags` list (`admin`, `tech` / `technician`, `assistant`).
+- **Web:** most views load collections with one-shot `getDocs` reads and reload after writes. The signed-in user's profile (`users/{uid}`) and the parts list use `onSnapshot` listeners.
+- **Native Android:** repositories use Firestore snapshot listeners with a 100 MB persistent disk cache (`PersistentCacheSettings`). Data is available offline, and offline writes are queued until the device reconnects. `SyncManager` drives a top-bar sync indicator on cold start and on pull-to-refresh.
 
-| Role | Can read data | Can create customers, vehicles and jobs | Can edit customers, vehicles, jobs and parts | Can delete | Can change settings and staff |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| `admin` | Yes | Yes | Yes | Yes | Yes |
-| `technician` | Yes | Yes | Yes | No | No |
-| `assistant` | Yes | Yes | No | No | No |
-| No role yet | No | No | No | No | No |
+### 4.2 Authentication and roles
 
-**What happens when someone signs in:**
+**Sign-in**
 
-1. The app looks for the user's profile. If a manager already added a profile with the same email, that profile is moved to the new account.
-2. If there is no profile, a new one is made with no role.
-3. A user with no role sees a **"Pending approval"** screen until an admin gives them a role.
-4. **First admin:** if no admin exists yet, the first person to sign in becomes the admin. The app then writes `settings/admin_lock` so this cannot happen again.
+- Web: `signInWithPopup` with Google, falling back to `signInWithRedirect` when popups are blocked; `signInWithEmailAndPassword` for email.
+- Capacitor: `@capacitor-firebase/authentication` performs native Google sign-in, then the ID token is passed to the web SDK via `signInWithCredential`.
+- Native: Credential Manager (Google ID) and `signInWithEmailAndPassword`.
+
+**Profile sync** (`syncUserProfile` in `src/contexts/AuthContext.tsx`, `AuthRepository.kt` in the native app):
+
+1. Read `users/{uid}`.
+2. If missing, look for a pre-registered profile with the same email (lowercased). If found, copy it to `users/{uid}` and delete the old document.
+3. Otherwise create `users/{uid}` with `status: offline` and `tags: []` (no role).
+4. **Zero-admin bootstrap:** if the user has no role, query `users` for `role == 'admin'`, then for `tags array-contains 'admin'` (both `limit(1)`). If neither returns a document, write `settings/admin_lock` and promote the user to `role: 'admin'`.
+
+A user without a role sees the **Pending approval** screen.
+
+**Role resolution** (same order in `src/types.ts` and `firestore.rules`):
+
+1. `role` field: `admin`, `technician` or `assistant`.
+2. Legacy `tags`: `admin` → admin; `tech` or `technician` → technician; `assistant` → assistant.
+3. Otherwise unassigned.
+
+The rules also treat a custom auth claim `admin == true` as admin.
+
+**Permissions** (from `firestore.rules`):
+
+| Collection | Read | Create | Update | Delete |
+| :--- | :--- | :--- | :--- | :--- |
+| `customers`, `vehicles`, `serviceRecords` | any role | technician, assistant, admin | technician, admin | admin |
+| `parts` | any role | technician, admin | technician, admin | admin |
+| `settings/*` | any role | admin (`admin_lock`: only while it does not exist) | admin | admin |
+| `users/{uid}` | any signed-in user | self or admin | admin; self only if `role` and `tags` are unchanged | admin, not self |
+| everything else | denied | denied | denied | denied |
+
+`createdAt` is immutable on update. Referenced IDs must match `^[a-zA-Z0-9_\-]+$` and be at most 128 characters.
 
 ### 4.3 Vehicle intake
 
-1. **Advisor PIN.** The service advisor types a 4-digit PIN. The app matches it against the `pin` saved on staff profiles. If the signed-in user has no PIN set, the default PIN `1234` is accepted.
-2. **Step 1: Customer.** Search for an existing customer, or add a new one.
-3. **Step 2: Vehicle.** Pick one of the customer's vehicles, or add a new one (make, model, colour, number plate, key or PIN).
-4. **Step 3: Job.** Enter the odometer reading (or mark it unknown or a dead vehicle), the tasks, the customer's belongings left in the vehicle, remarks and the expected delivery date.
-5. The job is saved with status `pending` and a bill of `0`. The app then offers to send the intake WhatsApp message.
+1. **Advisor PIN (4 digits).** Checked in order: any user whose `pin` matches; the signed-in user's own `pin`, or `1234` (`DEFAULT_ADVISOR_PIN`) if they have none; `1234` when no users are loaded.
+2. **Customer.** Search existing customers or create one inline.
+3. **Vehicle.** Select one of the customer's vehicles or register a new one (make, model, colour, plate, key or PIN).
+4. **Job.** Odometer reading (or *unknown mileage* / *dead vehicle*), tasks, personal belongings, remarks, expected delivery date.
+5. A `serviceRecords` document is created with `status: 'pending'` and `laborCost`, `partsCost`, `totalCost` set to `0`. The intake WhatsApp message is offered.
 
-The web app keeps an unfinished intake form in the browser's session storage, so it is not lost if the page is reloaded. It is cleared when the tab is closed or the job is saved.
+The web app stores an unfinished intake in `sessionStorage` (`laluz_service_intake_draft`). It survives a reload and is cleared on submit or when the tab closes.
 
-### 4.4 Jobs, bills and stock
+### 4.4 Job cards, billing and stock
 
-A job moves through these statuses: `pending` → `in-progress` → `completed` (or `cancelled`).
-
-**The bill:**
+Statuses: `pending` → `in-progress` → `completed`, or `cancelled`.
 
 ```text
-Parts cost = sum of (unit price × quantity) for every part used
-Total cost = Labour charge + Parts cost
+partsCost = Σ (unitPrice × quantity)   over partsUsed[]
+totalCost = laborCost + partsCost
 ```
 
-**Stock:** when a job is saved, the app updates the job and the part stock counts together in one Firestore transaction:
+Saving a job runs a single Firestore transaction (`useServiceHistory.ts`):
 
-- It first gives back the parts the job used before.
-- It then takes away the parts the job uses now.
-- If there are not enough parts in stock, the save stops with an "Insufficient stock" message.
-- When a job is deleted, its parts are put back into stock.
+1. Read the stored record and every referenced part.
+2. Return the previously used quantities to stock.
+3. Deduct the new quantities. If any part would go below zero, abort with `Insufficient stock for <part>`.
+4. Write the new stock levels and the updated record.
 
-**Overdue:** a job is overdue when it is still `pending` or `in-progress` and its expected delivery date has passed. Job cards show "Due Today", "N Days Left" or "N Days Overdue".
+Deleting a job returns its parts to stock in the same way before removing the record.
 
-**Low stock:** a part is marked low when its stock count is at or below its `minStockLevel` (default `5`).
+- **Overdue:** status is `pending` or `in-progress` and `expectedDeliveryDate` is in the past. Cards show *Due Today*, *N Days Left* or *N Days Overdue*.
+- **Low stock:** `stockQuantity <= minStockLevel` (default `5`).
+- **Locale:** currency INR (₹); phone numbers are normalised to `+91`.
 
-Money is shown in Indian Rupees (₹). Phone numbers default to the `+91` country code.
+### 4.5 WhatsApp templates
 
-### 4.5 WhatsApp messages
+Messages open as `https://wa.me/<phone>?text=<urlencoded message>`. The intake and delivery templates are stored at `settings/whatsapp` (`intakeTemplate`, `deliveryTemplate`) and cached in `localStorage`. Defaults live in `src/services/whatsappPresetService.ts`.
 
-The app builds a `https://wa.me/<phone>?text=<message>` link, which opens WhatsApp with the message already typed. There are two templates: one for **intake** and one for **delivery**. Admins can edit them under **Settings → WhatsApp**. They are stored in Firestore at `settings/whatsapp`.
+| Placeholder | Value | Templates |
+| :--- | :--- | :--- |
+| `{customer_name}` | Customer name | intake, delivery |
+| `{vehicle_make}` | Make | intake, delivery |
+| `{vehicle_model}` | Model | intake, delivery |
+| `{vehicle_plate}` | Plate number | intake, delivery |
+| `{job_description}` | Job tasks | intake, delivery |
+| `{vehicle_title}` | Make and model | delivery |
+| `{parts_list}` | Parts used with quantities | delivery |
+| `{labor_cost}` | Formatted labour charge | delivery |
+| `{total_cost}` | Formatted total | delivery |
 
-| Placeholder | Replaced with |
-| :--- | :--- |
-| `{customer_name}` | Customer name |
-| `{vehicle_make}` | Vehicle make |
-| `{vehicle_model}` | Vehicle model |
-| `{vehicle_title}` | Make and model together |
-| `{vehicle_plate}` | Number plate |
-| `{job_description}` | Job tasks |
-| `{parts_list}` | Parts used, with quantities (delivery only) |
-| `{labor_cost}` | Labour charge (delivery only) |
-| `{total_cost}` | Total bill (delivery only) |
+### 4.6 OTA updates (Android)
 
-### 4.6 App updates (Android)
+1. `GET https://api.github.com/repos/nmhappu/laluzgarage/releases`.
+2. Filter by channel (default `stable`, stored in `localStorage` key `laluz_ota_channel`):
+   - `stable`: not a draft, not a pre-release, and the tag has no `-dev`, `-alpha`, `-beta`, `-canary` or `-rc`. Falls back to any non-draft release if none match.
+   - `dev`: any non-draft release.
+3. Take the newest release with an `.apk` asset and compare it to the installed `versionName` using semver. A version without a pre-release suffix ranks above the same version with one.
+4. Download and install through the system package installer. This requires `REQUEST_INSTALL_PACKAGES`.
 
-1. The app reads the release list from `https://api.github.com/repos/nmhappu/laluzgarage/releases`.
-2. It picks the newest release for the chosen channel:
-   - **stable**: releases that are not pre-releases and whose tag has no `-dev`, `-alpha`, `-beta`, `-canary` or `-rc`.
-   - **dev**: any release that is not a draft.
-3. It compares version numbers (semantic versioning). If the release is newer and has an `.apk` file, the app offers to download and install it.
-4. Installing needs the Android permission to install unknown apps (`REQUEST_INSTALL_PACKAGES`).
+Implementations: `src/services/otaUpdateService.ts` with the native plugin `android/app/src/main/java/dev/appu/laluzgarage/OtaUpdaterPlugin.kt` (Capacitor), and `compose-app/.../data/update/AppUpdater.kt` (native). The web app checks 2.5 s after sign-in when auto-check is on.
 
-In the Capacitor app this is done by the native plugin `android/app/src/main/java/dev/appu/laluzgarage/OtaUpdaterPlugin.kt`. In the native app it is done by `compose-app/.../data/update/AppUpdater.kt`.
+### 4.7 Runtime configuration (web)
 
-### 4.7 Configuration at runtime (web app)
+`getEnv(key)` in `src/lib/env.ts` returns the first non-empty value from:
 
-The web app reads each setting (for example `VITE_FIREBASE_API_KEY`) in this order, using the first value it finds (see `src/lib/env.ts`):
+1. `window.__ENV__[key]`, written by the container at start-up into `/env-config.js`
+2. `window.__ENV__[key without the VITE_ prefix]`
+3. `import.meta.env[key]`, inlined by Vite at build time
+4. the supplied default
 
-1. `window.__ENV__["VITE_FIREBASE_API_KEY"]`, which the Docker container writes when it starts.
-2. `window.__ENV__["FIREBASE_API_KEY"]`, the same name without `VITE_`.
-3. `import.meta.env.VITE_FIREBASE_API_KEY`, which Vite takes from the `.env` file at build time.
-4. A default value.
+One image can therefore serve any Firebase project without a rebuild. The Firestore database ID defaults to `(default)`.
 
-This means one Docker image can be pointed at any Firebase project without rebuilding it.
+### 4.8 Build-time colour sync
 
-### 4.8 Working offline (native Android app)
-
-The native app keeps a copy of the data on the device (Firestore persistent cache). It can open and show data with no network, and changes made offline are sent when the device is back online. A small indicator in the top bar shows the sync status.
+The `sync-colours` plugin in `vite.config.ts` reads `src/styles/colours.xml` on `buildStart` and rewrites the matching CSS variables in `src/index.css` (dark, `[data-theme="light"]` and `@theme` blocks). Edit colours in the XML file.
 
 ---
 
 ## 5. Data model
 
-All data lives in Cloud Firestore. The field names below come from `src/types.ts`. The rules in `firestore.rules` check the required fields and their limits.
+Types are defined in `src/types.ts` (web) and `data/model/` (native). Validation comes from `firestore.rules`.
 
-| Collection | Main fields | Checks in `firestore.rules` |
+| Path | Fields | Rule validation |
 | :--- | :--- | :--- |
-| `customers/{id}` | `name`, `phone`, `technicianId`, `createdAt`, `updatedAt` | `name` 1–100 characters, `phone` 1–30 characters |
-| `vehicles/{id}` | `customerId`, `make`, `model`, `color`, `plateNumber`, `passwordOrPin`, `technicianId`, `createdAt`, `updatedAt` | `make` 1–50 characters, `plateNumber` 1–30 characters |
-| `parts/{id}` | `name`, `category`, `stockQuantity`, `price`, `minStockLevel`, `location`, `createdAt`, `updatedAt` | `stockQuantity` is a whole number ≥ 0, `price` ≥ 0 |
-| `serviceRecords/{id}` | `vehicleId`, `customerId`, `technicianId`, `technicianName`, `date`, `expectedDeliveryDate`, `mileage`, `completionMileage`, `isDeadVehicle`, `isUnknownMileage`, `personalItems`, `description`, `remarks`, `finalRemarks`, `status`, `laborCost`, `partsCost`, `totalCost`, `partsUsed[]`, `createdAt`, `updatedAt` | `status` is one of the four statuses, costs ≥ 0, remarks ≤ 2000 characters |
-| `users/{uid}` | `name`, `email`, `photoURL`, `status` (`online` / `offline`), `role`, `pin`, `tags[]`, `createdAt`, `updatedAt` | `role` is `admin`, `technician` or `assistant`; users cannot change their own role or tags |
-| `settings/whatsapp` | `intakeTemplate`, `deliveryTemplate`, `updatedAt` | Only admins can write |
-| `settings/admin_lock` | `adminUid`, `adminEmail`, `bootstrappedAt` | Can be written once, when no admin exists |
+| `customers/{id}` | `name`, `phone`, `technicianId`, `createdAt`, `updatedAt` | `name` 1–100 chars, `phone` 1–30 chars |
+| `vehicles/{id}` | `customerId`, `make`, `model`, `color`, `plateNumber`, `passwordOrPin`, `technicianId`, `createdAt`, `updatedAt` | `make` 1–50, `plateNumber` 1–30, valid `customerId` |
+| `parts/{id}` | `name`, `category`, `stockQuantity`, `price`, `minStockLevel`, `location`, `createdAt`, `updatedAt` | `name` 1–100, `stockQuantity` int ≥ 0, `price` ≥ 0, optional `sku` ≤ 50 |
+| `serviceRecords/{id}` | `vehicleId`, `customerId`, `technicianId`, `technicianName`, `date`, `expectedDeliveryDate`, `mileage`, `completionMileage`, `isDeadVehicle`, `isUnknownMileage`, `personalItems`, `description`, `remarks`, `finalRemarks`, `status`, `laborCost`, `partsCost`, `totalCost`, `partsUsed[]`, `createdAt`, `updatedAt` | valid `status`, costs ≥ 0, `remarks` / `finalRemarks` ≤ 2000 |
+| `users/{uid}` | `name`, `email`, `photoURL`, `status`, `role`, `pin`, `tags[]`, `createdAt`, `updatedAt` | `status` ∈ {online, offline}, `role` ∈ {admin, technician, assistant}, `pin` ≤ 10 chars |
+| `settings/whatsapp` | `intakeTemplate`, `deliveryTemplate`, `updatedAt` | admin write |
+| `settings/admin_lock` | `adminUid`, `adminEmail`, `bootstrappedAt` | write once while absent |
 
-Each item in `partsUsed[]` has `partId`, `name`, `quantity` and `unitPrice`. Anything not listed in the rules is blocked by a "deny all" default.
+`partsUsed[]` items: `{ partId, name, quantity, unitPrice }`.
 
 ---
 
 ## 6. Sources
 
-### 6.1 Web app and Capacitor Android app (`package.json`)
+### 6.1 Web and Capacitor (`package.json`)
 
-| Purpose | Library | Version |
+| Purpose | Package | Version |
 | :--- | :--- | :--- |
-| User interface | [React](https://react.dev/) and React DOM | `^19.3.1` |
-| Page routing | [React Router](https://reactrouter.com/) | `^7.18.4` |
-| Language | [TypeScript](https://www.typescriptlang.org/) | `~5.8.2` |
-| Build tool and dev server | [Vite](https://vitejs.dev/) | `^8.3.4` |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) | `^4.3.3` |
-| Animation | [Motion](https://motion.dev/) | `^13.5.1` |
-| Charts | [Apache ECharts](https://echarts.apache.org/) | `^6.1.0` |
-| Database and sign-in | [Firebase JS SDK](https://firebase.google.com/docs/web/setup) | `^12.19.0` |
-| Android wrapper | [Capacitor](https://capacitorjs.com/) (`core`, `android`, `cli`) | `^8.5.3` |
-| Native Google sign-in | [@capacitor-firebase/authentication](https://github.com/capawesome-team/capacitor-firebase) | `^8.5.2` |
-| Android system bars, back button, splash | `@capacitor/status-bar`, `@capacitor/app`, `@capacitor/splash-screen` | `^8.0.4`, `^8.1.2`, `^8.0.2` |
-| UI parts | [Radix UI](https://www.radix-ui.com/), [Material Web](https://github.com/material-components/material-web) | `^1.8.1`, `^2.5.0` |
-| Icons | [Lucide](https://lucide.dev/), [Material Symbols](https://fonts.google.com/icons) | `^1.57.0`, Google Fonts |
-| Animated numbers | [NumberFlow](https://number-flow.barvian.me/) | `^0.6.2` |
+| UI | [react](https://react.dev/), react-dom | `^19.3.1` |
+| Routing | [react-router-dom](https://reactrouter.com/) | `^7.18.4` |
+| Language | [typescript](https://www.typescriptlang.org/) | `~5.8.2` |
+| Build / dev server | [vite](https://vitejs.dev/), @vitejs/plugin-react | `^8.3.4`, `^6.1.2` |
+| Styling | [tailwindcss](https://tailwindcss.com/), @tailwindcss/vite | `^4.3.3` |
+| Animation | [motion](https://motion.dev/) | `^13.5.1` |
+| Charts | [echarts](https://echarts.apache.org/) | `^6.1.0` |
+| Firebase | [firebase](https://firebase.google.com/docs/web/setup) | `^12.19.0` |
+| Native runtime | [@capacitor/core, android, cli](https://capacitorjs.com/) | `^8.5.3` |
+| Native auth | [@capacitor-firebase/authentication](https://github.com/capawesome-team/capacitor-firebase) | `^8.5.2` |
+| Native plugins | @capacitor/app, status-bar, splash-screen | `^8.1.2`, `^8.0.4`, `^8.0.2` |
+| Components | [radix-ui](https://www.radix-ui.com/), @radix-ui/react-select, [@material/web](https://github.com/material-components/material-web) | `^1.8.1`, `^2.4.1`, `^2.5.0` |
+| Icons | [lucide-react](https://lucide.dev/), [Material Symbols](https://fonts.google.com/icons) | `^1.57.0`, Google Fonts |
+| Numbers | [@number-flow/react](https://number-flow.barvian.me/) | `^0.6.2` |
 | Dates | [date-fns](https://date-fns.org/) | `^4.4.0` |
-| Tests | [Vitest](https://vitest.dev/), [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) | `^5.0.4`, `^5.0.2` |
-| Code checks | [ESLint](https://eslint.org/), typescript-eslint, Firebase security-rules plugin | `^10.12.0` |
+| Class utilities | class-variance-authority, clsx, tailwind-merge | `^0.7.1`, `^2.1.1`, `^3.7.0` |
+| Tests | [vitest](https://vitest.dev/), [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) | `^5.0.4`, `^5.0.2` |
+| Lint | [eslint](https://eslint.org/), typescript-eslint, @firebase/eslint-plugin-security-rules | `^10.12.0`, `^8.71.2`, `^0.0.2` |
 
-Fonts (loaded from Google Fonts): Google Sans, Google Sans Text, Plus Jakarta Sans, JetBrains Mono.
+Fonts (Google Fonts): Google Sans, Google Sans Text, Plus Jakarta Sans, JetBrains Mono.
 
-### 6.2 Native Android app (`compose-app/gradle/libs.versions.toml`)
+The production build splits vendor code into `vendor-react`, `vendor-firebase`, `vendor-charts` and `vendor-ui` chunks.
+
+### 6.2 Native Android (`compose-app/gradle/libs.versions.toml`)
 
 | Purpose | Library | Version |
 | :--- | :--- | :--- |
-| Language | Kotlin | `2.4.21` |
+| Language | Kotlin, KSP | `2.4.21`, `2.3.12` |
 | Build | Android Gradle Plugin | `9.4.1` |
-| User interface | Jetpack Compose BOM | `2026.09.00` |
-| Design components | Material 3 (Expressive) | `1.5.0-beta01` |
-| Screen navigation | Navigation Compose | `2.10.2` |
-| Dependency injection | Hilt | `2.60.1` |
-| Database and sign-in | Firebase BOM (Auth, Firestore) | `35.0.1` |
-| Google sign-in | Credential Manager, Google ID | `1.5.0`, `1.1.1` |
+| UI | Compose BOM | `2026.09.00` |
+| Components | Material 3 (pinned above BOM for Expressive) | `1.5.0-beta01` |
+| Navigation | Navigation Compose | `2.10.2` |
+| DI | Hilt, Hilt Navigation Compose | `2.60.1`, `1.4.0` |
+| Firebase | Firebase BOM (Auth, Firestore) | `35.0.1` |
+| Google sign-in | Credential Manager, Google ID, Play Services Auth | `1.5.0`, `1.1.1`, `21.3.0` |
 | Images | Coil | `2.7.0` |
-| Background work | Kotlin Coroutines | `1.11.0` |
-| Faster start-up | Baseline Profiles, ProfileInstaller | `1.5.0`, `1.4.1` |
+| Concurrency | kotlinx-coroutines | `1.11.0` |
+| Startup | Baseline Profile, ProfileInstaller | `1.5.0`, `1.4.1` |
 
-Fonts (bundled in `res/font/`): Google Sans Flex, Plus Jakarta Sans, JetBrains Mono (licence in `assets/licenses/JetBrainsMono-OFL.txt`).
+Bundled fonts (`res/font/`): Google Sans Flex, Plus Jakarta Sans, JetBrains Mono (OFL, `assets/licenses/JetBrainsMono-OFL.txt`).
 
-### 6.3 Outside services
+### 6.3 External services
 
-| Service | Used for |
+| Service | Use |
 | :--- | :--- |
 | Firebase Authentication | Google and email/password sign-in |
-| Cloud Firestore | All app data |
-| GitHub Releases API | Checking for and downloading Android updates |
-| WhatsApp (`wa.me` links) | Opening pre-filled customer messages |
-| GitHub Container Registry | Hosting the Docker image `ghcr.io/nmhappu/laluzgarage` |
+| Cloud Firestore | Application data |
+| GitHub Releases API | OTA update metadata and APK downloads |
+| WhatsApp (`wa.me`) | Customer messages |
+| GitHub Container Registry | Docker image `ghcr.io/nmhappu/laluzgarage` |
 
-### 6.4 Other documents in this repository
+### 6.4 Related documents
 
-| File | About |
+| File | Content |
 | :--- | :--- |
-| [`compose-app/DESIGN_SYSTEM.md`](compose-app/DESIGN_SYSTEM.md) | Colours, type, shapes and spacing of the native app |
-| [`compose-app/MIGRATION_PLAN.md`](compose-app/MIGRATION_PLAN.md) | Plan for moving from the web wrapper to the native app |
-| [`compose-app/SECURITY_REVIEW.md`](compose-app/SECURITY_REVIEW.md) | Security review of the native app and the Firestore rules |
-| [`security_spec.md`](security_spec.md) | Data rules and the attack cases the Firestore rules must block |
+| [`compose-app/DESIGN_SYSTEM.md`](compose-app/DESIGN_SYSTEM.md) | Native design tokens: colour roles, type, shape, spacing, motion |
+| [`compose-app/MIGRATION_PLAN.md`](compose-app/MIGRATION_PLAN.md) | Capacitor → native Compose migration plan |
+| [`compose-app/SECURITY_REVIEW.md`](compose-app/SECURITY_REVIEW.md) | Security review of the native app and Firestore rules |
+| [`security_spec.md`](security_spec.md) | Data invariants and adversarial payloads for the rules |
 
 ---
 
@@ -265,78 +281,84 @@ Fonts (bundled in `res/font/`): Google Sans Flex, Plus Jakarta Sans, JetBrains M
 
 ```text
 laluzgarage/
-├── src/                          Web app (React)
-│   ├── main.tsx                  Starts the app
-│   ├── App.tsx                   Pages, layout, start-up update check
-│   ├── index.css                 Theme colours, fonts, Tailwind setup
-│   ├── types.ts                  Data types (Customer, Vehicle, Part, ServiceRecord, WorkshopUser)
+├── src/                            Web app
+│   ├── main.tsx                    Entry point
+│   ├── App.tsx                     Routes, layout shell, OTA check
+│   ├── index.css                   Theme variables, fonts, Tailwind config
+│   ├── types.ts                    Domain types and role resolution
 │   ├── components/
-│   │   ├── analytics/            Analytics page and chart cards
-│   │   ├── auth/                 Sign-in, pending approval, loading screen
-│   │   ├── dashboard/            Dashboard cards and recent activity
-│   │   ├── intake/               PIN screen and the 3 intake steps
-│   │   ├── inventory/            Parts list and part forms
-│   │   ├── nav/                  Desktop side bar, mobile top and bottom bars
-│   │   ├── services/             Job cards, edit sheet, delivery bill
-│   │   ├── settings/             All settings pages
-│   │   ├── shared/               Shared pieces (search bar, status badge, WhatsApp popup)
-│   │   ├── ui/                   Small building blocks (buttons, selects, calendar, logo)
-│   │   └── vehicle/              Vehicle cards, forms, history drawer
-│   ├── contexts/                 Sign-in state, theme, UI state
-│   ├── hooks/                    Data loading and page logic
-│   ├── lib/                      Firebase setup, env reader, helpers, analytics maths
-│   ├── services/                 WhatsApp templates, contacts, inventory, app updates
-│   └── styles/colours.xml        Colour list copied into index.css at build time
-├── public/                       Static files (env-config.js stub, logo)
-├── index.html                    Web page shell
-├── android/                      Capacitor Android project (wraps the web app)
-├── compose-app/                  Native Android app
+│   │   ├── analytics/              Analytics view, chart cards, detail pages
+│   │   ├── auth/                   Login, pending approval, loading screen
+│   │   ├── dashboard/              Stat cards, sparkline, recent activity
+│   │   ├── intake/                 Advisor PIN, intake steps 1–3
+│   │   ├── inventory/              Parts list, part form, delete dialog
+│   │   ├── nav/                    Desktop rail, mobile top/bottom bars
+│   │   ├── services/               Job cards, edit sheet, delivery bill
+│   │   ├── settings/               Settings pages
+│   │   ├── shared/                 Search bar, status badge, WhatsApp popup, update prompt
+│   │   ├── ui/                     Primitives: button, select, calendar, logo
+│   │   └── vehicle/                Vehicle cards, form, ledger drawer
+│   ├── contexts/                   AuthContext, ThemeContext, UIContext
+│   ├── hooks/                      Data loading and view logic per screen
+│   ├── lib/                        Firebase init, env resolver, utils, analytics calculators
+│   ├── services/                   WhatsApp presets, inventory, contacts (vCard), OTA
+│   └── styles/colours.xml          Colour source synced into index.css
+├── public/                         env-config.js stub, static assets
+├── index.html                      HTML shell
+├── android/                        Capacitor Android project
+│   └── app/src/main/java/dev/appu/laluzgarage/
+│       ├── MainActivity.kt
+│       └── OtaUpdaterPlugin.kt     APK download/install plugin
+├── compose-app/                    Native Android project
 │   ├── app/src/main/java/dev/appu/laluzgarage/
-│   │   ├── data/                 Models, repositories, sync, updater
-│   │   ├── di/                   Hilt setup (Firebase, offline cache)
-│   │   └── ui/                   Screens: auth, dashboard, intake, inventory,
-│   │                             services, vehicles, settings, theme
-│   ├── baselineprofile/          Start-up speed profile generator
-│   ├── design-qa/                Screenshots from device testing
-│   └── gradle/libs.versions.toml Library versions
-├── docker/                       Container start-up script and Nginx template
-├── .github/workflows/            CI: Docker image and Android release
-├── firestore.rules               Database security rules
-├── firestore.rules.test.ts       Tests for the security rules
-├── capacitor.config.ts           Capacitor settings
-├── vite.config.ts                Vite settings
-├── Dockerfile                    Builds the web app and serves it with Nginx
-├── compose.example.yml           Example Docker Compose file
-├── deploy.ps1                    Windows script: install, build, sync Android
-├── .env.example                  Example settings file
-└── package.json                  Web app scripts and libraries
+│   │   ├── data/                   model, repository, sync, update
+│   │   ├── di/                     Hilt module (Firebase, cache settings)
+│   │   └── ui/                     auth, components, dashboard, intake, inventory,
+│   │                               navigation, services, settings, theme, vehicles
+│   ├── baselineprofile/            Baseline profile generator
+│   ├── design-qa/                  Device test screenshots
+│   └── gradle/libs.versions.toml   Version catalog
+├── docker/
+│   ├── 40-generate-env.sh          Writes env-config.js at container start
+│   └── default.conf.template       Nginx config (envsubst for PORT, SERVER_NAME)
+├── .github/
+│   ├── workflows/                  docker-publish.yml, release.yml
+│   └── dependabot.yml
+├── firestore.rules                 Security rules
+├── firestore.rules.test.ts         Rules tests (emulator)
+├── capacitor.config.ts             Capacitor config
+├── vite.config.ts                  Vite config and colour sync plugin
+├── Dockerfile                      Multi-stage build: Node → Nginx
+├── compose.example.yml             Docker Compose template
+├── nginx.conf                      Static Nginx config (port 2266)
+├── deploy.ps1                      install → build → cap sync android
+├── .env.example                    Environment template
+└── package.json
 ```
 
 ---
 
 ## 8. Development environment
 
-### 8.1 What you need
+### 8.1 Requirements
 
-| Tool | Version | Needed for |
+| Tool | Version | Used by |
 | :--- | :--- | :--- |
-| Node.js | 20 or newer (the Dockerfile uses 20, CI uses 22) | Web app, Capacitor app |
-| npm | Comes with Node.js | Web app, Capacitor app |
-| JDK | 21 | Both Android apps |
-| Android Studio and Android SDK | SDK 37 (compile) | Both Android apps |
-| Gradle | 9.8.1 (downloaded by the `gradlew` wrapper) | Both Android apps |
-| Docker | Any recent version | Only for running the container |
-| Firebase project | — | All apps |
+| Node.js | ≥ 20 (Dockerfile: 20, CI: 22) | Web, Capacitor |
+| npm | bundled with Node.js | Web, Capacitor |
+| JDK | 21 (`sourceCompatibility` / `jvmToolchain`) | Both Android projects |
+| Gradle | 9.8.1 via wrapper | Both Android projects |
+| Gradle daemon JVM | 21 (`android/`), 25 (`compose-app/`); auto-provisioned from `gradle-daemon-jvm.properties` | Both Android projects |
+| Android SDK | Platform 37 | Both Android projects |
+| Docker | — | Container build and run |
+| Firebase CLI | — | Firestore emulator for rules tests (optional) |
 
-The Gradle daemon is set to use JDK 21 in `android/` and JDK 25 in `compose-app/` (see `gradle/gradle-daemon-jvm.properties`). Gradle can download these for you.
+### 8.2 Firebase project
 
-### 8.2 Set up Firebase
-
-1. Create a Firebase project.
-2. Turn on **Authentication** with the **Google** and **Email/Password** providers.
-3. Create a **Cloud Firestore** database. The apps use the database ID `ai-studio-68b1ba2c-7611-4e4f-b6eb-ac12f212fa4e` (set in `compose.example.yml` and in `compose-app/.../di/AppModule.kt`). The web app uses `(default)` unless you set `VITE_FIREBASE_FIRESTORE_DATABASE_ID`.
-4. Publish the rules from `firestore.rules` to that database.
-5. Add a **Web app** in Firebase to get the web settings, and an **Android app** with package name `dev.appu.laluzgarage` to get `google-services.json`.
+1. Enable Authentication with the **Google** and **Email/Password** providers.
+2. Create a Firestore database. The native app uses the named database `ai-studio-68b1ba2c-7611-4e4f-b6eb-ac12f212fa4e` (hard-coded as `FIRESTORE_DATABASE_ID` in `compose-app/.../di/AppModule.kt`, and the default in `compose.example.yml`). The web app uses `VITE_FIREBASE_FIRESTORE_DATABASE_ID`, falling back to `(default)`.
+3. Deploy `firestore.rules` to that database.
+4. Register a Web app (for the `.env` values) and an Android app with package `dev.appu.laluzgarage` (for `google-services.json`).
 
 ### 8.3 Web app
 
@@ -345,124 +367,113 @@ git clone https://github.com/nmhappu/laluzgarage.git
 cd laluzgarage
 npm install
 cp .env.example .env
-```
-
-Fill in `.env` with your Firebase web settings:
-
-| Setting | What it is | Required |
-| :--- | :--- | :--- |
-| `VITE_FIREBASE_API_KEY` | Web API key | Yes |
-| `VITE_FIREBASE_AUTH_DOMAIN` | For example `your-project.firebaseapp.com` | Yes |
-| `VITE_FIREBASE_PROJECT_ID` | Project ID | Yes |
-| `VITE_FIREBASE_STORAGE_BUCKET` | For example `your-project.firebasestorage.app` | Yes |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender ID | Yes |
-| `VITE_FIREBASE_APP_ID` | Web app ID | Yes |
-| `VITE_FIREBASE_FIRESTORE_DATABASE_ID` | Firestore database ID | No (default `(default)`) |
-| `DISABLE_HMR` | Set to `true` to turn off live reload in dev | No |
-| `PORT` | Container port | No (default `2266`) |
-| `SERVER_NAME` | Nginx server name in the container | No (default `localhost`) |
-
-Start the dev server:
-
-```bash
 npm run dev
 ```
 
-The app opens at `http://localhost:3000`.
+The dev server listens on `0.0.0.0:3000`.
 
-**Scripts:**
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `VITE_FIREBASE_API_KEY` | Web API key | required |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `<project>.firebaseapp.com` | required |
+| `VITE_FIREBASE_PROJECT_ID` | Project ID | required |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `<project>.firebasestorage.app` | required |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender ID | required |
+| `VITE_FIREBASE_APP_ID` | Web app ID | required |
+| `VITE_FIREBASE_FIRESTORE_DATABASE_ID` | Firestore database ID | `(default)` |
+| `DISABLE_HMR` | `true` disables Vite HMR | `false` |
+| `PORT` | Container listen port | `2266` |
+| `SERVER_NAME` | Nginx `server_name` | `localhost` |
 
-| Command | What it does |
+In containers, each `VITE_FIREBASE_*` variable can also be given as `FIREBASE_*`.
+
+| Script | Command |
 | :--- | :--- |
-| `npm run dev` | Starts the dev server on port 3000 |
-| `npm run build` | Builds the app into `dist/` |
-| `npm run preview` | Serves the built app to check it |
-| `npm run test` | Runs the unit tests in `src/lib/` (Vitest) |
-| `npm run lint` | Runs ESLint and the TypeScript type check |
-| `npm run docker:build` | Builds the Docker image `laluzgarage` |
-| `npm run docker:run` | Runs that image on port 2266 using `.env` |
-| `npm run mobile:build` | Builds the web app and copies it into `android/` |
-| `npm run mobile:sync` | Builds the web app and syncs Capacitor plugins into `android/` |
-| `npm run mobile:open` | Opens `android/` in Android Studio |
+| `dev` | `vite --port=3000 --host=0.0.0.0` |
+| `build` | `vite build` → `dist/` |
+| `preview` | `vite preview` |
+| `clean` | `rm -rf dist` |
+| `test` | `vitest run src/lib/` |
+| `lint` | `eslint . && tsc --noEmit` |
+| `docker:build` | `docker build -t laluzgarage .` |
+| `docker:run` | `docker run -p 2266:2266 --env-file .env laluzgarage` |
+| `mobile:build` | `npm run build && npx cap copy` |
+| `mobile:sync` | `npm run build && npx cap sync` |
+| `mobile:open` | `npx cap open android` |
 
-**Colours:** when Vite builds, a small plugin in `vite.config.ts` copies the colours from `src/styles/colours.xml` into `src/index.css`. Change colours in the XML file, not in the CSS.
+`firestore.rules.test.ts` is not included in `npm run test`. It requires the Firestore emulator on `localhost:8080`.
 
-**Security rules tests:** `firestore.rules.test.ts` needs the Firestore emulator running on `localhost:8080`. It is not part of `npm run test`.
+### 8.4 Android (Capacitor)
 
-### 8.4 Android app (Capacitor)
-
-1. Put your `google-services.json` in `android/app/`. (See `android/app/google-services.json.example` for the shape.)
-2. Build the web app and copy it into the Android project:
+1. Place `google-services.json` in `android/app/` (template: `google-services.json.example`). Without it the Google Services plugin is skipped.
+2. Build and sync, then open in Android Studio:
    ```bash
    npm run mobile:sync
    ```
-3. Open the project in Android Studio and run it:
    ```bash
    npm run mobile:open
    ```
 
-On Windows, `deploy.ps1` runs `npm install`, `npm run build` and `npx cap sync android` in one go.
+`capacitor.config.ts`: `webDir: dist`, splash background `#07080A` with manual hide, status bar overlays the WebView, and native Firebase Auth with the `google.com` provider. `deploy.ps1` runs `npm install`, `npm run build` and `npx cap sync android`.
 
-### 8.5 Native Android app (Compose)
+### 8.5 Android (native)
 
-1. Put your `google-services.json` in `compose-app/app/`. The build needs this file.
-2. Open the `compose-app/` folder in Android Studio, or build from the command line:
+1. Place `google-services.json` in `compose-app/app/`. The Google Services plugin is always applied, so the build fails without it.
+2. Build:
    ```bash
-   cd compose-app
-   ./gradlew assembleDebug
+   cd compose-app && ./gradlew assembleDebug
    ```
-   The APK is written to `compose-app/app/build/outputs/apk/debug/`.
+   The output is in `compose-app/app/build/outputs/apk/debug/`.
 
-Release builds turn on code shrinking (R8) and use the baseline profile in `app/src/release/generated/baselineProfiles/`.
+Release builds enable R8 minification and resource shrinking and ship the baseline profile from `app/src/release/generated/baselineProfiles/`. Pass `-PcomposeReports` to write Compose compiler stability reports to `build/compose_reports`.
 
-### 8.6 Continuous integration
+### 8.6 CI/CD
 
-| Workflow | Runs when | What it does |
+| Workflow | Trigger | Output |
 | :--- | :--- | :--- |
-| `.github/workflows/docker-publish.yml` | Push or pull request to `main` / `master`, `v*.*.*` tags, manual | Builds the Docker image for `linux/amd64` and `linux/arm64` and pushes it to `ghcr.io` (not on pull requests) |
-| `.github/workflows/release.yml` | `v*` tags, manual | Builds the web app, syncs Capacitor, builds a debug APK from `android/`, and publishes it as a GitHub Release. Tags with `-dev`, `-alpha`, `-beta`, `-canary` or `-rc` go to the **dev** channel as pre-releases; others go to **stable**. |
-| `.github/dependabot.yml` | Monthly | Opens pull requests for npm production dependency updates |
+| `docker-publish.yml` | push / PR to `main` or `master`, tags `v*.*.*`, manual | Multi-arch image (`linux/amd64`, `linux/arm64`) pushed to GHCR, except on PRs. Tags: `latest` (default branch), semver, branch, tag, short SHA. |
+| `release.yml` | tags `v*`, manual (channel, tag, notes) | Node 22 build → `cap sync android` → JDK 21 `assembleDebug` → GitHub Release with `laluzgarage-<channel>-<tag>.apk`. Tags containing `-dev`, `-alpha`, `-beta`, `-canary` or `-rc` are published as pre-releases on the `dev` channel. |
+| `dependabot.yml` | monthly | npm production dependency updates (max 10 open PRs) |
+
+`release.yml` builds and releases `android/` (Capacitor) only. `compose-app/` has no CI workflow.
 
 ---
 
 ## 9. Deployment
 
-The web app can run as a Docker container. The image builds the app with Node.js and serves it with Nginx on port `2266`. When the container starts, `docker/40-generate-env.sh` writes every `VITE_*` and `FIREBASE_*` setting into `env-config.js`, so the same image works with any Firebase project.
+The `Dockerfile` is multi-stage: `node:20-alpine` runs `npm ci` and `npm run build`, and `nginx:alpine` serves `dist/`. At start-up, `docker/40-generate-env.sh` writes every `VITE_*` and `FIREBASE_*` environment variable into `/usr/share/nginx/html/env-config.js`, and Nginx renders `default.conf.template` with `PORT` and `SERVER_NAME`.
 
-**With Docker Compose:**
+Nginx serves the SPA with `try_files … /index.html`, gzip, security headers (CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy), `no-store` on `env-config.js` and one-year immutable caching on `/assets/`. A health check fetches `/` every 30 s.
+
+**Docker Compose**
 
 ```bash
 cp compose.example.yml compose.yml
 ```
-
-Fill in your Firebase settings in `compose.yml` (or in a `.env` file), then start it:
-
 ```bash
 docker compose up -d
 ```
 
-Open `http://localhost:2266`.
-
-**With the Docker command line:**
+**Docker CLI**
 
 ```bash
 docker run -d --name laluzgarage -p 2266:2266 --env-file .env --restart unless-stopped ghcr.io/nmhappu/laluzgarage:latest
 ```
 
-Each setting can be given as `VITE_FIREBASE_…` or as `FIREBASE_…`. The container also has a health check that loads the home page every 30 seconds.
+The app is served on `http://localhost:2266`.
 
 ---
 
 ## 10. Security
 
-- There is no backend server. **The Firestore rules (`firestore.rules`) are the only thing that protects the data.** Always deploy them with the app.
-- Never commit `.env` or `google-services.json`. Both are listed in `.gitignore`.
-- A security review of the native app and the rules, with open findings, is in [`compose-app/SECURITY_REVIEW.md`](compose-app/SECURITY_REVIEW.md). Read it before putting the app into real use.
+- `firestore.rules` is the only access control. Deploy it together with any client change that touches the schema.
+- `.env` and `google-services.json` are git-ignored. Do not commit them.
+- Open findings, including role self-assignment, staff PINs readable by any signed-in account, and the bootstrap path when `settings/admin_lock` is missing, are documented in [`compose-app/SECURITY_REVIEW.md`](compose-app/SECURITY_REVIEW.md).
 
 ---
 
 ## 11. License
 
-This project is licensed under the **GNU Affero General Public License v3.0**. See [`LICENSE`](LICENSE).
+GNU Affero General Public License v3.0. See [`LICENSE`](LICENSE).
 
 Copyright © 2026 Prince Santhosh.

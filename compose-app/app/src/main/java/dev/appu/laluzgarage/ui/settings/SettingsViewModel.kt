@@ -8,11 +8,13 @@ import dev.appu.laluzgarage.data.model.WorkshopUser
 import dev.appu.laluzgarage.data.repository.SettingsRepository
 import dev.appu.laluzgarage.data.repository.WhatsAppPresets
 import dev.appu.laluzgarage.data.update.AppUpdater
+import dev.appu.laluzgarage.data.update.LaunchUpdate
 import dev.appu.laluzgarage.data.update.ReleaseChannel
 import dev.appu.laluzgarage.data.update.ReleaseInfo
 import dev.appu.laluzgarage.ui.services.DEFAULT_DELIVERY_TEMPLATE
 import dev.appu.laluzgarage.ui.services.DEFAULT_INTAKE_TEMPLATE
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,14 +51,19 @@ fun WorkshopUser.skillTags(): List<String> = tags.map { it.trim().lowercase() }.
 
 enum class WhatsAppKind { INTAKE, DELIVERY }
 
+/** What the App Updates status card shows. [revert]: a stable release older than this dev build. */
 sealed interface UpdateState {
     data object Idle : UpdateState
     data object Checking : UpdateState
-    data class Available(val release: ReleaseInfo) : UpdateState
-    data class Downloading(val release: ReleaseInfo, val read: Long, val total: Long) : UpdateState
+    data class Available(val release: ReleaseInfo, val revert: Boolean = false) : UpdateState
+    data class Downloading(val release: ReleaseInfo, val read: Long, val total: Long, val revert: Boolean = false) : UpdateState
     data class UpToDate(val currentVersion: String) : UpdateState
-    data class Failed(val message: String, val release: ReleaseInfo? = null) : UpdateState
 }
+
+enum class UpdateErrorKind { CHECK, DOWNLOAD, DOWNGRADE }
+
+/** Shown above the status card; the card keeps its own state underneath. */
+data class UpdateError(val kind: UpdateErrorKind, val title: String, val message: String)
 
 data class SettingsUiState(
     val users: List<WorkshopUser> = emptyList(),
@@ -67,6 +74,9 @@ data class SettingsUiState(
     val whatsAppDraft: WhatsAppPresets = WhatsAppPresets(),
     val isSavingWhatsApp: Boolean = false,
     val update: UpdateState = UpdateState.Idle,
+    val updateError: UpdateError? = null,
+    /** Newer releases found by the launch check, one per channel; the dashboard shows them as cards. */
+    val launchUpdates: List<LaunchUpdate> = emptyList(),
     val installPermissionNeeded: Boolean = false,
     val channel: ReleaseChannel = ReleaseChannel.STABLE,
     val autoCheck: Boolean = true,
@@ -111,9 +121,56 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Silent launch check behind "Check for updates on launch"; Settings shows the result. */
+    private var launchChecked = false
+
+    /**
+     * Launch check behind "Check for updates on launch": looks at both channels in one request.
+     * Each channel with a newer release (not one the user dismissed) becomes a dashboard card,
+     * and the selected channel's result primes App Updates. Failures stay silent.
+     */
     fun checkOnLaunch() {
-        if (updater.autoCheck && _state.value.update == UpdateState.Idle) checkForUpdates()
+        if (!updater.autoCheck || launchChecked) return
+        launchChecked = true
+        viewModelScope.launch {
+            val results = runCatching { updater.checkAll() }.getOrNull() ?: return@launch
+            val stable = results[ReleaseChannel.STABLE]?.takeIf { it.hasUpdate }?.latest
+            // The dev list includes stable releases; only show a dev card for something stable doesn't offer.
+            val dev = results[ReleaseChannel.DEV]?.takeIf { it.hasUpdate }?.latest?.takeIf { it.tagName != stable?.tagName }
+            val cards = listOfNotNull(
+                stable?.let { LaunchUpdate(ReleaseChannel.STABLE, it) },
+                dev?.let { LaunchUpdate(ReleaseChannel.DEV, it) }
+            ).filter { updater.dismissedTag(it.channel) != it.release.tagName }
+            _state.update { s ->
+                val mine = results[s.channel]
+                val primed = when {
+                    s.update != UpdateState.Idle || mine == null -> s.update
+                    mine.hasUpdate && mine.latest != null -> UpdateState.Available(mine.latest)
+                    !mine.revert -> UpdateState.UpToDate(mine.currentVersion)
+                    else -> s.update
+                }
+                s.copy(launchUpdates = cards, update = primed)
+            }
+        }
+    }
+
+    /** The x on a dashboard card: hide it, and don't show this release on launch again. */
+    fun dismissLaunchUpdate(update: LaunchUpdate) {
+        updater.dismiss(update)
+        _state.update { it.copy(launchUpdates = it.launchUpdates - update) }
+    }
+
+    /** Tapping a dashboard card: App Updates opens on that card's channel with the release ready. */
+    fun openLaunchUpdate(update: LaunchUpdate) {
+        if (_state.value.update is UpdateState.Downloading) return
+        updater.channel = update.channel
+        _state.update {
+            it.copy(
+                channel = update.channel,
+                update = UpdateState.Available(update.release),
+                updateError = null,
+                launchUpdates = it.launchUpdates - update
+            )
+        }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
@@ -184,29 +241,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // ---- Tags ----
-
-    /** Returns false (with a message) when the tag is empty or already exists. */
-    fun addTag(raw: String): Boolean {
-        val tag = raw.trim().lowercase()
-        if (tag.isEmpty()) return false
-        if (_state.value.tags.any { it.name == tag } || tag in RoleTags) {
-            _state.update { it.copy(message = "Tag \"$tag\" already exists.") }
-            return false
-        }
-        repository.addCustomTag(tag)
-        _state.update { it.copy(message = "Tag \"$tag\" created") }
-        return true
-    }
-
-    fun deleteTag(tag: String) {
-        viewModelScope.launch {
-            repository.deleteTag(tag, _state.value.users)
-                .onSuccess { _state.update { it.copy(message = "Tag \"$tag\" deleted") } }
-                .onFailure { e -> _state.update { it.copy(message = "Couldn't remove the tag from every advisor. ${e.message.orEmpty()}") } }
-        }
-    }
-
     // ---- WhatsApp ----
 
     fun setTemplate(kind: WhatsAppKind, text: String) = _state.update {
@@ -235,11 +269,14 @@ class SettingsViewModel @Inject constructor(
 
     // ---- App updates ----
 
+    private var checkJob: Job? = null
+
+    /** Only switches the channel and resets the status card; checking waits for the button. */
     fun setChannel(channel: ReleaseChannel) {
-        if (channel == _state.value.channel) return
+        if (channel == _state.value.channel || _state.value.update is UpdateState.Downloading) return
         updater.channel = channel
-        _state.update { it.copy(channel = channel, update = UpdateState.Idle) }
-        checkForUpdates()
+        checkJob?.cancel()
+        _state.update { it.copy(channel = channel, update = UpdateState.Idle, updateError = null) }
     }
 
     fun setAutoCheck(enabled: Boolean) {
@@ -247,50 +284,110 @@ class SettingsViewModel @Inject constructor(
         _state.update { it.copy(autoCheck = enabled) }
     }
 
+    val isDevBuild: Boolean get() = updater.isDevBuild
+
     fun checkForUpdates() {
         val s = _state.value.update
         if (s is UpdateState.Checking || s is UpdateState.Downloading) return
-        viewModelScope.launch {
-            _state.update { it.copy(update = UpdateState.Checking) }
-            runCatching { updater.check(_state.value.channel) }
-                .onSuccess { result ->
+        val channel = _state.value.channel
+        checkJob = viewModelScope.launch {
+            _state.update { it.copy(update = UpdateState.Checking, updateError = null) }
+            val started = System.currentTimeMillis()
+            val result = runCatching { updater.check(channel) }
+            // Hold "Checking..." briefly so a fast answer doesn't flash past.
+            delay((MinCheckMs - (System.currentTimeMillis() - started)).coerceAtLeast(0))
+            result
+                .onSuccess { r ->
                     _state.update {
                         it.copy(
-                            update = if (result.hasUpdate && result.latest != null) UpdateState.Available(result.latest)
-                            else UpdateState.UpToDate(result.currentVersion)
+                            update = when {
+                                r.hasUpdate && r.latest != null -> UpdateState.Available(r.latest)
+                                r.revert && r.latest != null -> UpdateState.Available(r.latest, revert = true)
+                                else -> UpdateState.UpToDate(r.currentVersion)
+                            }
                         )
                     }
                 }
-                .onFailure {
-                    _state.update { it.copy(update = UpdateState.Failed("Could not reach GitHub. Check the internet connection and try again.")) }
+                .onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    android.util.Log.w("AppUpdater", "Update check failed", e)
+                    _state.update {
+                        it.copy(
+                            update = UpdateState.Idle,
+                            updateError = UpdateError(
+                                UpdateErrorKind.CHECK,
+                                "Update check failed",
+                                "Could not check GitHub (${e.message ?: e.javaClass.simpleName}). Check the internet connection and try again."
+                            )
+                        )
+                    }
                 }
         }
     }
 
     fun downloadAndInstall() {
-        val release = when (val s = _state.value.update) {
-            is UpdateState.Available -> s.release
-            is UpdateState.Failed -> s.release ?: return checkForUpdates()
+        val (release, revert) = when (val s = _state.value.update) {
+            is UpdateState.Available -> s.release to s.revert
             else -> return
         }
+        _state.update { it.copy(updateError = null) }
         val ready = downloaded
-        if (ready != null && ready.exists() && ready.name == release.apkName) return install(ready)
+        if (ready != null && ready.exists() && ready.name == release.apkName) return install(ready, release, revert)
         downloadJob = viewModelScope.launch {
-            _state.update { it.copy(update = UpdateState.Downloading(release, 0, release.apkSize)) }
+            _state.update { it.copy(update = UpdateState.Downloading(release, 0, release.apkSize, revert)) }
             runCatching {
                 updater.download(release) { read, total ->
                     _state.update { s ->
-                        if (s.update is UpdateState.Downloading) s.copy(update = UpdateState.Downloading(release, read, total)) else s
+                        if (s.update is UpdateState.Downloading) s.copy(update = UpdateState.Downloading(release, read, total, revert)) else s
                     }
                 }
             }.onSuccess { file ->
                 downloaded = file
-                _state.update { it.copy(update = UpdateState.Available(release)) }
-                install(file)
+                _state.update { it.copy(update = UpdateState.Available(release, revert)) }
+                install(file, release, revert)
             }.onFailure {
-                _state.update { it.copy(update = UpdateState.Failed("The download stopped. Check the internet connection and try again.", release)) }
+                _state.update {
+                    it.copy(
+                        update = UpdateState.Available(release, revert),
+                        updateError = UpdateError(
+                            UpdateErrorKind.DOWNLOAD,
+                            "Download failed",
+                            "The download stopped. Check the internet connection and try again."
+                        )
+                    )
+                }
             }
         }
+    }
+
+    /** Error card action: check again or download again. A blocked downgrade has nothing to retry. */
+    fun retryUpdate() {
+        when (_state.value.updateError?.kind) {
+            UpdateErrorKind.DOWNLOAD -> downloadAndInstall()
+            UpdateErrorKind.CHECK, null -> checkForUpdates()
+            UpdateErrorKind.DOWNGRADE -> Unit
+        }
+    }
+
+    private fun install(file: File, release: ReleaseInfo, revert: Boolean) {
+        // Android refuses an APK whose versionCode is lower than the installed one.
+        val apkCode = updater.apkVersionCode(file)
+        if (apkCode != null && apkCode < updater.installedVersionCode) {
+            val what = if (revert) "Stable ${release.tagName}" else release.tagName
+            _state.update {
+                it.copy(
+                    installPermissionNeeded = false,
+                    updateError = UpdateError(
+                        UpdateErrorKind.DOWNGRADE,
+                        "Can't install over this build",
+                        "$what was built before the version on this phone, so Android won't install it over the top. " +
+                            "Uninstall LaluZ Garage, then install ${release.tagName} from GitHub."
+                    )
+                )
+            }
+            return
+        }
+        install(file)
     }
 
     private fun install(file: File) {
@@ -312,3 +409,5 @@ class SettingsViewModel @Inject constructor(
         }
     }
 }
+
+private const val MinCheckMs = 700L

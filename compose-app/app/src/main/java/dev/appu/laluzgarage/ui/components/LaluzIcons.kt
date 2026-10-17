@@ -38,6 +38,7 @@ object LaluzIcons {
     val Search by lazy { stroke("Search", 2f, circle(11f, 11f, 7f), "M20 20l-3.5 -3.5") }
     val ArrowBack by lazy { stroke("ArrowBack", 2f, "M19 12H5M12 19l-7 -7 7 -7") }
     val ArrowBackShort by lazy { stroke("ArrowBackShort", 2f, "M19 12H5M11 6l-6 6 6 6") }
+    val ArrowForward by lazy { stroke("ArrowForward", 2.4f, "M5 12h14M13 6l6 6 -6 6") }
     val Moon by lazy { stroke("Moon", 2f, "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z") }
     val Sun by lazy {
         stroke(
@@ -83,6 +84,7 @@ object LaluzIcons {
     val Grid by lazy { stroke("Grid", 2f, "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z") }
     val Inventory by lazy { stroke("Inventory", 2f, "M3 4h18v5H3zM5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1 -1V9M10 13h4") }
     val Plus by lazy { stroke("Plus", 2.5f, "M12 5v14M5 12h14") }
+    val Smartphone by lazy { stroke("Smartphone", 2f, "M9.5 2.5h5a2 2 0 0 1 2 2v15a2 2 0 0 1 -2 2h-5a2 2 0 0 1 -2 -2v-15a2 2 0 0 1 2 -2z", "M11 18.5h2") }
     val Phone by lazy {
         stroke("Phone", 2f, "M5 4h4l2 5 -2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1 -2 2A16 16 0 0 1 3 6a2 2 0 0 1 2 -2z")
     }
@@ -125,6 +127,9 @@ object LaluzIcons {
     // Settings
     val User by lazy { stroke("User", 2f, "M20 21v-2a4 4 0 0 0 -4 -4H8a4 4 0 0 0 -4 4v2M12 11a4 4 0 1 0 0 -8 4 4 0 0 0 0 8z") }
     val TrendUp by lazy { stroke("TrendUp", 2f, "M22 7l-8.5 8.5 -5 -5L2 17M16 7h6v6") }
+    val Rupee by lazy { stroke("Rupee", 2f, "M6 3h12M6 8h12M6 13l8.5 8M6 13h3M9 13c6.667 0 6.667 -10 0 -10") }
+    val CheckCircle by lazy { stroke("CheckCircle", 2f, "M22 11.1V12a10 10 0 1 1 -5.9 -9.1M22 4L12 14l-3 -3") }
+    val Arrival by lazy { stroke("Arrival", 2f, "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-4M10 17l5 -5 -5 -5M15 12H3") }
     val Chat by lazy { stroke("Chat", 2f, "M21 12a8.5 8.5 0 0 1 -12.6 7.4L3 21l1.6 -5.2A8.5 8.5 0 1 1 21 12z") }
     val Tag by lazy { stroke("Tag", 2f, "M20.6 13.4l-7.2 7.2a2 2 0 0 1 -2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01") }
     val Sliders by lazy {
@@ -138,6 +143,15 @@ object LaluzIcons {
         )
     }
     val Download by lazy { stroke("Download", 2f, "M21 15v4a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2v-4M7 10l5 5 5 -5M12 15V3") }
+    val ArrowDownToLine by lazy { stroke("ArrowDownToLine", 2.25f, "M12 4v11M7 10l5 5 5 -5M5 20h14") }
+    val Undo by lazy { stroke("Undo", 2.25f, "M9 14L4 9l5 -5M4 9h10.5a5.5 5.5 0 0 1 0 11H11") }
+    val GitHub by lazy {
+        stroke(
+            "GitHub", 2f,
+            "M15 22v-4a4.8 4.8 0 0 0 -1 -3.5c3 0 6 -2 6 -5.5c0.08 -1.25 -0.27 -2.48 -1 -3.5c0.28 -1.15 0.28 -2.35 0 -3.5c0 0 -1 0 -3 1.5c-2.64 -0.5 -5.36 -0.5 -8 0C6 2 5 2 5 2c-0.3 1.15 -0.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5c-0.39 0.49 -0.68 1.05 -0.85 1.65c-0.17 0.6 -0.22 1.23 -0.15 1.85v4",
+            "M9 18c-4.51 2 -5 -2 -7 -2"
+        )
+    }
     val Refresh by lazy { stroke("Refresh", 2f, "M21 12a9 9 0 1 1 -3 -6.7L21 8M21 3v5h-5") }
     val Shield by lazy { stroke("Shield", 2f, "M12 22s8 -4 8 -10V5l-8 -3 -8 3v7c0 6 8 10 8 10z") }
     val ShieldAlert by lazy { stroke("ShieldAlert", 2f, "M12 22s8 -4 8 -10V5l-8 -3 -8 3v7c0 6 8 10 8 10zM12 8v4M12 16h.01") }

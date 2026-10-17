@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +45,13 @@ class AuthRepository @Inject constructor(
 
     private var profileListenerRegistration: ListenerRegistration? = null
 
+    /**
+     * Uids already checked this session. Without it, a user with no role loops: snapshot -> check ->
+     * syncUserProfile writes the user doc -> snapshot fires again. Cleared on sign-out; the
+     * pending-approval refresh button (refreshProfile) re-checks on demand.
+     */
+    private val preRegCheckedUids = ConcurrentHashMap.newKeySet<String>()
+
     init {
         auth.addAuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
@@ -50,6 +59,7 @@ class AuthRepository @Inject constructor(
             if (user == null) {
                 profileListenerRegistration?.remove()
                 profileListenerRegistration = null
+                preRegCheckedUids.clear()
                 _userProfile.value = null
                 _isAuthLoading.value = false
             } else {
@@ -95,6 +105,10 @@ class AuthRepository @Inject constructor(
     }
 
     private suspend fun checkPreRegisteredEmail(uid: String) = withContext(ioDispatcher) {
+        if (!preRegCheckedUids.add(uid)) {
+            _isAuthLoading.value = false
+            return@withContext
+        }
         val emailLower = auth.currentUser?.email?.lowercase() ?: ""
         if (emailLower.isEmpty()) {
             _isAuthLoading.value = false
@@ -162,6 +176,17 @@ class AuthRepository @Inject constructor(
             }
         }
         return@withContext null
+    }
+
+    /** Skips the write when already online, so repeat syncs don't cost a write each. */
+    private suspend fun markOnline(userRef: DocumentReference, currentStatus: String?) {
+        if (currentStatus == "online") return
+        userRef.update(
+            mapOf(
+                "status" to "online",
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+        ).await()
     }
 
     private suspend fun doSyncUserProfile(authUser: FirebaseUser): WorkshopUser? {
@@ -233,20 +258,10 @@ class AuthRepository @Inject constructor(
                     userRef.set(updates, SetOptions.merge()).await()
                     runCatching { preRegDoc.reference.delete().await() }
                 } else {
-                    userRef.update(
-                        mapOf(
-                            "status" to "online",
-                            "updatedAt" to FieldValue.serverTimestamp()
-                        )
-                    ).await()
+                    markOnline(userRef, userSnap.getString("status"))
                 }
             } else {
-                userRef.update(
-                    mapOf(
-                        "status" to "online",
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                ).await()
+                markOnline(userRef, userSnap.getString("status"))
             }
         }
 

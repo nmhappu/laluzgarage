@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.UserRole
 import dev.appu.laluzgarage.data.model.WorkshopUser
 import dev.appu.laluzgarage.ui.components.BottomActionBar
@@ -82,7 +83,7 @@ import dev.appu.laluzgarage.ui.theme.Motion
 import dev.appu.laluzgarage.ui.rememberLastNonNull
 import dev.appu.laluzgarage.ui.theme.Spacing
 
-enum class SettingsRoute { HOME, TEAM, MEMBER, STATS, WHATSAPP, TAGS, GENERAL, UPDATES, THEME }
+enum class SettingsRoute { HOME, TEAM, MEMBER, STATS, STAT_DETAIL, WHATSAPP, UPDATES, THEME }
 
 /** The signed-in account shown at the top of Settings. */
 data class SettingsProfile(val name: String, val email: String, val role: UserRole?, val uid: String?, val photoUrl: String? = null)
@@ -94,6 +95,7 @@ data class SettingsProfile(val name: String, val email: String, val role: UserRo
 @Composable
 fun SettingsHost(
     viewModel: SettingsViewModel,
+    records: List<ServiceRecord>,
     profile: SettingsProfile,
     isDarkTheme: Boolean,
     themeMode: ThemeMode,
@@ -101,27 +103,39 @@ fun SettingsHost(
     onThemeModeChange: (ThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onToggleTheme: () -> Unit,
-    onSwitchOperator: () -> Unit,
     onLogOut: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    /** Where Settings opens; App Updates when coming from a dashboard update card. */
+    startRoute: SettingsRoute = SettingsRoute.HOME
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var route by rememberSaveable { mutableStateOf(SettingsRoute.HOME) }
+    var route by rememberSaveable { mutableStateOf(startRoute) }
     var whatsAppKind by rememberSaveable { mutableStateOf(WhatsAppKind.INTAKE) }
+    var statMetric by rememberSaveable { mutableStateOf(StatMetric.REVENUE) }
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.onOpen() }
 
     val back: () -> Unit = {
         when (route) {
-            SettingsRoute.HOME -> onClose()
+            // Opened straight onto a page (dashboard update card): back returns to where it came from.
+            SettingsRoute.HOME, startRoute -> onClose()
             SettingsRoute.MEMBER -> { viewModel.closeMember(); route = SettingsRoute.TEAM }
             SettingsRoute.WHATSAPP -> { viewModel.discardTemplates(); route = SettingsRoute.HOME }
+            SettingsRoute.STAT_DETAIL -> route = SettingsRoute.STATS
             else -> route = SettingsRoute.HOME
         }
     }
     BackHandler(onBack = back)
 
     // Edit member is driven by the form; if it vanished (saved elsewhere, process death) go back to the list.
-    val shown = if (route == SettingsRoute.MEMBER && state.member == null) SettingsRoute.TEAM else route
+    // A restored Statistics route falls back to home if the account is no longer an admin.
+    val statsLocked = profile.role != UserRole.ADMIN &&
+        (route == SettingsRoute.STATS || route == SettingsRoute.STAT_DETAIL)
+    val shown = when {
+        route == SettingsRoute.MEMBER && state.member == null -> SettingsRoute.TEAM
+        statsLocked -> SettingsRoute.HOME
+        else -> route
+    }
+    androidx.compose.runtime.LaunchedEffect(statsLocked) { if (statsLocked) route = SettingsRoute.HOME }
     // Back clears the form before the transition runs; keep drawing it while Edit member slides out.
     val heldMember = rememberLastNonNull(state.member)
 
@@ -147,7 +161,6 @@ fun SettingsHost(
                 onBack = back,
                 onToggleTheme = onToggleTheme,
                 onOpen = { route = it },
-                onSwitchOperator = onSwitchOperator,
                 onLogOut = onLogOut
             )
             SettingsRoute.TEAM -> TeamScreen(
@@ -174,7 +187,12 @@ fun SettingsHost(
                     onDelete = { viewModel.deleteMember { route = SettingsRoute.TEAM } }
                 )
             }
-            SettingsRoute.STATS -> StatisticsScreen(onBack = back)
+            SettingsRoute.STATS -> StatisticsMenuScreen(
+                records = records,
+                onOpen = { statMetric = it; route = SettingsRoute.STAT_DETAIL },
+                onBack = back
+            )
+            SettingsRoute.STAT_DETAIL -> StatisticsDetailScreen(metric = statMetric, records = records, onBack = back)
             SettingsRoute.WHATSAPP -> WhatsAppScreen(
                 kind = whatsAppKind,
                 draft = state.whatsAppDraft,
@@ -188,15 +206,6 @@ fun SettingsHost(
                 onSave = viewModel::saveTemplates,
                 onBack = back
             )
-            SettingsRoute.TAGS -> TagsScreen(
-                tags = state.tags,
-                message = state.message,
-                onMessageShown = viewModel::clearMessage,
-                onAdd = viewModel::addTag,
-                onDelete = viewModel::deleteTag,
-                onBack = back
-            )
-            SettingsRoute.GENERAL -> GeneralScreen(onBack = back)
             SettingsRoute.UPDATES -> AppUpdatesScreen(viewModel = viewModel, state = state, onBack = back)
             SettingsRoute.THEME -> ThemeScreen(
                 themeMode = themeMode,
@@ -213,15 +222,21 @@ fun SettingsHost(
 // Settings home
 // ---------------------------------------------------------------------------
 
-private class SettingsEntry(val route: SettingsRoute, val title: String, val supporting: String, val icon: () -> androidx.compose.ui.graphics.vector.ImageVector)
+private class SettingsEntry(
+    val route: SettingsRoute,
+    val title: String,
+    val supporting: String,
+    val tone: SettingsTone,
+    val icon: () -> androidx.compose.ui.graphics.vector.ImageVector
+)
 
+// Theme's supporting line is the live mode summary, filled in when the list is drawn.
 private val Entries = listOf(
-    SettingsEntry(SettingsRoute.TEAM, "Team Management", "Advisors, technicians & role permissions") { LaluzIcons.User },
-    SettingsEntry(SettingsRoute.STATS, "Statistics", "Workshop throughput, financials & business intelligence") { LaluzIcons.TrendUp },
-    SettingsEntry(SettingsRoute.WHATSAPP, "WhatsApp", "Vehicle intake & delivery notification templates") { LaluzIcons.Chat },
-    SettingsEntry(SettingsRoute.TAGS, "Tags", "Skills, technician departments & service labels") { LaluzIcons.Tag },
-    SettingsEntry(SettingsRoute.GENERAL, "General Settings", "Workshop identifier, currency & GST configuration") { LaluzIcons.Sliders },
-    SettingsEntry(SettingsRoute.UPDATES, "App Updates", "GitHub release channels, APK installation & build information") { LaluzIcons.Download }
+    SettingsEntry(SettingsRoute.TEAM, "Team Management", "Advisors, technicians & role permissions", SettingsTone.TEAM) { LaluzIcons.User },
+    SettingsEntry(SettingsRoute.THEME, "Theme", "", SettingsTone.THEME) { LaluzIcons.Palette },
+    SettingsEntry(SettingsRoute.STATS, "Statistics", "Workshop throughput, financials & business intelligence", SettingsTone.STATS) { LaluzIcons.TrendUp },
+    SettingsEntry(SettingsRoute.WHATSAPP, "WhatsApp", "Vehicle intake & delivery notification templates", SettingsTone.WHATSAPP) { LaluzIcons.WhatsApp },
+    SettingsEntry(SettingsRoute.UPDATES, "App Updates", "GitHub release channels, APK installation & build information", SettingsTone.UPDATES) { LaluzIcons.Download }
 )
 
 fun UserRole?.roleLabel(): String = when (this) {
@@ -242,7 +257,6 @@ private fun SettingsHomeScreen(
     onBack: () -> Unit,
     onToggleTheme: () -> Unit,
     onOpen: (SettingsRoute) -> Unit,
-    onSwitchOperator: () -> Unit,
     onLogOut: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
@@ -314,44 +328,31 @@ private fun SettingsHomeScreen(
             Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(Spacing.xxl)
         ) {
-            // System / Light / Dark and Material You; the top-bar toggle only flips light or dark.
-            SettingsNavRow(
-                icon = LaluzIcons.Palette,
-                title = "Theme",
-                supporting = themeSummary,
-                shape = connectedRowShape(0, 1),
-                onClick = { onOpen(SettingsRoute.THEME) }
-            )
+            // Statistics carries workshop financials, so only admins see it.
+            val entries = if (profile.role == UserRole.ADMIN) Entries else Entries.filter { it.route != SettingsRoute.STATS }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Entries.forEachIndexed { i, e ->
+                entries.forEachIndexed { i, e ->
                     SettingsNavRow(
                         icon = e.icon(),
                         title = e.title,
-                        supporting = e.supporting,
-                        shape = connectedRowShape(i, Entries.size),
+                        // Theme: System / Light / Dark and Material You; the top-bar toggle only flips light or dark.
+                        supporting = if (e.route == SettingsRoute.THEME) themeSummary else e.supporting,
+                        shape = connectedRowShape(i, entries.size),
                         chip = if (e.route == SettingsRoute.UPDATES && updateAvailable) "New" else null,
+                        tone = e.tone,
                         onClick = { onOpen(e.route) }
                     )
                 }
             }
-            // Moved here from the avatar menu, which now opens Settings directly.
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                SettingsNavRow(
-                    icon = LaluzIcons.SwitchUser,
-                    title = "Switch operator",
-                    supporting = "Hand this device to another advisor with their PIN",
-                    shape = connectedRowShape(0, 2),
-                    onClick = onSwitchOperator
-                )
-                SettingsNavRow(
-                    icon = LaluzIcons.SignOut,
-                    title = "Log out",
-                    supporting = "End active session on this device",
-                    shape = connectedRowShape(1, 2),
-                    tint = cs.error,
-                    onClick = { confirmLogOut = true }
-                )
-            }
+            SettingsNavRow(
+                icon = LaluzIcons.SignOut,
+                title = "Log out",
+                supporting = "End active session on this device",
+                shape = connectedRowShape(0, 1),
+                tint = cs.error,
+                tone = SettingsTone.LOGOUT,
+                onClick = { confirmLogOut = true }
+            )
         }
     }
 
@@ -566,170 +567,6 @@ private fun EditMemberScreen(
             confirmText = "Delete",
             onConfirm = { confirmDelete = false; onDelete() },
             onDismiss = { confirmDelete = false }
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Statistics (placeholder) and General
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun StatisticsScreen(onBack: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    SettingsPage("Statistics", onBack, null, {}) {
-        Column(
-            Modifier.padding(start = Spacing.xl, end = Spacing.xl, top = 120.dp, bottom = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Box(
-                Modifier
-                    .size(64.dp)
-                    .background(cs.surfaceContainerHigh, LaluzShape.card),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(LaluzIcons.TrendUp, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(32.dp))
-            }
-            Text(
-                "Statistics are coming soon",
-                style = MaterialTheme.typography.headlineMedium,
-                color = cs.onSurface,
-                modifier = Modifier.semantics { heading() }
-            )
-            Text(
-                "Workshop throughput, financials and business insights will appear here.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = cs.onSurfaceVariant
-            )
-        }
-    }
-}
-
-private val GeneralRows = listOf(
-    Triple("Workshop identifier", "The name used on customer correspondence and reports.", "LaluZ Garage"),
-    Triple("Base currency", "Default billing and pricing currency.", "INR (₹)"),
-    Triple("GST billing", "Standard sales tax rate for billing items and invoices.", "18% (GST)")
-)
-
-@Composable
-private fun GeneralScreen(onBack: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    SettingsPage("General Settings", onBack, null, {}) {
-        Column(
-            Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            GeneralRows.forEachIndexed { i, (title, sub, value) ->
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(cs.surfaceContainerLow, connectedRowShape(i, GeneralRows.size))
-                        .padding(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, color = cs.onSurface)
-                        Text(sub, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
-                    }
-                    Box(
-                        Modifier
-                            .height(40.dp)
-                            .background(cs.surfaceContainerHigh, MaterialTheme.shapes.medium)
-                            .padding(horizontal = Spacing.md),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(value, style = MaterialTheme.typography.labelLarge, color = cs.onSurface)
-                    }
-                }
-            }
-        }
-        Text(
-            "These values are fixed for the workshop and can't be edited here.",
-            style = MaterialTheme.typography.bodySmall,
-            color = cs.onSurfaceVariant,
-            modifier = Modifier.padding(start = Spacing.xl, end = Spacing.xl, top = Spacing.md, bottom = Spacing.xxl)
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tags
-// ---------------------------------------------------------------------------
-
-private val TagChars = Regex("[^a-z0-9_-]")
-
-@Composable
-private fun TagsScreen(
-    tags: List<TagUsage>,
-    message: String?,
-    onMessageShown: () -> Unit,
-    onAdd: (String) -> Boolean,
-    onDelete: (String) -> Unit,
-    onBack: () -> Unit
-) {
-    val cs = MaterialTheme.colorScheme
-    var newTag by rememberSaveable { mutableStateOf("") }
-    var toDelete by rememberSaveable { mutableStateOf<String?>(null) }
-    SettingsPage("Tags", onBack, message, onMessageShown) {
-        Column(
-            Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                LaluzFilledField(
-                    value = newTag,
-                    onValueChange = { newTag = it.lowercase().replace(TagChars, "").take(20) },
-                    label = "Create new tag",
-                    placeholder = "e.g. mechanic",
-                    supportingText = "Lowercase letters, numbers, hyphen and underscore. Up to 20 characters.",
-                    imeAction = androidx.compose.ui.text.input.ImeAction.Done
-                )
-                PillButton(
-                    text = "Add tag",
-                    onClick = { if (onAdd(newTag)) newTag = "" },
-                    containerColor = cs.primary,
-                    contentColor = cs.onPrimary,
-                    enabled = newTag.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                SettingsSectionLabel("Manage tags · ${tags.size}")
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    tags.forEachIndexed { i, tag ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 72.dp)
-                                .background(cs.surfaceContainerLow, connectedRowShape(i, tags.size))
-                                .padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            TwoLine(
-                                tag.name,
-                                "${tag.count} ${if (tag.count == 1) "advisor" else "advisors"}",
-                                Modifier.weight(1f),
-                                ellipsize = false
-                            )
-                            IconButton(onClick = { toDelete = tag.name }, modifier = Modifier.size(48.dp)) {
-                                Icon(LaluzIcons.TrashRound, contentDescription = "Delete tag ${tag.name}", tint = cs.error)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    toDelete?.let { name ->
-        val count = tags.firstOrNull { it.name == name }?.count ?: 0
-        SettingsDialog(
-            title = "Delete tag?",
-            body = "The tag \"$name\" will be removed from $count ${if (count == 1) "advisor" else "advisors"}. This action cannot be undone.",
-            confirmText = "Delete",
-            onConfirm = { toDelete = null; onDelete(name) },
-            onDismiss = { toDelete = null }
         )
     }
 }

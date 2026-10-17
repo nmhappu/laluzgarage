@@ -7,6 +7,25 @@ plugins {
     alias(libs.plugins.baselineprofile)
 }
 
+/** Version of local builds. Stable: MAJOR.MINOR.PATCH (2.0.0). Dev: MAJOR.MINOR.PATCH-dev[.N] (2.1.0-dev). */
+val AppVersion = "2.1.0"
+
+/**
+ * versionCode from the version name, so Android's install order matches the tags:
+ * MAJOR·10^7 + MINOR·10^5 + PATCH·10^3 + (999 for stable, N for -dev.N, 0 for -dev).
+ * 2.1.0-dev → 20100000, 2.1.0-dev.3 → 20100003, 2.1.0 → 20100999.
+ */
+fun versionCodeOf(version: String): Int {
+    val m = Regex("""^(\d+)\.(\d+)\.(\d+)(?:-dev(?:\.(\d+))?)?$""").matchEntire(version)
+        ?: throw GradleException("Version \"$version\" must look like 2.0.0 (stable) or 2.1.0-dev / 2.1.0-dev.2 (dev).")
+    val (major, minor, patch) = m.destructured
+    val pre = m.groupValues[4]
+    val isDev = version.contains("-dev")
+    require(minor.toInt() < 100 && patch.toInt() < 100) { "Minor and patch must be below 100: $version" }
+    val suffix = if (isDev) (pre.toIntOrNull() ?: 0).coerceAtMost(998) else 999
+    return major.toInt() * 10_000_000 + minor.toInt() * 100_000 + patch.toInt() * 1_000 + suffix
+}
+
 android {
     namespace = "dev.appu.laluzgarage"
     compileSdk = 37
@@ -15,8 +34,11 @@ android {
         applicationId = "dev.appu.laluzgarage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        // CI passes the release tag as appVersionName; local builds use AppVersion. The updater
+        // compares versionName to the tags, and versionCode follows the same order.
+        val appVersionName = ((project.findProperty("appVersionName") as String?) ?: AppVersion).removePrefix("v").removePrefix("V")
+        versionName = appVersionName
+        versionCode = versionCodeOf(appVersionName)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -24,8 +46,22 @@ android {
         }
     }
 
+    // Release signing comes from env vars (CI secrets); local builds without them stay unsigned.
+    val releaseKeystore = System.getenv("RELEASE_KEYSTORE_PATH")
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

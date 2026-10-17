@@ -1,7 +1,10 @@
 package dev.appu.laluzgarage.ui.auth
 
 import androidx.activity.compose.BackHandler
+import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -33,6 +36,12 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,11 +69,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.appu.laluzgarage.ui.components.LaluzFilledField
 import dev.appu.laluzgarage.ui.components.LaluzIcons
+import dev.appu.laluzgarage.ui.components.LOGO_DRAW_MS
 import dev.appu.laluzgarage.ui.components.LaluzLogo
 import dev.appu.laluzgarage.ui.components.TonalRowButton
 import dev.appu.laluzgarage.ui.theme.Spacing
+import kotlinx.coroutines.delay
 import kotlin.math.hypot
 import kotlin.math.max
+
+private const val LOGO_DRAW_DELAY_MS = 200L
 
 private const val LICENSE_URL = "https://github.com/nmhappu/laluzgarage/blob/master/LICENSE"
 
@@ -104,24 +117,41 @@ fun LoginScreen(
     BackHandler(enabled = isMail) { onSetAuthMethod(AuthMethod.IDLE) }
     val glow = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.10f else 0.07f)
 
-    Box(
+    // The logo writes itself once when the login screen opens; coming back from the mail view
+    // or rotating does not replay it. With animations off it shows solid straight away.
+    var logoDrawn by rememberSaveable { mutableStateOf(false) }
+    val logoProgress = remember { Animatable(if (logoDrawn || !ValueAnimator.areAnimatorsEnabled()) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (logoProgress.value < 1f) {
+            delay(LOGO_DRAW_DELAY_MS)
+            logoProgress.animateTo(1f, tween(LOGO_DRAW_MS, easing = LinearEasing))
+        }
+        logoDrawn = true
+    }
+
+    AnimatedContent(
+        targetState = isMail,
+        transitionSpec = {
+            val fwd = targetState
+            val spec = tween<androidx.compose.ui.unit.IntOffset>(300, easing = dev.appu.laluzgarage.ui.theme.Motion.emphasized)
+            (slideInHorizontally(spec) { if (fwd) it else -it / 4 } togetherWith
+                slideOutHorizontally(spec) { if (fwd) -it / 4 else it } using null)
+                .apply { targetContentZIndex = if (fwd) 1f else -1f }
+        },
+        label = "loginView",
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
-            .authGlow(glow, 0.20f, 0.38f)
-            .safeDrawingPadding()
-    ) {
-        AnimatedContent(
-            targetState = isMail,
-            transitionSpec = {
-                val fwd = targetState
-                val spec = tween<androidx.compose.ui.unit.IntOffset>(300, easing = dev.appu.laluzgarage.ui.theme.Motion.emphasized)
-                (slideInHorizontally(spec) { if (fwd) it else -it / 4 } togetherWith
-                    slideOutHorizontally(spec) { if (fwd) -it / 4 else it } using null)
-                    .apply { targetContentZIndex = if (fwd) 1f else -1f }
-            },
-            label = "loginView"
-        ) { mail ->
+    ) { mail ->
+        // Each view paints its own surface + glow, so the one sliding in on top hides the one
+        // beneath it instead of the two bleeding through each other.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .authGlow(glow, 0.20f, 0.38f)
+                .safeDrawingPadding()
+        ) {
             if (mail) {
                 MailView(
                     state = state,
@@ -137,7 +167,8 @@ fun LoginScreen(
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
                     onGoogleSignIn = onGoogleSignIn,
-                    onMail = { onSetAuthMethod(AuthMethod.EMAIL) }
+                    onMail = { onSetAuthMethod(AuthMethod.EMAIL) },
+                    logoProgress = { logoProgress.value }
                 )
             }
         }
@@ -150,7 +181,8 @@ private fun StartView(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onGoogleSignIn: (android.content.Context) -> Unit,
-    onMail: () -> Unit
+    onMail: () -> Unit,
+    logoProgress: () -> Float
 ) {
     val context = LocalContext.current
     val cs = MaterialTheme.colorScheme
@@ -197,7 +229,7 @@ private fun StartView(
         ) {
             Spacer(Modifier.weight(3f))
             Column(Modifier.padding(horizontal = Spacing.xl).widthIn(max = 560.dp)) {
-                LaluzLogo()
+                LaluzLogo(drawProgress = logoProgress)
                 Text(
                     "Welcome to LaluZ Garage",
                     style = MaterialTheme.typography.headlineSmall.copy(lineHeight = 36.sp),

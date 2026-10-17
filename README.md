@@ -172,6 +172,8 @@ Messages open as `https://wa.me/<phone>?text=<urlencoded message>`. The intake a
 3. Take the newest release with an `.apk` asset and compare it to the installed `versionName` using semver. A version without a pre-release suffix ranks above the same version with one.
 4. Download and install through the system package installer. This requires `REQUEST_INSTALL_PACKAGES`.
 
+Versioning (native app): the current version is `2.1.0`, set as `AppVersion` in `compose-app/app/build.gradle.kts`. Stable releases are tagged `MAJOR.MINOR.PATCH` (`2.0.0`) and dev builds `MAJOR.MINOR.PATCH-dev` or `-dev.N` (`2.1.0-dev`, `2.1.0-dev.2`); a leading `v` is accepted. Pushing a tag runs `.github/workflows/release.yml`, which picks the channel from the tag and rejects any other format. `versionCode` is computed from the version (`MAJOR·10^7 + MINOR·10^5 + PATCH·10^3 + 999` for stable, `+ N` for `-dev.N`), so Android's install order matches the tags.
+
 Implementations: `src/services/otaUpdateService.ts` with the native plugin `android/app/src/main/java/dev/appu/laluzgarage/OtaUpdaterPlugin.kt` (Capacitor), and `compose-app/.../data/update/AppUpdater.kt` (native). The web app checks 2.5 s after sign-in when auto-check is on.
 
 ### 4.7 Runtime configuration (web)

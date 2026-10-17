@@ -245,6 +245,7 @@ fun ServicesScreen(
                                 DateRangePopup(
                                     from = list.dateFrom,
                                     to = list.dateTo,
+                                    arrivalDays = list.arrivalDays,
                                     onChange = onDateRangeChange,
                                     onDismiss = { showDatePicker = false }
                                 )
@@ -475,7 +476,7 @@ private fun JobCard(
                 Row(verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                         Text(card.plate, style = LaluzType.plateCard, color = cs.onSurface)
-                        Text(if (compact) card.vehicleModel else card.vehicle, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (compact) card.vehicleModel else card.vehicle, style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Spacer(Modifier.size(Spacing.xs))
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {

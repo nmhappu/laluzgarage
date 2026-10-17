@@ -1,5 +1,10 @@
 package dev.appu.laluzgarage.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +53,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.layout
@@ -184,7 +190,7 @@ fun ContactRow(
             Text(name, style = MaterialTheme.typography.titleMedium, color = cs.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (hasPhone) Text(phone, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
         }
-        ContactIconButton(LaluzIcons.Phone, "Call $name", cs.tertiaryContainer, cs.onTertiaryContainer, 20.dp, hasPhone, onCall)
+        ContactIconButton(LaluzIcons.Phone, "Call $name", cs.surfaceContainerHighest, cs.onSurface, 20.dp, hasPhone, onCall)
         ContactIconButton(LaluzIcons.WhatsApp, "WhatsApp $name", ext.whatsapp, ext.onWhatsapp, 22.dp, hasPhone, onWhatsApp)
     }
 }
@@ -285,6 +291,36 @@ fun IconTile(
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(iconSize))
+    }
+}
+
+/**
+ * Hero badge: a [CookieShape] in [container] turning slowly (one turn per 20s) behind an upright
+ * [icon]. The icon is 40% of [size].
+ */
+@Composable
+fun SpinningCookieBadge(
+    icon: ImageVector,
+    container: Color,
+    content: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 120.dp
+) {
+    val spin by rememberInfiniteTransition(label = "cookieSpin").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(20_000, easing = LinearEasing)),
+        label = "cookieRotation"
+    )
+    Box(modifier.size(size), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer { rotationZ = spin }
+                .clip(CookieShape)
+                .background(container)
+        )
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(size * 0.4f))
     }
 }
 

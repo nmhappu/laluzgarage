@@ -69,6 +69,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
@@ -94,6 +95,15 @@ import dev.appu.laluzgarage.data.model.Part
 import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.Vehicle
 import dev.appu.laluzgarage.data.sync.SyncUiState
+import dev.appu.laluzgarage.data.update.LaunchUpdate
+import dev.appu.laluzgarage.data.update.ReleaseChannel
+import dev.appu.laluzgarage.ui.components.SpinningCookieBadge
+import androidx.compose.animation.animateContentSize
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.key
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import dev.appu.laluzgarage.ui.components.AccountActions
 import dev.appu.laluzgarage.ui.components.BarIconButton
 import dev.appu.laluzgarage.ui.components.ChipTone
@@ -355,6 +365,9 @@ fun DashboardScreen(
     onOpenCompletedJobs: () -> Unit,
     onOpenVehicles: () -> Unit,
     onOpenInventory: () -> Unit,
+    launchUpdates: List<LaunchUpdate> = emptyList(),
+    onOpenUpdate: (LaunchUpdate) -> Unit = {},
+    onDismissUpdate: (LaunchUpdate) -> Unit = {},
     scrollState: ScrollState = rememberScrollState()
 ) {
     val stats = dashboard.stats
@@ -392,23 +405,32 @@ fun DashboardScreen(
         }
         OfflineBanner(visible = !isOnline)
         val pullState = rememberPullToRefreshState()
+        // Same trick as the sync bar: the raw value (finger position, then the release animation)
+        // is only a target, and a non-bouncy spring glides the visuals toward it so the loader and
+        // content never jump with touch jitter.
+        val pull by animateFloatAsState(
+            targetValue = pullState.distanceFraction,
+            animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+            label = "pullFraction"
+        )
         PullToRefreshBox(
             // The pull only gestures: once released, the content returns to the top and the pull
             // loader goes away; the top bar's sync pill is the single progress indicator.
             isRefreshing = false,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize(),
+            // Clip so the loader slides in from the bar's lower edge instead of drawing over it.
+            modifier = Modifier.fillMaxSize().clipToBounds(),
             state = pullState,
             indicator = {
-                if (pullState.distanceFraction > 0f) {
+                if (pull > 0.001f) {
                     androidx.compose.material3.LoadingIndicator(
                         // Half-rate so the morph/spin follows the finger gently.
-                        progress = { pullState.distanceFraction * 0.5f },
+                        progress = { pull * 0.5f },
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .graphicsLayer {
                                 // Ride the same offset as the content, sitting in the gap above it.
-                                val travel = pullState.distanceFraction.coerceAtMost(1f) *
+                                val travel = pull.coerceAtMost(1f) *
                                     PullToRefreshDefaults.PositionalThreshold.toPx()
                                 translationY = travel - size.height
                             }
@@ -421,7 +443,7 @@ fun DashboardScreen(
                     .fillMaxSize()
                     // Content follows the pull and springs back on release.
                     .graphicsLayer {
-                        translationY = pullState.distanceFraction.coerceAtMost(1f) *
+                        translationY = pull.coerceAtMost(1f) *
                             PullToRefreshDefaults.PositionalThreshold.toPx()
                     }
                     .verticalScroll(scrollState),
@@ -434,17 +456,22 @@ fun DashboardScreen(
                         .padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = 168.dp),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xl)
                 ) {
-                    Column(
-                        Modifier.padding(horizontal = Spacing.xs).enterStaggered(entrance, 0),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-                    ) {
-                        Text(today.longLabel(), style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
-                        Text(
-                            "$greeting, ${operatorName.substringBefore(' ')}",
-                            style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.25).sp),
-                            color = cs.onSurface,
-                            modifier = Modifier.semantics { heading() }
-                        )
+                    Column(Modifier.enterStaggered(entrance, 0)) {
+                        Column(
+                            Modifier.padding(horizontal = Spacing.xs),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                        ) {
+                            Text(today.longLabel(), style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+                            Text(
+                                "$greeting, ${operatorName.substringBefore(' ')}",
+                                style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.25).sp),
+                                color = cs.onSurface,
+                                modifier = Modifier.semantics { heading() }
+                            )
+                        }
+                        // Launch update cards sit between the greeting and the graph; the gap above
+                        // them travels with the expand so nothing jumps when they arrive or go.
+                        LaunchUpdateCards(launchUpdates, onOpenUpdate, onDismissUpdate)
                     }
 
                     Box(Modifier.enterStaggered(entrance, 1)) {
@@ -459,6 +486,89 @@ fun DashboardScreen(
                         RecentActivity(stats, onOpenRecord, onViewAllServices, isLoading = dashboard.isLoading)
                     }
                 }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+private val UpdateEnterEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+
+@Composable
+private fun LaunchUpdateCards(
+    updates: List<LaunchUpdate>,
+    onOpen: (LaunchUpdate) -> Unit,
+    onDismiss: (LaunchUpdate) -> Unit
+) {
+    Column(Modifier.animateContentSize(tween(350, easing = UpdateEnterEasing))) {
+        // Each card stays composed through its exit; key keeps the right one animating out.
+        listOf(ReleaseChannel.STABLE, ReleaseChannel.DEV).forEach { channel ->
+            val current = updates.firstOrNull { it.channel == channel }
+            val held = dev.appu.laluzgarage.ui.rememberLastNonNull(current)
+            key(channel) {
+                AnimatedVisibility(
+                    visible = current != null,
+                    enter = expandVertically(tween(450, easing = UpdateEnterEasing)) +
+                        fadeIn(tween(300, delayMillis = 100)) +
+                        androidx.compose.animation.slideInVertically(tween(450, easing = UpdateEnterEasing)) { -it / 3 },
+                    exit = fadeOut(tween(150)) + shrinkVertically(tween(300, delayMillis = 60))
+                ) {
+                    if (held != null) {
+                        LaunchUpdateCard(
+                            update = held,
+                            onOpen = { onOpen(held) },
+                            onDismiss = { onDismiss(held) },
+                            modifier = Modifier.padding(top = if (channel == ReleaseChannel.DEV && updates.any { it.channel == ReleaseChannel.STABLE }) Spacing.sm else Spacing.xl)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * New release found by the launch check: stable reads green, development yellow. The cookie turns
+ * slowly behind a download arrow. Tap opens App Updates on that channel; x dismisses it.
+ */
+@Composable
+private fun LaunchUpdateCard(update: LaunchUpdate, onOpen: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val ext = LaluzTheme.extendedColors
+    val dev = update.channel == ReleaseChannel.DEV
+    val dark = cs.surface.luminance() < 0.5f
+    val cookie = if (dev) ext.warningContainer else cs.primary
+    val onCookie = if (dev) ext.onWarningContainer else cs.onPrimary
+    val eyebrow = if (dev) ext.warning else cs.primary
+    val tint = lerp(cs.surfaceContainerLow, if (dev) ext.warningContainer else cs.primary, if (dark) 0.12f else if (dev) 0.3f else 0.1f)
+    val label = if (dev) "Development build" else "Stable update"
+    Surface(
+        onClick = onOpen,
+        shape = RoundedCornerShape(24.dp),
+        color = tint,
+        contentColor = cs.onSurface,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "$label: version ${update.release.version} is out. Opens App Updates." }
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Row(
+                Modifier
+                    .weight(1f)
+                    .padding(start = Spacing.md, top = Spacing.md, bottom = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                SpinningCookieBadge(LaluzIcons.ArrowDownToLine, container = cookie, content = onCookie, size = 56.dp)
+                Column(Modifier.weight(1f).clearAndSetSemantics { }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(label.uppercase(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp), color = eyebrow)
+                    Text("Version ${update.release.version} is out", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = cs.onSurface)
+                    Text("Tap to see what's new and install.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+                }
+            }
+            IconButton(onClick = onDismiss, modifier = Modifier.padding(top = Spacing.xxs, end = Spacing.xxs)) {
+                Icon(LaluzIcons.Close, contentDescription = "Dismiss ${label.lowercase()}", tint = cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
         }
     }

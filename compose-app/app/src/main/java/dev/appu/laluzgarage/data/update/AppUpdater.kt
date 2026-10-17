@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ensureActive
@@ -25,7 +26,7 @@ enum class ReleaseChannel { STABLE, DEV }
 
 data class ReleaseInfo(
     val tagName: String,
-    /** Version without the leading "v", e.g. "0.3.0". */
+    /** Version without the leading "v", e.g. "2.0.0" or "2.1.0-dev". */
     val version: String,
     val publishedOn: LocalDate?,
     val notes: List<String>,
@@ -35,7 +36,19 @@ data class ReleaseInfo(
     val htmlUrl: String
 )
 
-data class UpdateCheck(val currentVersion: String, val latest: ReleaseInfo?, val hasUpdate: Boolean)
+/**
+ * [hasUpdate]: [latest] is newer than the installed build. [revert]: the stable channel's latest is
+ * older than an installed development build; installing it goes back to stable.
+ */
+data class UpdateCheck(
+    val currentVersion: String,
+    val latest: ReleaseInfo?,
+    val hasUpdate: Boolean,
+    val revert: Boolean = false
+)
+
+/** A newer release found by the launch check, shown as a card on the dashboard. */
+data class LaunchUpdate(val channel: ReleaseChannel, val release: ReleaseInfo)
 
 /**
  * GitHub release updater: the native port of the web app's otaUpdateService and the Capacitor
@@ -61,7 +74,24 @@ class AppUpdater @Inject constructor(
         get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
             .getOrNull() ?: "0.0.0"
 
+    val installedVersionCode: Long
+        get() = runCatching { PackageInfoCompat.getLongVersionCode(context.packageManager.getPackageInfo(context.packageName, 0)) }
+            .getOrDefault(0L)
+
+    /** True when the installed build carries a pre-release tag (a development build). */
+    val isDevBuild: Boolean get() = PreTag.containsMatchIn(installedVersion)
+
     suspend fun check(channel: ReleaseChannel = this.channel): UpdateCheck = withContext(ioDispatcher) {
+        evaluate(fetchReleases(), channel)
+    }
+
+    /** Both channels from one request; used by the launch check. */
+    suspend fun checkAll(): Map<ReleaseChannel, UpdateCheck> = withContext(ioDispatcher) {
+        val all = fetchReleases()
+        ReleaseChannel.entries.associateWith { evaluate(all, it) }
+    }
+
+    private fun fetchReleases(): JSONArray {
         val conn = (URL("https://api.github.com/repos/$OWNER/$REPO/releases").openConnection() as HttpURLConnection).apply {
             setRequestProperty("Accept", "application/vnd.github.v3+json")
             setRequestProperty("User-Agent", "LaluzGarage-Updater")
@@ -74,21 +104,39 @@ class AppUpdater @Inject constructor(
         } finally {
             conn.disconnect()
         }
+        return JSONArray(body)
+    }
+
+    private fun evaluate(all: JSONArray, channel: ReleaseChannel): UpdateCheck {
         val current = installedVersion
-        val release = pickRelease(JSONArray(body), channel)
-        UpdateCheck(
+        val release = pickRelease(all, channel)
+        val cmp = release?.let { compareVersions(it.version, current) } ?: 0
+        return UpdateCheck(
             currentVersion = current,
             latest = release,
-            hasUpdate = release != null && compareVersions(release.version, current) > 0
+            hasUpdate = release != null && cmp > 0,
+            revert = release != null && cmp < 0 && channel == ReleaseChannel.STABLE &&
+                isDevBuild && !PreTag.containsMatchIn(release.tagName)
         )
     }
 
+    /** The tag of the launch card the user last dismissed on [channel]; that release isn't shown again. */
+    fun dismissedTag(channel: ReleaseChannel): String? = prefs.getString(dismissKey(channel), null)
+
+    fun dismiss(update: LaunchUpdate) = prefs.edit().putString(dismissKey(update.channel), update.release.tagName).apply()
+
+    private fun dismissKey(channel: ReleaseChannel) = KEY_DISMISSED + channel.name.lowercase()
+
+    /** versionCode of a downloaded APK, or null if it can't be read. */
+    fun apkVersionCode(apk: File): Long? =
+        runCatching { context.packageManager.getPackageArchiveInfo(apk.path, 0)?.let(PackageInfoCompat::getLongVersionCode) }.getOrNull()
+
     private fun pickRelease(all: JSONArray, channel: ReleaseChannel): ReleaseInfo? {
         val releases = List(all.length()) { all.getJSONObject(it) }.filter { !it.optBoolean("draft") }
-        val eligible = if (channel == ReleaseChannel.STABLE) {
+        // Stable never falls back to dev builds. Highest version first, whatever order they were uploaded in.
+        val eligible = (if (channel == ReleaseChannel.STABLE) {
             releases.filter { !it.optBoolean("prerelease") && !PreTag.containsMatchIn(it.optString("tag_name")) }
-                .ifEmpty { releases }
-        } else releases
+        } else releases).sortedWith { a, b -> compareVersions(b.optString("tag_name"), a.optString("tag_name")) }
         for (r in eligible) {
             val assets = r.optJSONArray("assets") ?: continue
             val apk = List(assets.length()) { assets.getJSONObject(it) }.firstOrNull {
@@ -184,12 +232,29 @@ class AppUpdater @Inject constructor(
 
     companion object {
         const val OWNER = "nmhappu"
-        const val REPO = "laluzgarage"
+        // Public, APK-only repo. The source repo is private, so its releases need a token.
+        const val REPO = "laluzgarage-releases"
         const val RELEASES_URL = "https://github.com/$OWNER/$REPO/releases"
         private const val APK_MIME = "application/vnd.android.package-archive"
         private const val KEY_CHANNEL = "laluz_ota_channel"
         private const val KEY_AUTO_CHECK = "laluz_ota_auto_check"
+        private const val KEY_DISMISSED = "laluz_ota_dismissed_"
         private val PreTag = Regex("-(?:dev|alpha|beta|canary|rc)", RegexOption.IGNORE_CASE)
+
+        /** Dot-separated pre-release parts; numeric parts compare as numbers (dev.10 > dev.9 > dev). */
+        private fun comparePre(a: String, b: String): Int {
+            val pa = a.split('.')
+            val pb = b.split('.')
+            for (i in 0 until maxOf(pa.size, pb.size)) {
+                val x = pa.getOrNull(i) ?: return -1
+                val y = pb.getOrNull(i) ?: return 1
+                val nx = x.toIntOrNull()
+                val ny = y.toIntOrNull()
+                val c = if (nx != null && ny != null) nx.compareTo(ny) else x.compareTo(y)
+                if (c != 0) return c
+            }
+            return 0
+        }
 
         fun normalizeVersion(raw: String): String =
             raw.trim().removePrefix("v").removePrefix("V").replace(Regex("^release-", RegexOption.IGNORE_CASE), "")
@@ -211,7 +276,7 @@ class AppUpdater @Inject constructor(
                 preA == null && preB == null -> 0
                 preA == null -> 1
                 preB == null -> -1
-                else -> preA.compareTo(preB)
+                else -> comparePre(preA, preB)
             }
         }
     }

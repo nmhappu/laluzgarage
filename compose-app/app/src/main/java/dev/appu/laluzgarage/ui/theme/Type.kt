@@ -72,7 +72,7 @@ val Typography = Typography(
 /** Styles outside the M3 scale. */
 object LaluzType {
     val plateLarge = style(GoogleSansFlex, 36, 44, FontWeight.Bold, 2.sp)  // job card and vehicle headers
-    val plateCard = style(GoogleSansFlex, 18, 24, FontWeight.Bold, 1.sp)   // Services cards
+    val plateCard = style(GoogleSansFlex, 24, 32, FontWeight.Bold, 1.sp)   // Services cards
     val plateValue = style(GoogleSansFlex, 16, 24, FontWeight.Bold, 1.sp)  // plate in detail grids
     val plate = style(JetBrainsMono, 18, 24, FontWeight.Bold, 0.5.sp)      // job cards
     val plateSmall = style(JetBrainsMono, 14, 20, FontWeight.Bold, 0.5.sp) // compact cards, list rows

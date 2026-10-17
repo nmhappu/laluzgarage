@@ -69,6 +69,7 @@ import dev.appu.laluzgarage.ui.auth.AuthScreenState
 import dev.appu.laluzgarage.ui.auth.AuthViewModel
 import dev.appu.laluzgarage.ui.auth.LoginScreen
 import dev.appu.laluzgarage.ui.auth.PendingApprovalScreen
+import dev.appu.laluzgarage.ui.auth.ThemePickerScreen
 import dev.appu.laluzgarage.ui.components.AccountActions
 import dev.appu.laluzgarage.ui.components.FloatingNavToolbar
 import dev.appu.laluzgarage.ui.components.LaluzLogo
@@ -87,6 +88,7 @@ import dev.appu.laluzgarage.ui.services.JobCardScreen
 import dev.appu.laluzgarage.ui.services.JobEditScreen
 import dev.appu.laluzgarage.ui.settings.SettingsHost
 import dev.appu.laluzgarage.ui.settings.SettingsProfile
+import dev.appu.laluzgarage.ui.settings.SettingsRoute
 import dev.appu.laluzgarage.ui.settings.SettingsViewModel
 import dev.appu.laluzgarage.ui.theme.ThemeMode
 import dev.appu.laluzgarage.ui.services.ServiceViewModel
@@ -109,6 +111,7 @@ fun LaluzApp(
     val dashboardUi by serviceViewModel.dashboard.collectAsStateWithLifecycle()
     val syncUi by serviceViewModel.sync.collectAsStateWithLifecycle()
     val isOnline by serviceViewModel.isOnline.collectAsStateWithLifecycle()
+    val settingsUi by settingsViewModel.state.collectAsStateWithLifecycle()
     val vehiclesUi by serviceViewModel.vehiclesList.collectAsStateWithLifecycle()
     val inventoryUi by serviceViewModel.inventory.collectAsStateWithLifecycle()
     var currentDestination by rememberSaveable { mutableStateOf(AppDestination.DASHBOARD) }
@@ -120,6 +123,7 @@ fun LaluzApp(
     var openPartId by rememberSaveable { mutableStateOf<String?>(null) }
     var isAddingPart by rememberSaveable { mutableStateOf(false) }
     var isSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsStartRoute by rememberSaveable { mutableStateOf(SettingsRoute.HOME) }
     var editingRecordId by rememberSaveable { mutableStateOf<String?>(null) }
     var focusServicesSearch by remember { mutableStateOf(false) }
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
@@ -163,6 +167,16 @@ fun LaluzApp(
                 )
             }
 
+            AuthScreenState.CHOOSE_THEME -> {
+                ThemePickerScreen(
+                    state = authState,
+                    isDarkTheme = isDarkTheme,
+                    onThemeModeChange = authViewModel::setThemeMode,
+                    onDynamicColorChange = authViewModel::setDynamicColor,
+                    onContinue = authViewModel::finishThemeChoice
+                )
+            }
+
             AuthScreenState.AUTHENTICATED -> {
                 LaunchedEffect(Unit) {
                     serviceViewModel.onAppShown()
@@ -189,7 +203,10 @@ fun LaluzApp(
                             activeOperator = null
                             authViewModel.signOut()
                         },
-                        onOpenSettings = { isSettingsOpen = true },
+                        onOpenSettings = {
+                            settingsStartRoute = SettingsRoute.HOME
+                            isSettingsOpen = true
+                        },
                         photoUrl = operatorPhoto,
                         isAdmin = operatorIsAdmin
                     )
@@ -317,6 +334,13 @@ fun LaluzApp(
                                     },
                                     onOpenVehicles = { currentDestination = AppDestination.VEHICLES },
                                     onOpenInventory = { currentDestination = AppDestination.INVENTORY },
+                                    launchUpdates = settingsUi.launchUpdates,
+                                    onOpenUpdate = {
+                                        settingsViewModel.openLaunchUpdate(it)
+                                        settingsStartRoute = SettingsRoute.UPDATES
+                                        isSettingsOpen = true
+                                    },
+                                    onDismissUpdate = settingsViewModel::dismissLaunchUpdate,
                                     scrollState = dashboardScroll
                                 )
 
@@ -453,6 +477,7 @@ fun LaluzApp(
 
                             AppLayer.SETTINGS -> SettingsHost(
                                 viewModel = settingsViewModel,
+                                records = serviceState.records,
                                 profile = SettingsProfile(
                                     name = authState.profile?.name?.ifBlank { null } ?: authState.user?.displayName?.ifBlank { null } ?: operatorName,
                                     email = authState.profile?.email?.ifBlank { null } ?: authState.user?.email.orEmpty(),
@@ -466,14 +491,13 @@ fun LaluzApp(
                                 onThemeModeChange = authViewModel::setThemeMode,
                                 onDynamicColorChange = authViewModel::setDynamicColor,
                                 onToggleTheme = { authViewModel.setThemeMode(if (isDarkTheme) ThemeMode.LIGHT else ThemeMode.DARK) },
-                                // The PIN layer sits above Settings, so cancelling comes back here.
-                                onSwitchOperator = { isSwitchingOperator = true },
                                 onLogOut = {
                                     isSettingsOpen = false
                                     activeOperator = null
                                     authViewModel.signOut()
                                 },
-                                onClose = { isSettingsOpen = false }
+                                onClose = { isSettingsOpen = false },
+                                startRoute = settingsStartRoute
                             )
 
                             AppLayer.PART -> if (openPart != null) PartDetailScreen(

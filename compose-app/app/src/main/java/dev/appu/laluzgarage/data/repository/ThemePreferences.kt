@@ -11,7 +11,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Persists the System / Light / Dark theme setting and the Material You toggle across launches. */
+/**
+ * Persists the System / Light / Dark theme setting, the Material You toggle and which accounts have
+ * picked a theme on first sign-in, across launches.
+ */
 @Singleton
 class ThemePreferences @Inject constructor(
     @ApplicationContext context: Context
@@ -60,8 +63,19 @@ class ThemePreferences @Inject constructor(
         prefs.edit().putBoolean(KEY_DYNAMIC_COLOR, enabled).apply()
     }
 
+    // Accounts that have been through the first sign-in theme picker on this device.
+    private val _themeChosenBy = MutableStateFlow(prefs.getStringSet(KEY_THEME_CHOSEN_BY, null).orEmpty().toSet())
+    val themeChosenBy: StateFlow<Set<String>> = _themeChosenBy.asStateFlow()
+
+    fun markThemeChosen(uid: String) {
+        val next = _themeChosenBy.value + uid
+        _themeChosenBy.value = next
+        prefs.edit().putStringSet(KEY_THEME_CHOSEN_BY, next).apply()
+    }
+
     private companion object {
         const val KEY_THEME = "theme_mode"
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
+        const val KEY_THEME_CHOSEN_BY = "theme_chosen_by"
     }
 }

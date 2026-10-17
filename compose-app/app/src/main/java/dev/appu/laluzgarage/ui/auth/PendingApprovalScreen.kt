@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,13 +33,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
 import dev.appu.laluzgarage.ui.components.ChipTone
-import dev.appu.laluzgarage.ui.components.CookieShape
 import dev.appu.laluzgarage.ui.components.DetailField
 import dev.appu.laluzgarage.ui.components.LaluzIcons
 import dev.appu.laluzgarage.ui.components.StatusChip
 import dev.appu.laluzgarage.ui.components.TonalRowButton
 import dev.appu.laluzgarage.ui.components.initialsOf
 import dev.appu.laluzgarage.ui.components.ProfilePhoto
+import dev.appu.laluzgarage.ui.components.SpinningCookieBadge
 import dev.appu.laluzgarage.ui.theme.LaluzShape
 import dev.appu.laluzgarage.ui.theme.LaluzTheme
 import dev.appu.laluzgarage.ui.theme.LaluzType
@@ -86,15 +85,7 @@ fun PendingApprovalScreen(
                 .padding(start = Spacing.xl, end = Spacing.xl, top = 72.dp, bottom = Spacing.xl)
                 .widthIn(max = 560.dp)
         ) {
-            Box(Modifier.size(120.dp), contentAlignment = Alignment.Center) {
-                Box(
-                    Modifier
-                        .size(120.dp)
-                        .clip(CookieShape)
-                        .background(ext.warningContainer)
-                )
-                Icon(LaluzIcons.Clock, contentDescription = null, tint = ext.onWarningContainer, modifier = Modifier.size(48.dp))
-            }
+            SpinningCookieBadge(LaluzIcons.Clock, container = ext.warningContainer, content = ext.onWarningContainer)
             Text(
                 "Waiting for approval",
                 style = MaterialTheme.typography.headlineMedium,

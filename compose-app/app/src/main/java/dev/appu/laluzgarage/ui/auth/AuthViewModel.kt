@@ -36,6 +36,8 @@ enum class AuthScreenState {
     LOADING,
     UNAUTHENTICATED,
     PENDING_APPROVAL,
+    /** Approved, signed in for the first time on this device: pick a theme before the dashboard. */
+    CHOOSE_THEME,
     AUTHENTICATED
 }
 
@@ -80,16 +82,18 @@ class AuthViewModel @Inject constructor(
             combine(
                 authRepository.currentUser,
                 authRepository.userProfile,
-                authRepository.isAuthLoading
-            ) { user, profile, isLoading ->
-                Triple(user, profile, isLoading)
-            }.collect { (user, profile, isLoading) ->
+                authRepository.isAuthLoading,
+                themePreferences.themeChosenBy
+            ) { user, profile, isLoading, themeChosenBy ->
                 val nextScreenState = when {
                     isLoading -> AuthScreenState.LOADING
                     user == null -> AuthScreenState.UNAUTHENTICATED
                     profile?.effectiveRole == null -> AuthScreenState.PENDING_APPROVAL
+                    user.uid !in themeChosenBy -> AuthScreenState.CHOOSE_THEME
                     else -> AuthScreenState.AUTHENTICATED
                 }
+                Triple(user, profile, nextScreenState)
+            }.collect { (user, profile, nextScreenState) ->
 
                 _uiState.update { current ->
                     current.copy(
@@ -130,6 +134,11 @@ class AuthViewModel @Inject constructor(
 
     fun setDynamicColor(enabled: Boolean) {
         themePreferences.setDynamicColor(enabled)
+    }
+
+    /** First sign-in theme picker: the mode and colour are already live, so this only moves on. */
+    fun finishThemeChoice() {
+        _uiState.value.user?.uid?.let(themePreferences::markThemeChosen)
     }
 
     /** Login screen toggle: flips whatever is showing now to the other theme. */

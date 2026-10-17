@@ -36,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -134,16 +136,37 @@ internal fun SettingsPage(
     }
 }
 
-/** 40dp surfaceContainerHigh tile with a 24dp icon, Medium (12dp) shape. */
+/**
+ * Per-row hue for a Settings icon tile: a deep tinted tile with a bright icon in dark theme,
+ * a pale tile with a deep icon in light. Fixed hues, so they stay put under Material You.
+ */
+internal enum class SettingsTone(
+    private val darkContainer: Long, private val darkContent: Long,
+    private val lightContainer: Long, private val lightContent: Long
+) {
+    THEME(0xFF2A1F45, 0xFFC4B5FD, 0xFFEDE9FE, 0xFF6D28D9),
+    TEAM(0xFF172A4D, 0xFF8AB4FF, 0xFFDBEAFE, 0xFF1D4ED8),
+    STATS(0xFF123A24, 0xFF33E07D, 0xFFD2F5DF, 0xFF087A3C),
+    WHATSAPP(0xFF0F3A35, 0xFF5EEAD4, 0xFFCCFBF1, 0xFF0F766E),
+    UPDATES(0xFF3D2A12, 0xFFFDBA74, 0xFFFFEDD5, 0xFFC2410C),
+    LOGOUT(0xFF3D161B, 0xFFFF5A67, 0xFFFFDCE0, 0xFFC4122F);
+
+    fun container(dark: Boolean) = Color(if (dark) darkContainer else lightContainer)
+    fun content(dark: Boolean) = Color(if (dark) darkContent else lightContent)
+}
+
+/** 40dp tile with a 24dp icon, Medium (12dp) shape: [tone]'s colours, else surfaceContainerHigh and [tint]. */
 @Composable
-internal fun SettingsIconTile(icon: ImageVector, tint: Color) {
+internal fun SettingsIconTile(icon: ImageVector, tint: Color, tone: SettingsTone? = null) {
+    val cs = MaterialTheme.colorScheme
+    val dark = cs.surface.luminance() < 0.5f
     Box(
         Modifier
             .size(40.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh, LaluzShape.iconTile),
+            .background(tone?.container(dark) ?: cs.surfaceContainerHigh, LaluzShape.iconTile),
         contentAlignment = Alignment.Center
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = null, tint = tone?.content(dark) ?: tint, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -184,7 +207,8 @@ internal fun SettingsNavRow(
     shape: RoundedCornerShape,
     onClick: () -> Unit,
     chip: String? = null,
-    tint: Color = MaterialTheme.colorScheme.onSurface
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    tone: SettingsTone? = null
 ) {
     val cs = MaterialTheme.colorScheme
     Surface(onClick = onClick, shape = shape, color = cs.surfaceContainerLow, contentColor = tint, modifier = Modifier.fillMaxWidth()) {
@@ -193,7 +217,7 @@ internal fun SettingsNavRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            SettingsIconTile(icon, tint)
+            SettingsIconTile(icon, tint, tone)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, color = tint)
@@ -225,8 +249,10 @@ internal fun ChoiceRow(
     onClick: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
-    val container = if (selected) cs.secondaryContainer else cs.surfaceContainerLow
-    val content = if (selected) cs.onSecondaryContainer else cs.onSurface
+    val colorSpec = androidx.compose.animation.core.tween<Color>(250)
+    val container by androidx.compose.animation.animateColorAsState(if (selected) cs.secondaryContainer else cs.surfaceContainerLow, colorSpec, label = "choiceBg")
+    val content by androidx.compose.animation.animateColorAsState(if (selected) cs.onSecondaryContainer else cs.onSurface, colorSpec, label = "choiceFg")
+    val supporting by androidx.compose.animation.animateColorAsState(if (selected) cs.onSecondaryContainer else cs.onSurfaceVariant, colorSpec, label = "choiceSupport")
     Row(
         Modifier
             .fillMaxWidth()
@@ -238,14 +264,16 @@ internal fun ChoiceRow(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, style = MaterialTheme.typography.titleMedium, color = content)
-            Text(description, style = MaterialTheme.typography.bodyMedium, color = if (selected) cs.onSecondaryContainer else cs.onSurfaceVariant)
+            Text(description, style = MaterialTheme.typography.bodyMedium, color = supporting)
         }
-        if (selected) {
-            Box(Modifier.size(24.dp).background(cs.onSecondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(LaluzIcons.CheckHeavy, contentDescription = null, tint = cs.secondaryContainer, modifier = Modifier.size(16.dp))
+        androidx.compose.animation.Crossfade(selected, animationSpec = androidx.compose.animation.core.tween(200), label = "choiceRadio") { on ->
+            if (on) {
+                Box(Modifier.size(24.dp).background(cs.onSecondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(LaluzIcons.CheckHeavy, contentDescription = null, tint = cs.secondaryContainer, modifier = Modifier.size(16.dp))
+                }
+            } else {
+                Box(Modifier.size(24.dp).border(2.dp, cs.outline, CircleShape))
             }
-        } else {
-            Box(Modifier.size(24.dp).border(2.dp, cs.outline, CircleShape))
         }
     }
 }

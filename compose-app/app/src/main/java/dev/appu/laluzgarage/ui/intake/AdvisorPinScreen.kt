@@ -60,6 +60,7 @@ import dev.appu.laluzgarage.ui.components.LaluzIcons
 import dev.appu.laluzgarage.ui.components.MaxContentWidth
 import dev.appu.laluzgarage.ui.components.OutlinedPillButton
 import dev.appu.laluzgarage.ui.components.PillButton
+import dev.appu.laluzgarage.ui.components.SpinningCookieBadge
 import dev.appu.laluzgarage.ui.theme.LaluzShape
 import dev.appu.laluzgarage.ui.theme.LaluzType
 import dev.appu.laluzgarage.ui.theme.Spacing
@@ -128,6 +129,7 @@ fun AdvisorPinContent(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cs = MaterialTheme.colorScheme
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val viewport = maxHeight
         Column(
@@ -138,6 +140,13 @@ fun AdvisorPinContent(
                 .heightIn(min = viewport)
         ) {
             Spacer(Modifier.weight(1f))
+            SpinningCookieBadge(
+                LaluzIcons.Lock,
+                container = cs.tertiaryContainer,
+                content = cs.onTertiaryContainer,
+                size = 96.dp,
+                modifier = Modifier.padding(start = Spacing.xl, bottom = Spacing.lg)
+            )
             StepHeading("Advisor verification", description)
             PinBoxes(pin = pin, wrong = wrong, onPinChange = onPinChange, onSubmit = onSubmit)
             Spacer(Modifier.weight(1f))

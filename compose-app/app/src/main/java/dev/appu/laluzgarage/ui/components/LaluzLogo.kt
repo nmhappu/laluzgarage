@@ -6,6 +6,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.PathParser
@@ -30,20 +36,61 @@ private const val INK_UZ =
 private const val INK_DOT =
     "M930.705 787.139c-.082 -.104 -.16 -.21 -.242 -.314l-.022 .05c.089 .088 .176 .176 .264 .264Z"
 
+/** Total length of the login draw-on (the "Logo draw-on" artboard), excluding its start delay. */
+const val LOGO_DRAW_MS = 1400
+
+/**
+ * One pen stroke of the draw-on: [pen] runs along the glyph's centerline and is drawn [width]
+ * wide, clipped to the glyph at [clip] (index into the logo paths), between [start] and [end]
+ * as fractions of [LOGO_DRAW_MS].
+ */
+private class PenStroke(
+    pen: String,
+    val clip: Int,
+    val width: Float,
+    val start: Float,
+    val end: Float,
+    val easeOut: Boolean
+) {
+    val path: Path = PathParser().parsePathString(pen).toPath()
+}
+
+// Stroke order, as you'd write it: L stem top to bottom then the foot, the bolt zig-zag,
+// the G from its top bar round to the right side, then the G crossbar into the wrench.
+// L 0-420 ms, bolt 370-590, G 560-1200, crossbar 1150-1400.
+private val PEN_STROKES = listOf(
+    PenStroke("M455 400 L290 788 L520 782", clip = 0, width = 150f, start = 0f, end = 0.3f, easeOut = false),
+    PenStroke("M618 515 L484 660 L606 648 L476 846", clip = 1, width = 84f, start = 0.2643f, end = 0.4214f, easeOut = true),
+    PenStroke(
+        "M1010 476 L735 476 C700 476 684 495 672 520 L640 620 L612 730 L592 790 L880 790 C915 790 925 770 932 740 L960 640",
+        clip = 2, width = 132f, start = 0.4f, end = 0.8571f, easeOut = false
+    ),
+    PenStroke("M1040 645 L700 645", clip = 2, width = 160f, start = 0.8214f, end = 1f, easeOut = true)
+)
+
+private fun easeInOutCubic(u: Float) = if (u < 0.5f) 4f * u * u * u else 1f - (-2f * u + 2f).let { it * it * it } / 2f
+private fun easeOutCubic(u: Float) = 1f - (1f - u).let { it * it * it }
+
 /**
  * LaluZ wordmark drawn from the artboard vector, so the ink follows the theme
  * (white on dark, slate on light) while the bolt stays green.
  * Default size is the 128×64 login artboard frame; the mark is fitted and centred like SVG "meet".
+ *
+ * [drawProgress] (0..1 over [LOGO_DRAW_MS]) writes the mark stroke by stroke for the login
+ * draw-on; it is read at draw time, so animating it does not recompose. Null or 1 draws it solid.
  */
 @Composable
 fun LaluzLogo(
     modifier: Modifier = Modifier,
     inkColor: Color = LaluzTheme.extendedColors.logoInk,
-    boltColor: Color = LaluzTheme.extendedColors.logoBolt
+    boltColor: Color = LaluzTheme.extendedColors.logoBolt,
+    drawProgress: (() -> Float)? = null
 ) {
     val paths = remember {
         listOf(INK_L, BOLT, INK_UZ, INK_DOT).map { PathParser().parsePathString(it).toPath() }
     }
+    val measure = remember { PathMeasure() }
+    val segment = remember { Path() }
     Canvas(
         modifier = modifier
             .size(width = 128.dp, height = 64.dp)
@@ -55,9 +102,35 @@ fun LaluzLogo(
         translate(dx, dy) {
             scale(s, s, pivot = androidx.compose.ui.geometry.Offset.Zero) {
                 translate(-LOGO_X, -LOGO_Y) {
-                    paths.forEachIndexed { i, p -> drawPath(p, if (i == 1) boltColor else inkColor) }
+                    val t = drawProgress?.invoke() ?: 1f
+                    if (t >= 1f) {
+                        paths.forEachIndexed { i, p -> drawPath(p, if (i == 1) boltColor else inkColor) }
+                    } else {
+                        PEN_STROKES.forEach { stroke ->
+                            drawPenStroke(stroke, t, paths[stroke.clip], if (stroke.clip == 1) boltColor else inkColor, measure, segment)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+private fun DrawScope.drawPenStroke(
+    stroke: PenStroke,
+    t: Float,
+    glyph: Path,
+    color: Color,
+    measure: PathMeasure,
+    segment: Path
+) {
+    val u = ((t - stroke.start) / (stroke.end - stroke.start)).coerceIn(0f, 1f)
+    if (u <= 0f) return
+    val eased = if (stroke.easeOut) easeOutCubic(u) else easeInOutCubic(u)
+    measure.setPath(stroke.path, false)
+    segment.reset()
+    measure.getSegment(0f, measure.length * eased, segment, true)
+    clipPath(glyph) {
+        drawPath(segment, color, style = Stroke(width = stroke.width, join = StrokeJoin.Round))
     }
 }

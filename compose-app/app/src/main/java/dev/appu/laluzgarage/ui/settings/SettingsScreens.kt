@@ -127,12 +127,13 @@ fun SettingsHost(
     BackHandler(onBack = back)
 
     // Edit member is driven by the form; if it vanished (saved elsewhere, process death) go back to the list.
-    // A restored Statistics route falls back to home if the account is no longer an admin.
+    // A restored Statistics or Team route falls back to home if the account is no longer an admin.
     val statsLocked = profile.role != UserRole.ADMIN &&
-        (route == SettingsRoute.STATS || route == SettingsRoute.STAT_DETAIL)
+        (route == SettingsRoute.STATS || route == SettingsRoute.STAT_DETAIL ||
+            route == SettingsRoute.TEAM || route == SettingsRoute.MEMBER)
     val shown = when {
-        route == SettingsRoute.MEMBER && state.member == null -> SettingsRoute.TEAM
         statsLocked -> SettingsRoute.HOME
+        route == SettingsRoute.MEMBER && state.member == null -> SettingsRoute.TEAM
         else -> route
     }
     androidx.compose.runtime.LaunchedEffect(statsLocked) { if (statsLocked) route = SettingsRoute.HOME }
@@ -329,7 +330,7 @@ private fun SettingsHomeScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.xxl)
         ) {
             // Statistics carries workshop financials, so only admins see it.
-            val entries = if (profile.role == UserRole.ADMIN) Entries else Entries.filter { it.route != SettingsRoute.STATS }
+            val entries = if (profile.role == UserRole.ADMIN) Entries else Entries.filter { it.route != SettingsRoute.STATS && it.route != SettingsRoute.TEAM }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 entries.forEachIndexed { i, e ->
                     SettingsNavRow(

@@ -193,7 +193,8 @@ fun DetailTopBar(
     backDescription: String?,
     onBack: () -> Unit,
     scrolled: Boolean = false,
-    container: Color = MaterialTheme.colorScheme.surface
+    container: Color = MaterialTheme.colorScheme.surface,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     val cs = MaterialTheme.colorScheme
     LaluzTopBar(scrolled = scrolled, startPadding = if (backDescription != null) Spacing.xxs else Spacing.xl, container = container) {
@@ -203,6 +204,7 @@ fun DetailTopBar(
             }
         }
         Text(title, style = MaterialTheme.typography.titleLarge, color = cs.onSurface, modifier = Modifier.weight(1f))
+        actions()
     }
 }
 

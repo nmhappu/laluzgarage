@@ -15,11 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
@@ -33,6 +36,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import dev.appu.laluzgarage.ui.components.rememberShareCapture
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -93,6 +100,9 @@ fun VehicleDetailScreen(
     val cs = MaterialTheme.colorScheme
     val ext = LaluzTheme.extendedColors
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val capture = rememberShareCapture()
     val scroll = rememberScrollState()
     val scrolled by remember { derivedStateOf { scroll.value > 0 } }
     val snackbar = remember { SnackbarHostState() }
@@ -116,7 +126,18 @@ fun VehicleDetailScreen(
 
     Box(Modifier.fillMaxSize().background(cs.surface)) {
         Column(Modifier.fillMaxSize()) {
-            DetailTopBar("Vehicle", "Back to vehicles", onBack, scrolled)
+            DetailTopBar("Vehicle", "Back to vehicles", onBack, scrolled) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            capture.share(context, "vehicle-" + vehicle.plateNumber.filter { it.isLetterOrDigit() }, "Share vehicle")
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(LaluzIcons.Share, contentDescription = "Share vehicle", tint = cs.onSurface)
+                }
+            }
             Column(
                 Modifier
                     .weight(1f)
@@ -125,6 +146,8 @@ fun VehicleDetailScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Column(Modifier.widthIn(max = MaxContentWidth).fillMaxWidth()) {
+                    // Plate down to the owner card is what the share button captures
+                    Column(Modifier.fillMaxWidth().background(cs.surface).then(capture.modifier)) {
                     Column(
                         Modifier.padding(start = Spacing.xl, end = Spacing.xl, top = Spacing.xs, bottom = Spacing.xl),
                         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -151,10 +174,7 @@ fun VehicleDetailScreen(
                         }
                     }
 
-                    Column(
-                        Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
+                    Column(Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xs)) {
                         // Owner and maintenance summary share one card
                         SectionCard(title = null, contentPadding = PaddingValues(0.dp), gap = 0.dp) {
                             ContactRow(
@@ -170,7 +190,13 @@ fun VehicleDetailScreen(
                                 SummaryFigure("Recorded jobs", history.size.toString(), Modifier.weight(1f))
                             }
                         }
+                    }
+                    }
 
+                    Column(
+                        Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xl),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
                         // Service history
                         SectionCard(
                             title = "Service history · ${history.size} ${if (history.size == 1) "job" else "jobs"}",

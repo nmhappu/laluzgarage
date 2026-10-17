@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.Vehicle
 import dev.appu.laluzgarage.ui.components.BottomActionBar
+import dev.appu.laluzgarage.ui.components.BatteryField
 import dev.appu.laluzgarage.ui.components.DetailField
 import dev.appu.laluzgarage.ui.components.DetailTopBar
 import dev.appu.laluzgarage.ui.components.FilterChipTone
@@ -85,6 +86,7 @@ fun JobEditScreen(
     var odometer by rememberSaveable(record.id) { mutableStateOf(initialOdo) }
     var dead by rememberSaveable(record.id) { mutableStateOf(record.isDeadVehicle) }
     var locked by rememberSaveable(record.id) { mutableStateOf(record.isUnknownMileage && !record.isDeadVehicle) }
+    var battery by rememberSaveable(record.id) { mutableStateOf(record.battery) }
     var problems by rememberSaveable(record.id) { mutableStateOf(initialProblems) }
     var belongings by rememberSaveable(record.id) { mutableStateOf(record.personalItems.orEmpty()) }
     var delivery by rememberSaveable(record.id) { mutableStateOf(initialDelivery) }
@@ -92,7 +94,7 @@ fun JobEditScreen(
     var showOdoError by rememberSaveable { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
 
-    val dirty = odometer != initialOdo || dead != record.isDeadVehicle ||
+    val dirty = odometer != initialOdo || battery != record.battery || dead != record.isDeadVehicle ||
         locked != (record.isUnknownMileage && !record.isDeadVehicle) ||
         problems != initialProblems || belongings != record.personalItems.orEmpty() || delivery != initialDelivery
     val special = dead || locked
@@ -126,6 +128,7 @@ fun JobEditScreen(
                 mileage = if (special) 0 else reading,
                 isDeadVehicle = dead,
                 isUnknownMileage = locked,
+                battery = battery,
                 description = serializeTasks(tasks),
                 personalItems = belongings.trim().ifBlank { null },
                 expectedDeliveryDate = delivery?.toString()
@@ -215,6 +218,7 @@ fun JobEditScreen(
                                     }
                                 }
                             )
+                            BatteryField(percent = battery, onPercentChange = { battery = it })
                             IntakeField(
                                 value = problems,
                                 onValueChange = { problems = it },

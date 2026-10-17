@@ -21,6 +21,7 @@ data class JobCardModel(
     /** Arrival day; the list groups cards under it. Null when the record has no usable date. */
     val arrivedDate: LocalDate?,
     val security: VehicleSecurity,
+    val battery: Int?,
     val tasksDone: Int,
     val tasksTotal: Int,
     /** Problem lines, for the card's expandable task list. */
@@ -154,6 +155,7 @@ private fun buildCard(r: ServiceRecord, v: Vehicle?, c: Customer?, today: LocalD
         lateLabel = r.dueFlag(today)?.takeIf { it.isOverdue }?.label,
         arrivedDate = parseRecordDate(r.date),
         security = v.security(),
+        battery = r.battery,
         tasksDone = tasks.count { it.done },
         tasksTotal = tasks.size,
         tasks = tasks.map { it.text },

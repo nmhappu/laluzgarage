@@ -80,6 +80,8 @@ data class IntakeUiState(
 
     val odometer: String = "",
     val odometerTouched: Boolean = false,
+    /** Battery charge in 5% steps; null = not recorded ("~"). */
+    val battery: Int? = null,
     val deadVehicle: Boolean = false,
     val vehicleLocked: Boolean = false,
     val problems: String = "",
@@ -114,7 +116,7 @@ data class IntakeUiState(
     val hasData: Boolean
         get() = query.isNotBlank() || selectedCustomer != null || customerName.isNotBlank() || customerPhone.isNotBlank() ||
             make.isNotBlank() || model.isNotBlank() || plate.isNotBlank() || unregistered || colour.isNotBlank() ||
-            vehiclePin.isNotBlank() || physicalKey || odometer.isNotBlank() || deadVehicle || vehicleLocked ||
+            vehiclePin.isNotBlank() || physicalKey || odometer.isNotBlank() || battery != null || deadVehicle || vehicleLocked ||
             problems.isNotBlank() || belongings.isNotBlank() || deliveryDate != null
 
     // Labels for the summary cards, from the picked records or the typed values.
@@ -258,6 +260,7 @@ class IntakeViewModel @Inject constructor(
     // ---- Job ----
 
     fun setOdometer(value: String) = _uiState.update { it.copy(odometer = value.filter(Char::isDigit).take(7)) }
+    fun setBattery(value: Int?) = _uiState.update { it.copy(battery = value) }
     fun touchOdometer() = _uiState.update { it.copy(odometerTouched = true) }
     fun toggleDeadVehicle() = _uiState.update { it.copy(deadVehicle = !it.deadVehicle, vehicleLocked = false, odometer = "") }
     fun toggleVehicleLocked() = _uiState.update { it.copy(vehicleLocked = !it.vehicleLocked, deadVehicle = false, odometer = "") }
@@ -319,6 +322,7 @@ class IntakeViewModel @Inject constructor(
                         mileage = if (s.deadVehicle || s.vehicleLocked) 0 else s.odometer.toIntOrNull() ?: 0,
                         isDeadVehicle = s.deadVehicle,
                         isUnknownMileage = s.vehicleLocked,
+                        battery = s.battery,
                         personalItems = s.belongings.trim().ifBlank { null },
                         description = description,
                         status = "pending"

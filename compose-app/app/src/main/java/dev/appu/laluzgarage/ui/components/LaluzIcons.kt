@@ -116,6 +116,7 @@ object LaluzIcons {
     val ChevronDown by lazy { stroke("ChevronDown", 2.2f, "M6 9l6 6 6 -6") }
     val ChevronUp by lazy { stroke("ChevronUp", 2f, "M18 15l-6 -6 -6 6") }
     val Edit by lazy { stroke("Edit", 2f, "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1 -4z") }
+    val Share by lazy { stroke("Share", 2f, "M21 5a3 3 0 1 1 -6 0 3 3 0 0 1 6 0zM9 12a3 3 0 1 1 -6 0 3 3 0 0 1 6 0zM21 19a3 3 0 1 1 -6 0 3 3 0 0 1 6 0zM8.6 10.5l6.8 -4M8.6 13.5l6.8 4") }
     val Trash by lazy { stroke("Trash", 2f, "M3 6h18M8 6V4h8v2M6 6l1 14h10l1 -14M10 11v6M14 11v6") }
     val TrashRound by lazy {
         stroke("TrashRound", 2f, "M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2L5 6M10 11v6M14 11v6")

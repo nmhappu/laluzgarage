@@ -1,6 +1,7 @@
 package dev.appu.laluzgarage.ui.services
 
 import dev.appu.laluzgarage.ui.theme.Radius
+import dev.appu.laluzgarage.ui.components.BatteryBadge
 import dev.appu.laluzgarage.ui.components.rememberContainerSource
 import dev.appu.laluzgarage.ui.components.containerSource
 import dev.appu.laluzgarage.ui.components.LocalContainerTransform
@@ -21,7 +22,6 @@ import androidx.compose.ui.text.withStyle
 import dev.appu.laluzgarage.ui.components.LaluzConfirmDialog
 import dev.appu.laluzgarage.ui.theme.GoogleSansFlex
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -63,11 +63,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -362,7 +359,7 @@ private fun groupByArrivalDay(cards: List<JobCardModel>, today: LocalDate): List
     return out
 }
 
-/** Day header: centred label flanked by hand-drawn wavy rules that fill the row on both sides. */
+/** Day header: label on the left, followed by a straight rule that fills the rest of the row. */
 @Composable
 private fun DayHeader(label: String, modifier: Modifier = Modifier, emphasized: Boolean = false) {
     val cs = MaterialTheme.colorScheme
@@ -371,7 +368,6 @@ private fun DayHeader(label: String, modifier: Modifier = Modifier, emphasized: 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        DayRule(cs.onSurfaceVariant, Modifier.weight(1f))
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
@@ -379,28 +375,18 @@ private fun DayHeader(label: String, modifier: Modifier = Modifier, emphasized: 
             color = if (emphasized) cs.onSurface else cs.onSurfaceVariant,
             modifier = Modifier.semantics { heading() }
         )
-        DayRule(cs.onSurfaceVariant, Modifier.weight(1f))
-    }
-}
-
-/** Wavy rule beside the day label: 10dp half-waves, 3dp amplitude, 1.5dp round stroke. */
-@Composable
-private fun DayRule(color: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier.height(12.dp).clearAndSetSemantics { }) {
-        val wave = 10.dp.toPx()
-        val amp = 3.dp.toPx()
-        val mid = size.height / 2
-        val path = Path().apply {
-            moveTo(0f, mid)
-            var x = 0f
-            var up = true
-            while (x < size.width) {
-                quadraticTo(x + wave / 2, mid + if (up) -amp * 2 else amp * 2, x + wave, mid)
-                x += wave
-                up = !up
-            }
-        }
-        clipRect { drawPath(path, color, style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)) }
+        // Both ends fade out: 0 -> full colour by 15%, held to 85%, back to clear.
+        Box(
+            Modifier
+                .weight(1f)
+                .height(2.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        0f to Color.Transparent, 0.15f to cs.outline, 0.85f to cs.outline, 1f to Color.Transparent
+                    )
+                )
+                .clearAndSetSemantics { }
+        )
     }
 }
 
@@ -482,6 +468,7 @@ private fun JobCard(
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                         StatusChip(card.status.label, card.status.tone)
                         card.lateLabel?.let { StatusChip(it, ChipTone.OVERDUE) }
+                        BatteryBadge(card.battery)
                     }
                 }
                 if (!compact) {

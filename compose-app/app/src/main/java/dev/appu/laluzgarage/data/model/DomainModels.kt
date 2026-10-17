@@ -73,6 +73,8 @@ data class ServiceRecord(
     val completionMileage: Int? = null,
     val isDeadVehicle: Boolean = false,
     val isUnknownMileage: Boolean = false,
+    /** Battery charge at intake in 5% steps (0-100); null when it wasn't recorded. */
+    val battery: Int? = null,
     val personalItems: String? = null,
     val description: String = "",
     val remarks: String? = null,

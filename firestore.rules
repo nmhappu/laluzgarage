@@ -109,6 +109,7 @@ service cloud.firestore {
              data.laborCost is number && data.laborCost >= 0 &&
              data.partsCost is number && data.partsCost >= 0 &&
              data.totalCost is number && data.totalCost >= 0 &&
+             (!('battery' in data.keys()) || data.battery == null || (data.battery is int && data.battery >= 0 && data.battery <= 100)) &&
              (!('remarks' in data.keys()) || data.remarks == null || (data.remarks is string && data.remarks.size() <= 2000)) &&
              (!('finalRemarks' in data.keys()) || data.finalRemarks == null || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
     }

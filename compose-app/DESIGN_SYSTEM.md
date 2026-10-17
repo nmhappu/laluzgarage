@@ -112,6 +112,7 @@ BOM in `gradle/libs.versions.toml`. Remove the pin once a stable BOM ships 1.5.
 | Bottom action bar | `BottomActionBar`, `DeleteEditBar` | Column | surfaceContainer, 12/16/20 padding |
 | Connected rows | `connectedRowShape` | Shape | 20dp ends, 4dp inner, 2dp gaps |
 | Wavy divider | `WavyDivider` | Canvas | service history separator |
+| Services day header | `services/ServicesScreen.kt` `DayHeader` | Row + `HorizontalDivider` | label left-aligned (labelLarge), then a straight 2dp `outline` rule filling the row, both ends fading to transparent (15% in, 15% out); label steps up to onSurface on compact cards |
 | Dialog | `LaluzConfirmDialog` | Dialog | 28dp, surfaceContainerHigh, 50% scrim |
 | Date picker | `intake/IntakeDatePicker.kt` | Dialog | disabled past / future days, today ring |
 | Date-range calendar | `services/ServicesDateFilter.kt` `DateRangePopup` | Popup / Dialog | 358dp card, 48dp cells, 40dp circles; primary ends, secondaryContainer band, job dots; Clear / Done in tertiary; popup under the bar on Services, centred dialog in Statistics |

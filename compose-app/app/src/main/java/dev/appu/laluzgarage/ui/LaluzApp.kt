@@ -458,9 +458,10 @@ fun LaluzApp(
                                 onLaborCostChange = serviceViewModel::updateLaborCost,
                                 onRemarksChange = serviceViewModel::updateFinalRemarks,
                                 onCompletionMileageChange = serviceViewModel::updateCompletionMileage,
+                                onBatteryChange = serviceViewModel::updateBattery,
                                 onDiscard = serviceViewModel::discardChanges,
                                 onDelete = { serviceViewModel.deleteRecord(activeRecord.id, onDeleted = serviceViewModel::closeRecord) },
-                                onSave = serviceViewModel::saveActiveRecord,
+                                onSave = { serviceViewModel.saveActiveRecord(onSaved = serviceViewModel::closeRecord) },
                                 onStatusMessageShown = serviceViewModel::clearStatusMessage
                             )
 

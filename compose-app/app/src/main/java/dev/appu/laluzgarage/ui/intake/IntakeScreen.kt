@@ -67,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.appu.laluzgarage.data.model.WorkshopUser
 import dev.appu.laluzgarage.ui.components.BottomActionBar
 import dev.appu.laluzgarage.ui.components.CookieShape
+import dev.appu.laluzgarage.ui.components.BatteryField
 import dev.appu.laluzgarage.ui.components.DetailField
 import dev.appu.laluzgarage.ui.components.DetailTopBar
 import dev.appu.laluzgarage.ui.components.FilterChipTone
@@ -491,7 +492,7 @@ private fun VehicleStep(state: IntakeUiState, viewModel: IntakeViewModel) {
 @Composable
 private fun JobStep(state: IntakeUiState, viewModel: IntakeViewModel, onPickDate: (DateField) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    StepHeading("Job specification", "Add the odometer reading, what the customer wants done and the delivery date.")
+    StepHeading("Job specification", "Add the odometer reading, battery level, what the customer wants done and the delivery date.")
     Column(Modifier.padding(horizontal = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         SectionCard("Vehicle") {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -559,6 +560,7 @@ private fun JobStep(state: IntakeUiState, viewModel: IntakeViewModel, onPickDate
                     }
                 }
             )
+            BatteryField(percent = state.battery, onPercentChange = viewModel::setBattery)
             IntakeField(
                 value = state.problems,
                 onValueChange = viewModel::setProblems,

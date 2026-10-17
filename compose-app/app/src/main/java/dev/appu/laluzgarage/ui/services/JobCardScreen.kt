@@ -43,6 +43,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import dev.appu.laluzgarage.ui.components.rememberShareCapture
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,6 +73,8 @@ import dev.appu.laluzgarage.data.model.Customer
 import dev.appu.laluzgarage.data.model.Part
 import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.Vehicle
+import dev.appu.laluzgarage.ui.components.BatteryBadge
+import dev.appu.laluzgarage.ui.components.BatteryField
 import dev.appu.laluzgarage.ui.components.ChipTone
 import dev.appu.laluzgarage.ui.components.ConnectedSegments
 import dev.appu.laluzgarage.ui.components.ContactRow
@@ -125,6 +131,7 @@ fun JobCardScreen(
     onLaborCostChange: (Double) -> Unit,
     onRemarksChange: (String) -> Unit,
     onCompletionMileageChange: (Int?) -> Unit,
+    onBatteryChange: (Int?) -> Unit,
     onDiscard: () -> Unit,
     onDelete: () -> Unit,
     onSave: () -> Unit,
@@ -133,6 +140,9 @@ fun JobCardScreen(
     val cs = MaterialTheme.colorScheme
     val ext = LaluzTheme.extendedColors
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val capture = rememberShareCapture()
     val today = remember { LocalDate.now() }
     val scroll = rememberScrollState()
     val scrolled by remember { derivedStateOf { scroll.value > 0 } }
@@ -170,6 +180,16 @@ fun JobCardScreen(
                     Icon(LaluzIcons.ArrowBackShort, contentDescription = "Back to services", tint = cs.onSurface)
                 }
                 Text("Job card", style = MaterialTheme.typography.titleLarge, color = cs.onSurface, modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            capture.share(context, "jobcard-" + vehicle?.plateNumber.orEmpty().filter { it.isLetterOrDigit() }, "Share job card")
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(LaluzIcons.Share, contentDescription = "Share job card", tint = cs.onSurface)
+                }
                 IconButton(onClick = { confirmDelete = true }, modifier = Modifier.size(48.dp)) {
                     Icon(LaluzIcons.Trash, contentDescription = "Delete job card", tint = cs.error)
                 }
@@ -183,6 +203,8 @@ fun JobCardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Column(Modifier.widthIn(max = MaxContentWidth).fillMaxWidth()) {
+                    // Plate down to the customer card is what the share button captures
+                    Column(Modifier.fillMaxWidth().background(cs.surface).then(capture.modifier)) {
                     // Header
                     Column(
                         Modifier.padding(start = Spacing.xl, end = Spacing.xl, top = Spacing.xs, bottom = Spacing.xl),
@@ -197,11 +219,16 @@ fun JobCardScreen(
                                 DetailField("Model", value = vehicle.modelLabel(), modifier = Modifier.weight(1f))
                                 DetailField("Colour", value = vehicle?.color?.ifBlank { null } ?: "—", modifier = Modifier.weight(1f))
                             }
-                            DetailField("Security") {
-                                when (val s = vehicle.security()) {
-                                    is VehicleSecurity.Pin -> PinBadge(s.value)
-                                    VehicleSecurity.PhysicalKey -> Text("Physical key", style = MaterialTheme.typography.titleMedium, color = cs.onSurface)
-                                    VehicleSecurity.Unknown -> Text("Not recorded", style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
+                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                                DetailField("Security", modifier = Modifier.weight(1f)) {
+                                    when (val s = vehicle.security()) {
+                                        is VehicleSecurity.Pin -> PinBadge(s.value)
+                                        VehicleSecurity.PhysicalKey -> Text("Physical key", style = MaterialTheme.typography.titleMedium, color = cs.onSurface)
+                                        VehicleSecurity.Unknown -> Text("Not recorded", style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
+                                    }
+                                }
+                                DetailField("Battery", modifier = Modifier.weight(1f)) {
+                                    BatteryBadge(record.battery, Modifier.padding(top = 2.dp))
                                 }
                             }
                         }
@@ -218,10 +245,7 @@ fun JobCardScreen(
                         }
                     }
 
-                    Column(
-                        Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
+                    Column(Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xs)) {
                         // Customer
                         SectionCard(title = null, contentPadding = PaddingValues(0.dp), gap = 0.dp) {
                             ContactRow(
@@ -232,9 +256,15 @@ fun JobCardScreen(
                                 onWhatsApp = { buildWhatsAppUrl(phone)?.let(uriHandler::openUri) }
                             )
                         }
+                    }
+                    }
 
+                    Column(
+                        Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.xl),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
                         // Dates & odometer
-                        SectionCard("Dates & odometer") {
+                        SectionCard("Dates, odometer & battery") {
                             val wasDelivered = original?.jobStatus == JobStatus.COMPLETED
                             val deliveredOn = when {
                                 !isDelivered -> null
@@ -268,6 +298,7 @@ fun JobCardScreen(
                                     )
                                 }
                             }
+                            BatteryField(percent = record.battery, onPercentChange = onBatteryChange)
                             if (needsOdometer) {
                                 OdometerOut(record = record, valid = odometerValid, onChange = onCompletionMileageChange)
                             }

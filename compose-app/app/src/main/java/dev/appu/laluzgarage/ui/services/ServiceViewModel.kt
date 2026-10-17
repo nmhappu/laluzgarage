@@ -307,6 +307,8 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
+    fun updateBattery(battery: Int?) = edit { it.copy(battery = battery) }
+
     fun updateCompletionMileage(mileage: Int?) {
         _uiState.update { current ->
             val record = current.activeEditingRecord ?: return@update current
@@ -401,13 +403,14 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    fun saveActiveRecord() {
+    fun saveActiveRecord(onSaved: () -> Unit = {}) {
         val record = _uiState.value.activeEditingRecord ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             val result = serviceRepository.updateServiceRecord(record)
             result.onSuccess {
                 _uiState.update { it.copy(isSaving = false, originalRecord = record, justSaved = true, statusMessage = null) }
+                onSaved()
             }.onFailure { err ->
                 _uiState.update {
                     it.copy(isSaving = false, statusMessage = "Couldn't save the job card. ${err.message ?: "Check your connection and try again."}")

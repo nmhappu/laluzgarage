@@ -3,233 +3,401 @@ package dev.appu.laluzgarage.data.repository
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import dev.appu.laluzgarage.data.model.WorkshopUser
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "LaluzAuth"
 
 @Singleton
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val ioDispatcher: CoroutineDispatcher
 ) {
-    val currentUser: FirebaseUser? get() = auth.currentUser
+    private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+    private val _currentUser = MutableStateFlow<FirebaseUser?>(auth.currentUser)
+    val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
+
+    private val _userProfile = MutableStateFlow<WorkshopUser?>(null)
+    val userProfile: StateFlow<WorkshopUser?> = _userProfile.asStateFlow()
+
+    private val _isAuthLoading = MutableStateFlow(true)
+    val isAuthLoading: StateFlow<Boolean> = _isAuthLoading.asStateFlow()
+
+    private var profileListenerRegistration: ListenerRegistration? = null
 
     /**
-     * Emits real-time auth state updates from FirebaseAuth
+     * Uids already checked this session. Without it, a user with no role loops: snapshot -> check ->
+     * syncUserProfile writes the user doc -> snapshot fires again. Cleared on sign-out; the
+     * pending-approval refresh button (refreshProfile) re-checks on demand.
      */
-    fun authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener {
-            Log.d("LaluzAuth", "AuthStateListener fired: user=${it.currentUser?.uid} (${it.currentUser?.email})")
-            trySend(it.currentUser)
-        }
-        auth.addAuthStateListener(listener)
-        awaitClose { auth.removeAuthStateListener(listener) }
-    }
+    private val preRegCheckedUids = ConcurrentHashMap.newKeySet<String>()
 
-    /**
-     * Real-time listener for current user's profile document in Firestore: `users/{userId}`
-     */
-    fun userProfileFlow(userId: String): Flow<WorkshopUser?> = callbackFlow {
-        val docRef = firestore.collection("users").document(userId)
-        val registration = docRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                Log.e("LaluzAuth", "userProfileFlow snapshot error for uid=$userId: ${error.message}", error)
-                close(error)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val user = snapshot.toObject(WorkshopUser::class.java)?.copy(id = snapshot.id)
-                Log.d("LaluzAuth", "userProfileFlow: received snapshot for uid=$userId -> role=${user?.role}, tags=${user?.tags}, hasActiveRole=${user?.hasActiveRole}")
-                trySend(user)
+    init {
+        auth.addAuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            _currentUser.value = user
+            if (user == null) {
+                profileListenerRegistration?.remove()
+                profileListenerRegistration = null
+                preRegCheckedUids.clear()
+                _userProfile.value = null
+                _isAuthLoading.value = false
             } else {
-                Log.d("LaluzAuth", "userProfileFlow: user doc not found in Firestore for uid=$userId")
-                trySend(null)
+                _isAuthLoading.value = true
+                observeProfile(user.uid)
+                repositoryScope.launch {
+                    syncUserProfile(user)
+                }
             }
         }
-        awaitClose { registration.remove() }
     }
 
-    /**
-     * Synchronizes user profile in Firestore:
-     * 1. Creates `users/{uid}` document if missing (complying with firestore.rules isValidWorkshopUser)
-     * 2. Migrates pre-registered user document if one was created by manager before first sign-in
-     * 3. Performs Zero-Admin Bootstrap if the workshop has no existing administrator
-     */
-    suspend fun syncUserProfile(user: FirebaseUser): WorkshopUser? {
-        val uid = user.uid
-        val emailLower = user.email?.lowercase()?.trim() ?: ""
-        val displayName = user.displayName?.trim()?.takeIf { it.isNotBlank() }
-            ?: emailLower.substringBefore('@').ifBlank { "Team Member" }
-        val userDocRef = firestore.collection("users").document(uid)
-
-        Log.d("LaluzAuth", "syncUserProfile: starting for uid=$uid, email=$emailLower, displayName=$displayName")
-
-        try {
-            val userSnap = userDocRef.get().await()
-
-            if (!userSnap.exists()) {
-                Log.d("LaluzAuth", "syncUserProfile: doc does not exist for uid=$uid. Checking pre-registered...")
-                var preRegisteredDocId: String? = null
-                var preRegisteredData: Map<String, Any>? = null
-
-                if (emailLower.isNotBlank()) {
-                    try {
-                        val preQuery = firestore.collection("users")
-                            .whereEqualTo("email", emailLower)
-                            .limit(1)
-                            .get()
-                            .await()
-                        if (!preQuery.isEmpty) {
-                            val firstDoc = preQuery.documents.first()
-                            if (firstDoc.id != uid) {
-                                preRegisteredDocId = firstDoc.id
-                                preRegisteredData = firstDoc.data
-                                Log.d("LaluzAuth", "syncUserProfile: found pre-registered doc with id=$preRegisteredDocId")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w("LaluzAuth", "Error checking pre-registered doc: ${e.message}")
-                    }
+    private fun observeProfile(uid: String) {
+        profileListenerRegistration?.remove()
+        profileListenerRegistration = firestore.collection("users").document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error observing user profile: ${error.message}", error)
+                    _isAuthLoading.value = false
+                    return@addSnapshotListener
                 }
 
-                if (preRegisteredData != null) {
-                    val migrated = HashMap<String, Any?>(preRegisteredData).apply {
-                        put("id", uid)
-                        put("email", emailLower)
-                        if (get("name") == null || (get("name") as? String).isNullOrBlank()) {
-                            put("name", displayName)
-                        }
-                        if (get("status") == null) put("status", "offline")
-                        if (get("createdAt") == null) put("createdAt", FieldValue.serverTimestamp())
-                        put("updatedAt", FieldValue.serverTimestamp())
-                    }
-                    userDocRef.set(migrated).await()
-                    Log.d("LaluzAuth", "syncUserProfile: migrated pre-registered profile to uid=$uid")
-
-                    preRegisteredDocId?.let { oldId ->
-                        try {
-                            firestore.collection("users").document(oldId).delete().await()
-                            Log.d("LaluzAuth", "syncUserProfile: deleted old pre-registered doc $oldId")
-                        } catch (e: Exception) {
-                            Log.w("LaluzAuth", "Could not delete old pre-registered user doc: $oldId", e)
+                if (snapshot != null && snapshot.exists()) {
+                    val user = runCatching { WorkshopUser.fromDocument(snapshot) }.getOrNull()
+                    Log.d(TAG, "Observed profile doc for $uid: role=${user?.role}, effectiveRole=${user?.effectiveRole}, tags=${user?.tags}")
+                    if (user != null && user.hasActiveRole) {
+                        _userProfile.value = user
+                        _isAuthLoading.value = false
+                    } else {
+                        // User doc exists at /users/{uid} but has no effective role yet. Check pre-registered doc by email
+                        _userProfile.value = user
+                        repositoryScope.launch {
+                            checkPreRegisteredEmail(uid)
                         }
                     }
                 } else {
-                    // New user registration - create initial base profile complying with firestore.rules
-                    val initialProfile = hashMapOf<String, Any?>(
-                        "id" to uid,
-                        "name" to displayName,
-                        "email" to emailLower,
-                        "status" to "offline",
-                        "tags" to emptyList<String>(),
-                        "createdAt" to FieldValue.serverTimestamp(),
+                    Log.d(TAG, "Profile doc for $uid does not exist yet. Checking pre-registered doc by email.")
+                    repositoryScope.launch {
+                        checkPreRegisteredEmail(uid)
+                    }
+                }
+            }
+    }
+
+    private suspend fun checkPreRegisteredEmail(uid: String) = withContext(ioDispatcher) {
+        if (!preRegCheckedUids.add(uid)) {
+            _isAuthLoading.value = false
+            return@withContext
+        }
+        val emailLower = auth.currentUser?.email?.lowercase() ?: ""
+        if (emailLower.isEmpty()) {
+            _isAuthLoading.value = false
+            return@withContext
+        }
+        try {
+            val q = firestore.collection("users")
+                .whereEqualTo("email", emailLower)
+                .limit(5)
+                .get()
+                .await()
+
+            var foundActiveProfile: WorkshopUser? = null
+            for (doc in q.documents) {
+                val candidate = WorkshopUser.fromDocument(doc)
+                if (candidate.hasActiveRole) {
+                    foundActiveProfile = candidate.copy(id = uid)
+                    if (doc.id != uid) {
+                        Log.i(TAG, "Migrating pre-registered doc ${doc.id} to uid $uid for $emailLower")
+                        val userRef = firestore.collection("users").document(uid)
+                        val migratedMap = hashMapOf<String, Any>(
+                            "id" to uid,
+                            "name" to candidate.name.ifEmpty { auth.currentUser?.displayName ?: emailLower.substringBefore("@") },
+                            "email" to emailLower,
+                            "status" to "online",
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                        candidate.role?.let { migratedMap["role"] = it }
+                        if (candidate.tags.isNotEmpty()) {
+                            migratedMap["tags"] = candidate.tags
+                        }
+                        candidate.pin?.let { migratedMap["pin"] = it }
+                        userRef.set(migratedMap, SetOptions.merge()).await()
+                        runCatching { doc.reference.delete().await() }
+                    }
+                    break
+                }
+            }
+
+            if (foundActiveProfile != null) {
+                Log.d(TAG, "Assigned pre-registered profile for $emailLower: effectiveRole=${foundActiveProfile.effectiveRole}")
+                _userProfile.value = foundActiveProfile
+            } else {
+                // If still no role found, trigger syncUserProfile to evaluate Zero-Admin bootstrap
+                auth.currentUser?.let { syncUserProfile(it) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in checkPreRegisteredEmail: ${e.message}", e)
+        } finally {
+            _isAuthLoading.value = false
+        }
+    }
+
+    suspend fun syncUserProfile(authUser: FirebaseUser): WorkshopUser? = withContext(ioDispatcher) {
+        var attempts = 0
+        while (attempts < 3) {
+            attempts++
+            try {
+                return@withContext doSyncUserProfile(authUser)
+            } catch (e: Exception) {
+                Log.w(TAG, "syncUserProfile attempt $attempts failed: ${e.message}")
+                if (attempts < 3) {
+                    delay(750L * attempts)
+                }
+            }
+        }
+        return@withContext null
+    }
+
+    /** Skips the write when already online, so repeat syncs don't cost a write each. */
+    private suspend fun markOnline(userRef: DocumentReference, currentStatus: String?) {
+        if (currentStatus == "online") return
+        userRef.update(
+            mapOf(
+                "status" to "online",
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+        ).await()
+    }
+
+    private suspend fun doSyncUserProfile(authUser: FirebaseUser): WorkshopUser? {
+        val userRef = firestore.collection("users").document(authUser.uid)
+        val emailLower = authUser.email?.lowercase() ?: ""
+        val userSnap = userRef.get().await()
+
+        if (!userSnap.exists() && emailLower.isNotEmpty()) {
+            val q = firestore.collection("users")
+                .whereEqualTo("email", emailLower)
+                .limit(5)
+                .get()
+                .await()
+
+            val preRegDoc = q.documents.firstOrNull { it.id != authUser.uid }
+            if (preRegDoc != null) {
+                val preRegUser = WorkshopUser.fromDocument(preRegDoc)
+                val name = preRegUser.name.ifEmpty {
+                    authUser.displayName ?: emailLower.substringBefore("@").ifEmpty { "Team Member" }
+                }
+                val migratedMap = hashMapOf<String, Any>(
+                    "id" to authUser.uid,
+                    "name" to name,
+                    "email" to emailLower,
+                    "status" to "online",
+                    "createdAt" to (preRegDoc.get("createdAt") ?: FieldValue.serverTimestamp()),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                preRegUser.role?.let { migratedMap["role"] = it }
+                if (preRegUser.tags.isNotEmpty()) {
+                    migratedMap["tags"] = preRegUser.tags
+                }
+                preRegUser.pin?.let { migratedMap["pin"] = it }
+
+                userRef.set(migratedMap, SetOptions.merge()).await()
+                runCatching { preRegDoc.reference.delete().await() }
+            } else {
+                val newProfile = hashMapOf<String, Any>(
+                    "id" to authUser.uid,
+                    "name" to (authUser.displayName ?: emailLower.substringBefore("@").ifEmpty { "Team Member" }),
+                    "email" to emailLower,
+                    "status" to "online",
+                    "tags" to emptyList<String>(),
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                userRef.set(newProfile).await()
+            }
+        } else if (userSnap.exists()) {
+            val currentProfile = runCatching { WorkshopUser.fromDocument(userSnap) }.getOrNull()
+            if (currentProfile != null && !currentProfile.hasActiveRole && emailLower.isNotEmpty()) {
+                val q = firestore.collection("users")
+                    .whereEqualTo("email", emailLower)
+                    .limit(5)
+                    .get()
+                    .await()
+                val preRegDoc = q.documents.firstOrNull {
+                    it.id != authUser.uid && WorkshopUser.fromDocument(it).hasActiveRole
+                }
+                if (preRegDoc != null) {
+                    val preRegUser = WorkshopUser.fromDocument(preRegDoc)
+                    val updates = hashMapOf<String, Any>(
+                        "status" to "online",
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
-                    userDocRef.set(initialProfile).await()
-                    Log.d("LaluzAuth", "syncUserProfile: created initial profile doc for uid=$uid")
+                    preRegUser.role?.let { updates["role"] = it }
+                    if (preRegUser.tags.isNotEmpty()) updates["tags"] = preRegUser.tags
+                    preRegUser.pin?.let { updates["pin"] = it }
+                    userRef.set(updates, SetOptions.merge()).await()
+                    runCatching { preRegDoc.reference.delete().await() }
+                } else {
+                    markOnline(userRef, userSnap.getString("status"))
                 }
+            } else {
+                markOnline(userRef, userSnap.getString("status"))
+            }
+        }
+
+        // Zero-Admin Bootstrap Check
+        val freshSnap = userRef.get().await()
+        val profile = runCatching { WorkshopUser.fromDocument(freshSnap) }.getOrNull()
+
+        if (profile != null && !profile.hasActiveRole && emailLower.isNotEmpty()) {
+            val adminCheck = firestore.collection("users")
+                .whereEqualTo("role", "admin")
+                .limit(1)
+                .get()
+                .await()
+
+            var hasAdmin = !adminCheck.isEmpty
+
+            if (!hasAdmin) {
+                val tagAdminCheck = firestore.collection("users")
+                    .whereArrayContains("tags", "admin")
+                    .limit(1)
+                    .get()
+                    .await()
+                hasAdmin = !tagAdminCheck.isEmpty
             }
 
-            // Fetch fresh document
-            val freshSnap = userDocRef.get().await()
-            var profile = freshSnap.toObject(WorkshopUser::class.java)?.copy(id = freshSnap.id)
+            if (!hasAdmin) {
+                Log.i(TAG, "Zero-Admin condition detected. Promoting $emailLower to initial Admin.")
+                userRef.update(
+                    mapOf(
+                        "role" to "admin",
+                        "tags" to FieldValue.arrayUnion("admin"),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
 
-            // Zero-Admin Bootstrap Check
-            if (profile != null && !profile.hasActiveRole) {
-                Log.d("LaluzAuth", "syncUserProfile: user has no active role. Checking Zero-Admin condition...")
-                try {
-                    val adminQuery = firestore.collection("users")
-                        .whereEqualTo("role", "admin")
-                        .limit(1)
-                        .get()
-                        .await()
-                    var hasAdmin = !adminQuery.isEmpty
+                runCatching {
+                    firestore.collection("settings").document("admin_lock").set(
+                        mapOf(
+                            "adminUid" to authUser.uid,
+                            "adminEmail" to emailLower,
+                            "bootstrappedAt" to FieldValue.serverTimestamp()
+                        ),
+                        SetOptions.merge()
+                    ).await()
+                }
+            }
+        }
 
-                    if (!hasAdmin) {
-                        val tagAdminQuery = firestore.collection("users")
-                            .whereArrayContains("tags", "admin")
-                            .limit(1)
-                            .get()
-                            .await()
-                        hasAdmin = !tagAdminQuery.isEmpty
-                    }
+        val finalSnap = userRef.get().await()
+        return runCatching { WorkshopUser.fromDocument(finalSnap) }.getOrNull()
+    }
 
-                    if (!hasAdmin) {
-                        Log.i("LaluzAuth", "Zero-Admin condition detected! Bootstrapping $emailLower ($uid) as initial Admin.")
+    suspend fun signInWithEmail(email: String, pass: String): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            auth.signInWithEmailAndPassword(email.trim(), pass).await()
+            Unit
+        }
+    }
 
-                        // Promote user first while bootstrap is permitted by firestore.rules
-                        userDocRef.update(
-                            mapOf(
-                                "role" to "admin",
-                                "tags" to FieldValue.arrayUnion("admin"),
-                                "updatedAt" to FieldValue.serverTimestamp()
-                            )
-                        ).await()
+    /** Exchanges a Google ID token (from Credential Manager) for a Firebase session. */
+    suspend fun signInWithGoogle(idToken: String): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            auth.signInWithCredential(credential).await()
+            Unit
+        }
+    }
 
-                        // Create admin lock setting document
-                        try {
-                            val lockData = hashMapOf(
-                                "adminUid" to uid,
-                                "adminEmail" to emailLower,
-                                "bootstrappedAt" to FieldValue.serverTimestamp()
-                            )
-                            firestore.collection("settings").document("admin_lock")
-                                .set(lockData, SetOptions.merge())
-                                .await()
-                            Log.d("LaluzAuth", "syncUserProfile: created settings/admin_lock successfully")
-                        } catch (lockErr: Exception) {
-                            Log.w("LaluzAuth", "Bootstrap admin lock notice: ${lockErr.message}")
-                        }
-
-                        profile = profile.copy(
-                            role = "admin",
-                            tags = if (profile.tags.contains("admin")) profile.tags else profile.tags + "admin"
+    suspend fun signOut(): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            val uid = auth.currentUser?.uid
+            if (uid != null) {
+                runCatching {
+                    firestore.collection("users").document(uid).update(
+                        mapOf(
+                            "status" to "offline",
+                            "updatedAt" to FieldValue.serverTimestamp()
                         )
-                    } else {
-                        Log.d("LaluzAuth", "syncUserProfile: workshop already has an admin. User awaits role assignment.")
-                    }
-                } catch (bootstrapErr: Exception) {
-                    Log.w("LaluzAuth", "Zero-admin check notice: ${bootstrapErr.message}", bootstrapErr)
+                    ).await()
+                }
+            }
+            profileListenerRegistration?.remove()
+            profileListenerRegistration = null
+            auth.signOut()
+            _currentUser.value = null
+            _userProfile.value = null
+        }
+    }
+
+    suspend fun refreshProfile(): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            val user = auth.currentUser ?: return@runCatching
+            val uid = user.uid
+            val emailLower = user.email?.lowercase() ?: ""
+            Log.d(TAG, "refreshProfile initiated for $emailLower (uid: $uid)")
+
+            syncUserProfile(user)
+
+            val snap = firestore.collection("users").document(uid).get().await()
+            if (snap.exists()) {
+                val profile = WorkshopUser.fromDocument(snap)
+                Log.d(TAG, "refreshProfile snap found: role=${profile.role}, effectiveRole=${profile.effectiveRole}")
+                if (profile.hasActiveRole) {
+                    _userProfile.value = profile
+                    return@runCatching
                 }
             }
 
-            Log.d("LaluzAuth", "syncUserProfile complete: role=${profile?.role}, hasActiveRole=${profile?.hasActiveRole}")
-            return profile
-        } catch (e: Exception) {
-            Log.e("LaluzAuth", "syncUserProfile failed: ${e.message}", e)
-            return null
+            if (emailLower.isNotEmpty()) {
+                val q = firestore.collection("users")
+                    .whereEqualTo("email", emailLower)
+                    .limit(5)
+                    .get()
+                    .await()
+                for (doc in q.documents) {
+                    val candidate = WorkshopUser.fromDocument(doc)
+                    if (candidate.hasActiveRole) {
+                        val activeUser = candidate.copy(id = uid)
+                        _userProfile.value = activeUser
+                        val userRef = firestore.collection("users").document(uid)
+                        val updateMap = hashMapOf<String, Any>(
+                            "id" to uid,
+                            "name" to activeUser.name,
+                            "email" to emailLower,
+                            "status" to "online",
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                        activeUser.role?.let { updateMap["role"] = it }
+                        if (activeUser.tags.isNotEmpty()) updateMap["tags"] = activeUser.tags
+                        activeUser.pin?.let { updateMap["pin"] = it }
+                        userRef.set(updateMap, SetOptions.merge()).await()
+                        runCatching { doc.reference.delete().await() }
+                        return@runCatching
+                    }
+                }
+            }
         }
-    }
-
-    /**
-     * Fetches all registered workshop technicians and advisors for the PIN Switcher
-     */
-    suspend fun getWorkshopStaff(): List<WorkshopUser> {
-        val snapshot = firestore.collection("users").get().await()
-        return snapshot.documents.mapNotNull { doc ->
-            doc.toObject(WorkshopUser::class.java)?.copy(id = doc.id)
-        }
-    }
-
-    suspend fun signInWithEmail(email: String, pass: String): FirebaseUser {
-        val result = auth.signInWithEmailAndPassword(email.trim(), pass).await()
-        return result.user ?: throw IllegalStateException("Firebase user is null after sign-in")
-    }
-
-    suspend fun signInWithGoogle(idToken: String): FirebaseUser {
-        val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
-        val result = auth.signInWithCredential(credential).await()
-        return result.user ?: throw IllegalStateException("Firebase user is null after Google sign-in")
-    }
-
-    fun signOut() {
-        auth.signOut()
     }
 }

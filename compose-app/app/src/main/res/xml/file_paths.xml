@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Release APKs downloaded by App Updates (cache/updates). -->
+    <cache-path name="updates" path="updates/" />
+    <!-- Screenshots shared from the vehicle and job card screens (cache/shared). -->
+    <cache-path name="shared" path="shared/" />
+</paths>

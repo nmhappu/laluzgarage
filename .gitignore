@@ -171,12 +171,25 @@ compose-app/.gradle/
 compose-app/build/
 compose-app/app/build/
 compose-app/.kotlin/
+compose-app/.design-backup/
+compose-app/baselineprofile/build/
 
-# Capacitor Web Assets & Generated Native Config
+# Capacitor Web Assets & Generated Native Config (written by `npx cap sync`)
 android/app/src/main/assets/public/
 android/app/src/main/assets/capacitor.config.json
 android/app/src/main/assets/capacitor.plugins.json
-android/app/res/xml/config.xml
+android/app/src/main/res/xml/config.xml
+android/capacitor-cordova-android-plugins/
+capacitor-app/app/src/main/assets/public/
+capacitor-app/app/src/main/assets/capacitor.config.json
+capacitor-app/app/src/main/assets/capacitor.plugins.json
+capacitor-app/app/src/main/res/xml/config.xml
+capacitor-app/capacitor-cordova-android-plugins/
+capacitor-app/.gradle/
+capacitor-app/build/
+capacitor-app/app/build/
+capacitor-app/.idea/
+capacitor-app/local.properties
 **/capacitor-cordova-android-plugins/build/
 ios/App/public/
 ios/App/App/capacitor.config.json

@@ -1,126 +1,169 @@
 package dev.appu.laluzgarage.ui.theme
 
 import android.app.Activity
+import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-@Immutable
-data class WorkshopCustomColors(
-    val statusSuccess: Color = StatusSuccess,
-    val statusPending: Color = StatusPending,
-    val statusUrgent: Color = StatusUrgent,
-    val whatsApp: Color = WhatsAppBrand,
-    val surfaceContainer: Color = DarkSurfaceContainer
-)
+/** User theme preference; persisted by ThemePreferences. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-val LocalWorkshopColors = staticCompositionLocalOf { WorkshopCustomColors() }
+/** Material You (wallpaper-derived colour) needs Android 12. */
+@ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
+fun supportsDynamicColor(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 private val DarkColorScheme = darkColorScheme(
-    primary = BrandPrimary,
-    onPrimary = BrandOnPrimary,
-    primaryContainer = BrandPrimary.copy(alpha = 0.15f),
-    onPrimaryContainer = BrandPrimary,
-
-    secondary = BrandSecondary,
-    onSecondary = BrandOnSecondary,
-    secondaryContainer = BrandSecondary.copy(alpha = 0.15f),
-    onSecondaryContainer = BrandSecondary,
-
-    background = DarkBackground,
-    onBackground = DarkTextPrimary,
-
+    primary = DarkPrimary,
+    onPrimary = DarkOnPrimary,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnPrimaryContainer,
+    inversePrimary = DarkInversePrimary,
+    secondary = DarkSecondary,
+    onSecondary = DarkOnSecondary,
+    secondaryContainer = DarkSecondaryContainer,
+    onSecondaryContainer = DarkOnSecondaryContainer,
+    tertiary = DarkTertiary,
+    onTertiary = DarkOnTertiary,
+    tertiaryContainer = DarkTertiaryContainer,
+    onTertiaryContainer = DarkOnTertiaryContainer,
+    error = DarkError,
+    onError = DarkOnError,
+    errorContainer = DarkErrorContainer,
+    onErrorContainer = DarkOnErrorContainer,
+    background = DarkSurface,
+    onBackground = DarkOnSurface,
     surface = DarkSurface,
-    onSurface = DarkTextPrimary,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkTextSecondary,
-
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceContainerHigh,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceTint = DarkPrimary,
+    inverseSurface = DarkInverseSurface,
+    inverseOnSurface = DarkInverseOnSurface,
     outline = DarkOutline,
     outlineVariant = DarkOutlineVariant,
-
-    error = StatusUrgent,
-    onError = Color.White
+    surfaceBright = DarkSurfaceContainerHighest,
+    surfaceDim = DarkSurface,
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = BrandPrimary,
-    onPrimary = BrandOnPrimary,
-    primaryContainer = BrandPrimary.copy(alpha = 0.15f),
-    onPrimaryContainer = BrandPrimary,
-
-    secondary = BrandSecondary,
-    onSecondary = BrandOnSecondary,
-    secondaryContainer = BrandSecondary.copy(alpha = 0.15f),
-    onSecondaryContainer = BrandSecondary,
-
-    background = LightBackground,
-    onBackground = LightTextPrimary,
-
+    primary = LightPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    inversePrimary = LightInversePrimary,
+    secondary = LightSecondary,
+    onSecondary = LightOnSecondary,
+    secondaryContainer = LightSecondaryContainer,
+    onSecondaryContainer = LightOnSecondaryContainer,
+    tertiary = LightTertiary,
+    onTertiary = LightOnTertiary,
+    tertiaryContainer = LightTertiaryContainer,
+    onTertiaryContainer = LightOnTertiaryContainer,
+    error = LightError,
+    onError = LightOnError,
+    errorContainer = LightErrorContainer,
+    onErrorContainer = LightOnErrorContainer,
+    background = LightSurface,
+    onBackground = LightOnSurface,
     surface = LightSurface,
-    onSurface = LightTextPrimary,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightTextSecondary,
-
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceContainerHigh,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceTint = LightPrimary,
+    inverseSurface = LightInverseSurface,
+    inverseOnSurface = LightInverseOnSurface,
     outline = LightOutline,
     outlineVariant = LightOutlineVariant,
-
-    error = StatusUrgent,
-    onError = Color.White
+    surfaceBright = LightSurfaceContainerLowest,
+    surfaceDim = LightSurfaceContainerHighest,
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest
 )
 
+/**
+ * [dynamicColor] swaps the LaluZ palette for the system's Material You scheme on Android 12+;
+ * older devices keep the brand palette.
+ */
 @Composable
-fun LaluzTheme(
-    darkTheme: Boolean = true, // Default to workshop dark theme (Obsidian)
+fun LaluzGarageTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val workshopColors = if (darkTheme) {
-        WorkshopCustomColors(
-            statusSuccess = StatusSuccess,
-            statusPending = StatusPending,
-            statusUrgent = StatusUrgent,
-            whatsApp = WhatsAppBrand,
-            surfaceContainer = DarkSurfaceContainer
-        )
-    } else {
-        WorkshopCustomColors(
-            statusSuccess = StatusSuccess,
-            statusPending = StatusPending,
-            statusUrgent = StatusUrgent,
-            whatsApp = WhatsAppBrand,
-            surfaceContainer = LightSurfaceContainer
-        )
+    val context = LocalContext.current
+    val useDynamic = dynamicColor && supportsDynamicColor()
+    val colorScheme = when {
+        useDynamic && darkTheme -> dynamicDarkColorScheme(context)
+        useDynamic -> dynamicLightColorScheme(context)
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
     }
-
+    val brandExtended = if (darkTheme) DarkExtendedColors else LightExtendedColors
+    val extendedColors = if (useDynamic) {
+        remember(colorScheme, darkTheme) { brandExtended.withDynamicHero(colorScheme, darkTheme) }
+    } else {
+        brandExtended
+    }
     val view = LocalView.current
+
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as? Activity)?.window
-            if (window != null) {
-                window.statusBarColor = Color.Transparent.toArgb()
-                window.navigationBarColor = Color.Transparent.toArgb()
-                val insetsController = WindowCompat.getInsetsController(window, view)
-                insetsController.isAppearanceLightStatusBars = !darkTheme
-                insetsController.isAppearanceLightNavigationBars = !darkTheme
-            }
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
-    CompositionLocalProvider(LocalWorkshopColors provides workshopColors) {
+    CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = LaluzTypography,
+            motionScheme = MotionScheme.expressive(),
+            typography = Typography,
+            shapes = LaluzShapes,
             content = content
         )
     }
+}
+
+/**
+ * Re-tints the Total services hero from the dynamic scheme so it doesn't stay brand blue on a
+ * wallpaper-coloured screen. Warning, WhatsApp and logo colours are semantic and keep their values.
+ */
+private fun ExtendedColors.withDynamicHero(cs: ColorScheme, darkTheme: Boolean) = copy(
+    heroTop = lerp(cs.surfaceContainerLowest, cs.primaryContainer, if (darkTheme) 0.35f else 0.7f),
+    heroBottom = cs.surfaceContainerLowest,
+    onHero = if (darkTheme) cs.onSurface else cs.onPrimaryContainer,
+    heroLine = cs.primary
+)
+
+object LaluzTheme {
+    val extendedColors: ExtendedColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalExtendedColors.current
 }

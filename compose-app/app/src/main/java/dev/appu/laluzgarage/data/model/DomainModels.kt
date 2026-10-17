@@ -1,17 +1,23 @@
 package dev.appu.laluzgarage.data.model
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.ServerTimestamp
 
 data class Customer(
+    @DocumentId
     val id: String = "",
     val name: String = "",
     val phone: String = "",
     val technicianId: String = "",
+    @ServerTimestamp
     val createdAt: Timestamp? = null,
+    @ServerTimestamp
     val updatedAt: Timestamp? = null
 )
 
 data class Vehicle(
+    @DocumentId
     val id: String = "",
     val customerId: String = "",
     val make: String = "",
@@ -20,18 +26,42 @@ data class Vehicle(
     val plateNumber: String = "",
     val passwordOrPin: String = "",
     val technicianId: String = "",
+    @ServerTimestamp
     val createdAt: Timestamp? = null,
+    @ServerTimestamp
     val updatedAt: Timestamp? = null
 )
+
+data class Part(
+    @DocumentId
+    val id: String = "",
+    val name: String = "",
+    val category: String = "",
+    val stockQuantity: Int = 0,
+    val price: Double = 0.0,
+    val minStockLevel: Int = 5,
+    val location: String = "",
+    @ServerTimestamp
+    val createdAt: Timestamp? = null,
+    @ServerTimestamp
+    val updatedAt: Timestamp? = null
+) {
+    val isLowStock: Boolean
+        get() = stockQuantity <= minStockLevel
+}
 
 data class PartUsed(
     val partId: String = "",
     val name: String = "",
-    val quantity: Int = 0,
+    val quantity: Int = 1,
     val unitPrice: Double = 0.0
-)
+) {
+    val total: Double
+        get() = quantity * unitPrice
+}
 
 data class ServiceRecord(
+    @DocumentId
     val id: String = "",
     val vehicleId: String = "",
     val customerId: String = "",
@@ -39,31 +69,32 @@ data class ServiceRecord(
     val technicianName: String? = null,
     val date: String = "",
     val expectedDeliveryDate: String? = null,
-    val mileage: Long = 0L,
-    val completionMileage: Long? = null,
+    val mileage: Int = 0,
+    val completionMileage: Int? = null,
     val isDeadVehicle: Boolean = false,
     val isUnknownMileage: Boolean = false,
+    /** Battery charge at intake in 5% steps (0-100); null when it wasn't recorded. */
+    val battery: Int? = null,
     val personalItems: String? = null,
     val description: String = "",
     val remarks: String? = null,
     val finalRemarks: String? = null,
-    val status: String = "pending", // "pending", "in-progress", "completed", "cancelled"
+    val status: String = "pending", // pending, in-progress, completed, cancelled
     val laborCost: Double = 0.0,
     val partsCost: Double = 0.0,
     val totalCost: Double = 0.0,
     val partsUsed: List<PartUsed> = emptyList(),
+    @ServerTimestamp
     val createdAt: Timestamp? = null,
+    @ServerTimestamp
     val updatedAt: Timestamp? = null
-)
+) {
+    val isCompleted: Boolean
+        get() = status.equals("completed", ignoreCase = true)
 
-data class Part(
-    val id: String = "",
-    val name: String = "",
-    val category: String = "",
-    val stockQuantity: Int = 0,
-    val price: Double = 0.0,
-    val minStockLevel: Int = 0,
-    val location: String = "",
-    val createdAt: Timestamp? = null,
-    val updatedAt: Timestamp? = null
-)
+    val isInProgress: Boolean
+        get() = status.equals("in-progress", ignoreCase = true)
+
+    val isPending: Boolean
+        get() = status.equals("pending", ignoreCase = true)
+}

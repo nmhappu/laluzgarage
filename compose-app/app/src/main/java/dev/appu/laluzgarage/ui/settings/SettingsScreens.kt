@@ -3,6 +3,11 @@ package dev.appu.laluzgarage.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
@@ -140,17 +145,10 @@ fun SettingsHost(
     // Back clears the form before the transition runs; keep drawing it while Edit member slides out.
     val heldMember = rememberLastNonNull(state.member)
 
-    androidx.compose.animation.AnimatedContent(
-        targetState = shown,
-        transitionSpec = {
-            val forward = targetState.ordinal > initialState.ordinal && initialState != SettingsRoute.MEMBER
-            val offset = tween<androidx.compose.ui.unit.IntOffset>(300, easing = Motion.emphasized)
-            (androidx.compose.animation.slideInHorizontally(offset) { if (forward) it else -it / 4 } togetherWith
-                androidx.compose.animation.slideOutHorizontally(offset) { if (forward) -it / 4 else it } using null)
-                .apply { targetContentZIndex = if (forward) 1f else -1f }
-        },
-        label = "SettingsRoute"
-    ) { r ->
+    val tablet = dev.appu.laluzgarage.ui.layout.LocalAdaptive.current.isTablet
+    // Two panes on tablets: the right pane's top-level pages close Settings from their back arrow.
+    val pageBack: () -> Unit = if (tablet && shown != SettingsRoute.MEMBER && shown != SettingsRoute.STAT_DETAIL) onClose else back
+    val page: @Composable (SettingsRoute) -> Unit = { r ->
         when (r) {
             SettingsRoute.HOME -> SettingsHomeScreen(
                 profile = profile,
@@ -159,14 +157,14 @@ fun SettingsHost(
                 updateAvailable = state.updateAvailable,
                 message = state.message,
                 onMessageShown = viewModel::clearMessage,
-                onBack = back,
+                onBack = if (tablet) onClose else back,
                 onToggleTheme = onToggleTheme,
                 onOpen = { route = it },
                 onLogOut = onLogOut
             )
             SettingsRoute.TEAM -> TeamScreen(
                 state = state,
-                onBack = back,
+                onBack = pageBack,
                 onMessageShown = viewModel::clearMessage,
                 onOpenMember = { viewModel.editMember(it); route = SettingsRoute.MEMBER }
             )
@@ -178,7 +176,7 @@ fun SettingsHost(
                     isSelf = form.original.id == profile.uid,
                     message = state.message,
                     onMessageShown = viewModel::clearMessage,
-                    onBack = back,
+                    onBack = pageBack,
                     onRole = viewModel::setMemberRole,
                     onName = viewModel::setMemberName,
                     onEmail = viewModel::setMemberEmail,
@@ -191,9 +189,9 @@ fun SettingsHost(
             SettingsRoute.STATS -> StatisticsMenuScreen(
                 records = records,
                 onOpen = { statMetric = it; route = SettingsRoute.STAT_DETAIL },
-                onBack = back
+                onBack = pageBack
             )
-            SettingsRoute.STAT_DETAIL -> StatisticsDetailScreen(metric = statMetric, records = records, onBack = back)
+            SettingsRoute.STAT_DETAIL -> StatisticsDetailScreen(metric = statMetric, records = records, onBack = pageBack)
             SettingsRoute.WHATSAPP -> WhatsAppScreen(
                 kind = whatsAppKind,
                 draft = state.whatsAppDraft,
@@ -205,17 +203,60 @@ fun SettingsHost(
                 onText = viewModel::setTemplate,
                 onReset = viewModel::resetTemplate,
                 onSave = viewModel::saveTemplates,
-                onBack = back
+                onBack = pageBack
             )
-            SettingsRoute.UPDATES -> AppUpdatesScreen(viewModel = viewModel, state = state, onBack = back)
+            SettingsRoute.UPDATES -> AppUpdatesScreen(viewModel = viewModel, state = state, onBack = pageBack)
             SettingsRoute.THEME -> ThemeScreen(
                 themeMode = themeMode,
                 dynamicColor = dynamicColor,
                 onThemeModeChange = onThemeModeChange,
                 onDynamicColorChange = onDynamicColorChange,
-                onBack = back
+                onBack = pageBack
             )
         }
+    }
+    if (tablet) {
+        val cs = MaterialTheme.colorScheme
+        val rightRoute = if (shown == SettingsRoute.HOME) {
+            if (profile.role == UserRole.ADMIN) SettingsRoute.TEAM else SettingsRoute.THEME
+        } else shown
+        androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().background(cs.surface)) {
+            Box(Modifier.width(473.dp).fillMaxHeight()) { page(SettingsRoute.HOME) }
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(top = Spacing.md, end = Spacing.xl, bottom = Spacing.xl)
+            ) {
+                dev.appu.laluzgarage.ui.layout.RaisedCard(Modifier.fillMaxSize()) {
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = rightRoute,
+                        transitionSpec = {
+                            // Same page family: a clean fade out then in, no slide.
+                            androidx.compose.animation.fadeIn(tween(150, delayMillis = 90)) togetherWith
+                                androidx.compose.animation.fadeOut(tween(90)) using null
+                        },
+                        label = "SettingsPane"
+                    ) { r -> page(r) }
+                }
+            }
+        }
+        return
+    }
+    androidx.compose.animation.AnimatedContent(
+        targetState = shown,
+        transitionSpec = {
+            val forward = targetState.ordinal > initialState.ordinal && initialState != SettingsRoute.MEMBER
+            val offset = tween<androidx.compose.ui.unit.IntOffset>(300, easing = Motion.emphasized)
+            (androidx.compose.animation.slideInHorizontally(offset) { if (forward) it else -it / 4 } togetherWith
+                androidx.compose.animation.slideOutHorizontally(offset) { if (forward) -it / 4 else it } using null)
+                .apply { targetContentZIndex = if (forward) 1f else -1f }
+        },
+        label = "SettingsRoute"
+    ) { r ->
+        page(r)
     }
 }
 
@@ -380,7 +421,6 @@ private fun TeamScreen(
     onOpenMember: (WorkshopUser) -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
-    val ext = LaluzTheme.extendedColors
     SettingsPage("Team Management", onBack, state.message, onMessageShown) {
         val users = state.users
         val summary = buildString {
@@ -413,16 +453,29 @@ private fun TeamScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        TwoLine(u.name.ifBlank { u.email.substringBefore("@") }, u.email, Modifier.weight(1f))
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                            if (role == null) SmallChip("Unassigned", ext.warningContainer, ext.onWarningContainer)
-                            else SmallChip(role.shortLabel(), cs.surfaceContainerHigh, cs.onSurface)
-                            Text(
-                                if (u.pin.isNullOrBlank()) "No PIN" else "PIN set",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cs.onSurfaceVariant
-                            )
+                        Box(
+                            Modifier.size(48.dp).clip(CircleShape).background(cs.surfaceContainerHigh).clearAndSetSemantics { },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(initialsOf(u.name.ifBlank { u.email }), style = MaterialTheme.typography.titleMedium, color = cs.onSurface)
+                            ProfilePhoto(u.photoURL, Modifier.matchParentSize())
                         }
+                        TwoLine(u.name.ifBlank { u.email.substringBefore("@") }, u.email, Modifier.weight(1f))
+                        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                            if (!u.pin.isNullOrBlank()) {
+                                Icon(LaluzIcons.Key, contentDescription = "PIN set", tint = cs.primary, modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        Icon(
+                            if (role == null) LaluzIcons.ShieldFilled else LaluzIcons.Shield,
+                            contentDescription = role?.shortLabel() ?: "No role assigned",
+                            tint = when (role) {
+                                UserRole.ADMIN -> cs.error
+                                null -> LaluzTheme.extendedColors.warningContainer
+                                else -> cs.tertiary
+                            },
+                            modifier = Modifier.size(24.dp)
+                        )
                         Icon(LaluzIcons.ChevronRight, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(24.dp))
                     }
                 }

@@ -176,7 +176,7 @@ class IntakeViewModel @Inject constructor(
         val pin = _uiState.value.pin
         if (pin.length != 4) return
         if (advisorPinMatches(advisor, pin)) _uiState.update { it.copy(step = IntakeStep.SEARCH, pinWrong = false) }
-        else _uiState.update { it.copy(pinWrong = true) }
+        else _uiState.update { it.copy(pin = "", pinWrong = true) }
     }
 
     // ---- Customer discovery ----

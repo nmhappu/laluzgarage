@@ -20,6 +20,7 @@ import dev.appu.laluzgarage.ui.inventory.InventoryIndex
 import dev.appu.laluzgarage.ui.inventory.InventoryQuery
 import dev.appu.laluzgarage.ui.inventory.InventoryUi
 import dev.appu.laluzgarage.ui.inventory.PartFilter
+import dev.appu.laluzgarage.ui.inventory.PartSort
 import dev.appu.laluzgarage.ui.vehicles.VehiclesIndex
 import dev.appu.laluzgarage.ui.vehicles.VehiclesListUi
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +66,7 @@ data class ServiceUiState(
     val vehicleSearch: String = "",
     val partSearch: String = "",
     val partFilter: String = PartFilter.ALL,
-    val partsByStock: Boolean = false,
+    val partSort: PartSort = PartSort.NAME_ASC,
     /** Result of a vehicle or part save / delete, shown once as a snackbar. */
     val catalogMessage: String? = null
 ) {
@@ -139,7 +140,7 @@ class ServiceViewModel @Inject constructor(
     /** Inventory list: rows built once per snapshot, then searched, filtered and sorted off the main thread. */
     val inventory: StateFlow<InventoryUi> = combine(
         snapshots.map { InventoryIndex(it.parts, it.isLoading) },
-        _uiState.map { InventoryQuery(it.partSearch, it.partFilter, it.partsByStock) }.distinctUntilChanged()
+        _uiState.map { InventoryQuery(it.partSearch, it.partFilter, it.partSort) }.distinctUntilChanged()
     ) { index, query -> index.select(query) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), InventoryUi())
@@ -427,7 +428,7 @@ class ServiceViewModel @Inject constructor(
 
     fun setPartFilter(filter: String) = _uiState.update { it.copy(partFilter = filter) }
 
-    fun togglePartsSort() = _uiState.update { it.copy(partsByStock = !it.partsByStock) }
+    fun setPartSort(sort: PartSort) = _uiState.update { it.copy(partSort = sort) }
 
     fun clearCatalogMessage() = _uiState.update { it.copy(catalogMessage = null) }
 

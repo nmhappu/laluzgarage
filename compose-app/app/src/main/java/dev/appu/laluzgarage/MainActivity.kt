@@ -1,5 +1,6 @@
 package dev.appu.laluzgarage
 
+import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -36,6 +37,10 @@ class MainActivity : ComponentActivity() {
                 SystemClock.uptimeMillis() - splashShownAt < SPLASH_ANIMATION_MS
             }
         }
+        // Phones stay portrait; tablets (smallest width >= 600dp) rotate freely.
+        if (resources.configuration.smallestScreenWidthDp < TABLET_MIN_SW_DP) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -61,5 +66,8 @@ class MainActivity : ComponentActivity() {
     private companion object {
         /** Matches windowSplashScreenAnimationDuration in values-v31/styles.xml. */
         const val SPLASH_ANIMATION_MS = 800L
+
+        /** Material's tablet breakpoint (smallest screen width, unaffected by rotation). */
+        const val TABLET_MIN_SW_DP = 600
     }
 }

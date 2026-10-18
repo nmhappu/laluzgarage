@@ -26,14 +26,11 @@
   },
   "include": [
     "src",
-    "vite.config.ts",
-    "capacitor.config.ts"
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "android",
-    "flutter",
     "external-items"
   ]
 }

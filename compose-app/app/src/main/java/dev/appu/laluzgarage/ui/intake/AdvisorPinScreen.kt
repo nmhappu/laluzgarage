@@ -92,7 +92,7 @@ fun AdvisorPinScreen(
     var wrong by rememberSaveable { mutableStateOf(false) }
     val submit = {
         if (pin.length == 4) {
-            if (advisorPinMatches(advisor, pin)) onVerified(advisor) else wrong = true
+            if (advisorPinMatches(advisor, pin)) onVerified(advisor) else { wrong = true; pin = "" }
         }
     }
     BackHandler(onBack = onCancel)
@@ -142,8 +142,8 @@ fun AdvisorPinContent(
             Spacer(Modifier.weight(1f))
             SpinningCookieBadge(
                 LaluzIcons.Lock,
-                container = cs.tertiaryContainer,
-                content = cs.onTertiaryContainer,
+                container = cs.primaryContainer,
+                content = cs.onPrimaryContainer,
                 size = 96.dp,
                 modifier = Modifier.padding(start = Spacing.xl, bottom = Spacing.lg)
             )

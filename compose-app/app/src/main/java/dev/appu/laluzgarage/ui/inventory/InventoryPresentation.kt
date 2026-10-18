@@ -11,6 +11,16 @@ object PartFilter {
     fun category(name: String) = "cat:$name"
 }
 
+/** Inventory sort order, picked from the Sort menu. */
+enum class PartSort(val label: String) {
+    NAME_ASC("Name A to Z"),
+    NAME_DESC("Name Z to A"),
+    STOCK_ASC("Lowest stock first"),
+    STOCK_DESC("Highest stock first"),
+    PRICE_ASC("Lowest price first"),
+    PRICE_DESC("Highest price first")
+}
+
 @Immutable
 data class PartChip(val key: String, val label: String, val count: Int)
 
@@ -31,11 +41,11 @@ data class InventoryUi(
     val chips: List<PartChip> = emptyList(),
     val categories: List<String> = emptyList(),
     val summary: String = "",
-    val byStock: Boolean = false,
+    val sort: PartSort = PartSort.NAME_ASC,
     val isLoading: Boolean = true
 )
 
-data class InventoryQuery(val search: String, val filter: String, val byStock: Boolean)
+data class InventoryQuery(val search: String, val filter: String, val sort: PartSort)
 
 /** Rows and chip counts built once per snapshot; search, filter and sort only re-select. */
 class InventoryIndex(parts: List<Part>, private val isLoading: Boolean) {
@@ -73,15 +83,21 @@ class InventoryIndex(parts: List<Part>, private val isLoading: Boolean) {
             }
             .filter { needle.isEmpty() || it.name.lowercase().contains(needle) || it.part.category.lowercase().contains(needle) }
             .sortedWith(
-                if (query.byStock) compareBy<PartRowModel> { it.part.stockQuantity }.thenBy { it.name.lowercase() }
-                else compareBy { it.name.lowercase() }
+                when (query.sort) {
+                    PartSort.NAME_ASC -> compareBy { it.name.lowercase() }
+                    PartSort.NAME_DESC -> compareByDescending { it.name.lowercase() }
+                    PartSort.STOCK_ASC -> compareBy<PartRowModel> { it.part.stockQuantity }.thenBy { it.name.lowercase() }
+                    PartSort.STOCK_DESC -> compareByDescending<PartRowModel> { it.part.stockQuantity }.thenBy { it.name.lowercase() }
+                    PartSort.PRICE_ASC -> compareBy<PartRowModel> { it.part.price }.thenBy { it.name.lowercase() }
+                    PartSort.PRICE_DESC -> compareByDescending<PartRowModel> { it.part.price }.thenBy { it.name.lowercase() }
+                }
             )
         return InventoryUi(
             rows = selected,
             chips = chips,
             categories = categories,
             summary = summary,
-            byStock = query.byStock,
+            sort = query.sort,
             isLoading = isLoading
         )
     }

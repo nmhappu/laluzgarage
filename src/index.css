@@ -1,125 +1,268 @@
 @import "tailwindcss";
 
+/*
+ * LaluZ Garage design tokens, mirrored from the Compose app (compose-app/.../ui/theme and
+ * DESIGN_SYSTEM.md). Screens use these tokens only: no raw hex, font size or radius in a component.
+ * The one exception is the Settings row tones (settingsTones in src/ui/settingsTones.ts).
+ */
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus_jakarta_sans.ttf") format("truetype");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Google Sans Flex";
+  src: url("./assets/fonts/google_sans_flex.ttf") format("truetype");
+  font-weight: 1 1000;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./assets/fonts/jetbrains_mono.ttf") format("truetype");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-google-sans: "Google Sans", "Google Sans Text", sans-serif;
-  --font-numeric: "Google Sans", "Google Sans Text", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-logo: "Google Sans", "Google Sans Text", "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-plate: "Google Sans Flex", "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Theme color mapping */
-  --color-background: var(--bg);
-  --color-foreground: var(--fg);
+  /* ---- Colour roles: Dark (Obsidian) is the default; light overrides below ---- */
+  --color-surface: #07080A;
+  --color-surface-container-lowest: #040506;
+  --color-surface-container-low: #0C0E12;
+  --color-surface-container: #111318;
+  --color-surface-container-high: #171A20;
+  --color-surface-container-highest: #1E222A;
+  --color-on-surface: #F8FAFC;
+  --color-on-surface-variant: #94A3B8;
+  --color-outline: #64748B;
+  --color-outline-variant: #1E232E;
+  --color-primary: #33E07D;
+  --color-on-primary: #00230E;
+  --color-primary-container: #0E7A43;
+  --color-on-primary-container: #E2FFEC;
+  --color-secondary: #B3CCBF;
+  --color-on-secondary: #1F352B;
+  --color-secondary-container: #1E5A36;
+  --color-on-secondary-container: #D3FBE0;
+  --color-tertiary: #5CB4FF;
+  --color-on-tertiary: #172554;
+  --color-tertiary-container: #1E4FD6;
+  --color-on-tertiary-container: #E3EEFF;
+  --color-error: #FF5A67;
+  --color-on-error: #4C0519;
+  --color-error-container: #C81E35;
+  --color-on-error-container: #FFFFFF;
+  --color-inverse-surface: #E2E8F0;
+  --color-inverse-on-surface: #0F172A;
 
-  --color-card: var(--card-bg);
-  --color-card-foreground: var(--fg);
+  /* Extended colours (LaluzTheme.extendedColors) */
+  --color-warning: #FFD60A;
+  --color-warning-container: #FFD60A;
+  --color-on-warning-container: #241D00;
+  --color-hero-top: #121A2C;
+  --color-hero-bottom: #0A0C11;
+  --color-on-hero: #F1F5FF;
+  --color-hero-line: #4A8CF7;
+  --color-logo-ink: #FFFFFF;
+  --color-whatsapp: #25D366;
+  --color-on-whatsapp: #0B141A;
+  --color-logo-bolt: #78DF22;
+  --color-scrim: #000000;
 
-  --color-popover: var(--popover-bg);
-  --color-popover-foreground: var(--fg);
+  /* ---- Shape (Radius tokens) ---- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
 
-  --color-primary: #10B981;
-  --color-primary-foreground: var(--bg);
+  /* ---- Elevation: a shadow only where something floats ---- */
+  --shadow-level3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
 
-  --color-secondary: #3B82F6;
-  --color-secondary-foreground: #F8FAFC;
+  /* ---- Motion ---- */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+}
 
-  --color-muted: var(--muted-bg);
-  --color-muted-foreground: var(--muted-fg);
-
-  --color-accent: #10B981;
-  --color-accent-foreground: var(--bg);
-
-  --color-destructive: #EF4444;
-  --color-destructive-foreground: #F8FAFC;
-
-  --color-border: var(--border-color);
-  --color-input: var(--border-color);
-  --color-ring: #10B981;
-
-  /* Status Colors */
-  --color-status-success: var(--status-success);
-  --color-status-pending: var(--status-pending);
-  --color-status-urgent: var(--status-urgent);
-
-  --radius: 0.5rem;
-
-  /* Keep legacy workshop names for backward compatibility */
-  --color-workshop-bg: var(--bg);
-  --color-workshop-surface: var(--surface-bg);
-  --color-workshop-card: var(--card-bg);
-  --color-workshop-accent: var(--color-primary);
-  --color-workshop-secondary: var(--color-secondary);
-  --color-workshop-warning: #FBBF24;
-  --color-workshop-border: var(--border-color);
-  --color-workshop-text: var(--fg);
-  --color-workshop-muted: var(--muted-fg);
-
-  /* WhatsApp Brand Integration */
-  --color-whatsapp: #128C7E;
-  --color-whatsapp-dark: #0E7065;
-
-  /* Floating Dock & Tool Bar */
-  --color-bottomnav: var(--bottomnav-bg);
+:root[data-theme="light"] {
+  /* ---- Light (Clean Slate) ---- */
+  --color-surface: #F1F5F9;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #FFFFFF;
+  --color-surface-container: #F8FAFC;
+  --color-surface-container-high: #E7ECF1;
+  --color-surface-container-highest: #E2E8F0;
+  --color-on-surface: #0F172A;
+  --color-on-surface-variant: #475569;
+  --color-outline: #64748B;
+  --color-outline-variant: #E2E8F0;
+  --color-primary: #087A3C;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #CFF7DC;
+  --color-on-primary-container: #00391B;
+  --color-secondary: #4D6359;
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: #D2EEDB;
+  --color-on-secondary-container: #0A2414;
+  --color-tertiary: #1D4ED8;
+  --color-on-tertiary: #FFFFFF;
+  --color-tertiary-container: #DBEAFE;
+  --color-on-tertiary-container: #1E3A8A;
+  --color-error: #C4122F;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #FFDCE0;
+  --color-on-error-container: #7A0016;
+  --color-inverse-surface: #1E222A;
+  --color-inverse-on-surface: #F1F5F9;
+  --color-warning: #8A6A00;
+  --color-warning-container: #FFE14D;
+  --color-on-warning-container: #3A2F00;
+  --color-hero-top: #E6EEFF;
+  --color-hero-bottom: #FFFFFF;
+  --color-on-hero: #1E3A8A;
+  --color-hero-line: #2563EB;
+  --color-logo-ink: #0F172A;
+  color-scheme: light;
 }
 
 :root {
-  /* Default Dark Mode (Obsidian #07080A) */
-  --bg: #07080A;
-  --fg: #F8FAFC;
-  --card-bg: #07080A;
-  --surface-bg: #07080A;
-  --popover-bg: #07080A;
-  --bottomnav-bg: #0C0E12;
-  --muted-bg: #12141A;
-  --muted-fg: #94A3B8;
-  --border-color: #1E232E;
-  --status-success: #10B981;
-  --status-pending: #FBBF24;
-  --status-urgent: #F43F5E;
-
-  /* Hardware Safe-Area Insets */
-  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
-  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
-
-  /* Standard Component Heights */
-  --topbar-height: 4rem;
-  --bottomnav-height: 5.25rem;
-
-  /* Composite Layout Offsets */
-  --header-total-height: calc(var(--topbar-height) + var(--safe-top));
-  --bottomnav-total-height: calc(var(--bottomnav-height) + var(--safe-bottom));
-
-  /* Modal & Drawer Standard Padding */
-  --sheet-header-pt: calc(1rem + var(--safe-top));
-  --sheet-footer-pb: calc(1.25rem + var(--safe-bottom));
-
-  /* Main Content Clearance */
-  --main-content-pt: calc(var(--header-total-height) + 0.5rem);
-  --main-content-pb: calc(var(--bottomnav-total-height) + 1.5rem);
+  color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --bg: #FFFFFF;
-  --fg: #0F172A;
-  --card-bg: #FFFFFF;
-  --surface-bg: #F8FAFC;
-  --popover-bg: #FFFFFF;
-  --bottomnav-bg: #FFFFFF;
-  --muted-bg: #F1F5F9;
-  --muted-fg: #64748B;
-  --border-color: #E2E8F0;
-  --status-success: #10B981;
-  --status-pending: #FBBF24;
-  --status-urgent: #F43F5E;
+/* ---- Type scale (Type.kt: Typography + LaluzType) ---- */
+@utility t-display-lg { font-family: var(--font-sans); font-size: 57px; line-height: 64px; font-weight: 800; letter-spacing: -1.5px; }
+@utility t-display-md { font-family: var(--font-sans); font-size: 45px; line-height: 52px; font-weight: 800; letter-spacing: -1px; }
+@utility t-display-sm { font-family: var(--font-sans); font-size: 36px; line-height: 44px; font-weight: 800; letter-spacing: -0.5px; }
+@utility t-headline-lg { font-family: var(--font-sans); font-size: 32px; line-height: 40px; font-weight: 800; letter-spacing: -0.5px; }
+@utility t-headline-md { font-family: var(--font-sans); font-size: 28px; line-height: 36px; font-weight: 700; }
+@utility t-headline-sm { font-family: var(--font-sans); font-size: 24px; line-height: 32px; font-weight: 700; }
+@utility t-title-lg { font-family: var(--font-sans); font-size: 20px; line-height: 28px; font-weight: 700; }
+@utility t-title-md { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 600; }
+@utility t-title-sm { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 700; }
+@utility t-body-lg { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+@utility t-body-md { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+@utility t-body-sm { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
+@utility t-label-lg { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 600; }
+@utility t-label-md { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; }
+@utility t-label-sm { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.8px; }
+
+@utility t-plate-lg { font-family: var(--font-plate); font-size: 36px; line-height: 44px; font-weight: 700; letter-spacing: 2px; }
+@utility t-plate-card { font-family: var(--font-plate); font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: 1px; }
+@utility t-plate-value { font-family: var(--font-plate); font-size: 16px; line-height: 24px; font-weight: 700; letter-spacing: 1px; }
+@utility t-plate { font-family: var(--font-mono); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: 0.5px; }
+/* Tablet detail pane plate (tablet spec: 28/36). */
+@utility t-plate-detail { font-family: var(--font-mono); font-size: 28px; line-height: 36px; font-weight: 700; letter-spacing: 0.5px; }
+@utility t-plate-sm { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 0.5px; }
+@utility t-pin { font-family: var(--font-mono); font-size: 16px; line-height: 24px; font-weight: 700; letter-spacing: 1px; }
+@utility t-mono-value { font-family: var(--font-mono); font-size: 16px; line-height: 24px; font-weight: 700; }
+@utility t-phone { font-family: var(--font-mono); font-size: 16px; line-height: 24px; font-weight: 500; }
+@utility t-label-strong { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 700; }
+@utility t-label-tiny { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 700; }
+@utility t-value-lg { font-family: var(--font-sans); font-size: 28px; line-height: 36px; font-weight: 800; letter-spacing: -0.5px; }
+@utility t-mono-sm { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 700; }
+@utility t-phone-sm { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 500; }
+/* WhatsApp template variable chips (mono 13/20). */
+@utility t-variable { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 500; }
+@utility t-pin-digit { font-family: var(--font-mono); font-size: 28px; line-height: 36px; font-weight: 700; }
+@utility t-pin-sm { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 1px; }
+
+/*
+ * M3 state layer: hover 8%, pressed 12% of the content colour, over the container. Stands in for
+ * the Compose ripple.
+ */
+@utility state-layer {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms linear;
+  }
+  &:hover:not(:disabled)::after {
+    opacity: 0.08;
+  }
+  &:active:not(:disabled)::after {
+    opacity: 0.12;
+  }
 }
 
-/* View Transition Styles for Circular Reveal Theme Toggle (Telegram Style) */
-:root {
-  --theme-transition-duration: 750ms;
+/* Hide the scrollbar but keep scrolling (horizontal chip rows). */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  #root {
+    height: 100%;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+  }
+
+  input,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Keyboard focus: the primary ring the Compose fields use. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-container-highest) transparent;
+  }
+}
+
+/* Circular reveal when the theme changes (View Transitions API). */
 ::view-transition {
   pointer-events: none;
 }
@@ -136,311 +279,62 @@
 
 ::view-transition-new(root) {
   z-index: 9999;
-  animation: telegram-theme-reveal var(--theme-transition-duration, 750ms) cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
-@keyframes telegram-theme-reveal {
-  0% {
-    clip-path: circle(0px at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
+/* Infinite spin for the cookie badges (one turn per 20s) and loaders. */
+@keyframes lz-spin {
+  to {
+    transform: rotate(360deg);
   }
-  100% {
-    clip-path: circle(var(--theme-switch-radius, 150vmax) at var(--theme-switch-x, 50%) var(--theme-switch-y, 50%));
-  }
+}
+
+@keyframes lz-shimmer {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-new(root) {
-    animation: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-    -webkit-tap-highlight-color: transparent !important;
-  }
-  html, body {
-    @apply bg-background text-foreground font-sans antialiased select-none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    position: fixed;
-    inset: 0;
-    overscroll-behavior: none;
-  }
-
-  #root {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  /* Prevent mobile browser auto-zoom & visual viewport pan on input focus */
-  input, textarea, select {
-    font-size: 16px !important;
-  }
-
-
-  /* Elegantly custom style selection color across the entire app */
-  ::selection {
-    background-color: rgba(16, 185, 129, 0.25);
-    color: inherit;
-  }
-
-  /* Prevent outline/border highlight artifact on Android selection & focuses */
-  button:focus, a:focus, [role="button"]:focus, div:focus {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  /* Hardware momentum scrolling and scroll containment */
-  .overflow-y-auto, .overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
+/*
+ * Tablet side sheet: while it is coplanar (large windows) the page below its top bar gives up the
+ * sheet's width. Shell sets --sheet-inset on the content area.
+ */
+@utility sheet-inset {
+  /* No transition: the page measures its final width and the cards slide there (Reflow), in step with the sheet. */
+  margin-right: var(--sheet-inset, 0px);
 }
 
-/* Utilities for mobile optimization */
-@utility google-sans {
-  font-family: "Google Sans", sans-serif;
-  font-optical-sizing: auto;
-  font-variation-settings: "GRAD" 0;
+/* The side sheet's card is one tone up: detail screens keep their contrast on it (RaisedCard). */
+.raised-src {
+  --r-low: var(--color-surface-container-low);
+  --r-high: var(--color-surface-container-high);
+  --r-highest: var(--color-surface-container-highest);
+}
+.raised-in {
+  --color-surface: var(--r-low);
+  --color-surface-container-low: var(--r-high);
+  --color-surface-container: var(--r-high);
+  --color-surface-container-high: var(--r-highest);
 }
 
-.google-sans {
-  font-family: "Google Sans", sans-serif;
-  font-optical-sizing: auto;
-  font-variation-settings: "GRAD" 0;
+/* ---- Tablet and web: tones for cards that sit inside another card ---- */
+:root {
+  --raw-surface-low: var(--color-surface-container-low);
+  --raw-surface-mid: var(--color-surface-container);
+  --raw-surface-high: var(--color-surface-container-high);
+  --raw-surface-highest: var(--color-surface-container-highest);
 }
 
-@utility font-numeric {
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
+/* Items inside the content card: the cards that were surfaceContainerLow become surfaceContainer. */
+.items-tone {
+  --color-surface-container-low: var(--raw-surface-mid);
 }
-
-.font-numeric {
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-}
-
-@utility font-plate {
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.font-plate {
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-@utility accelerate-gpu {
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
-
-@utility will-change-transform {
-  will-change: transform;
-}
-
-@utility will-change-transform-opacity {
-  will-change: transform, opacity;
-}
-
-@utility canvas-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-.canvas-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-[data-theme="light"] .canvas-grid {
-  background-image: radial-gradient(rgba(100, 116, 139, 0.22) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-
-/* Zero-Cost Offscreen Rendering for Long Lists (DOM & Paint containment) */
-@utility content-visibility-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 160px;
-}
-
-.content-visibility-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 160px;
-}
-
-@utility cv-record-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 210px;
-}
-
-.cv-record-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 210px;
-}
-
-@utility cv-vehicle-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 180px;
-}
-
-.cv-vehicle-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 180px;
-}
-
-@utility cv-part-row {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 74px;
-}
-
-.cv-part-row {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 74px;
-}
-
-@utility safe-bottom {
-  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-}
-
-@utility safe-top {
-  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-}
-
-@utility main-content-scroll {
-  padding-top: var(--main-content-pt);
-  padding-bottom: var(--main-content-pb);
-}
-
-@utility sheet-header-safe {
-  padding-top: var(--sheet-header-pt);
-}
-
-@utility sheet-footer-safe {
-  padding-bottom: var(--sheet-footer-pb);
-}
-
-@utility bottomnav-safe {
-  padding-top: 0.75rem;
-  padding-bottom: calc(0.75rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-}
-
-@utility header-safe-sticky {
-  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  height: var(--header-total-height);
-}
-
-@utility topbar-menu-offset {
-  top: calc(var(--header-total-height) + 4px);
-}
-
-@utility viewport-fill {
-  position: fixed;
-  inset: 0;
-  height: 100dvh;
-  max-height: 100dvh;
-}
-
-@utility h-mobile-screen {
-  height: 100dvh;
-}
-
-@utility no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
-  }
-}
-
-@utility no-spinner {
-  -moz-appearance: textfield;
-  appearance: textfield;
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-}
-
-/* Material 3 Skeleton Loading Animation */
-@keyframes shimmer-m3-anim {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.skeleton-card-m3 {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem; /* M3 Medium Component Radius: 16px */
-  overflow: hidden;
-  position: relative;
-  opacity: 0.95;
-  transition: all 0.2s ease;
-}
-
-.skeleton-element-m3 {
-  background-color: var(--muted-bg);
-  border-radius: 9999px; /* rounded-full */
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-element-m3::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.04) 75%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  animation: shimmer-m3-anim 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="light"] .skeleton-element-m3::after {
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(0, 0, 0, 0.02) 25%,
-    rgba(0, 0, 0, 0.05) 50%,
-    rgba(0, 0, 0, 0.02) 75%,
-    rgba(255, 255, 255, 0) 100%
-  );
-}
-
-/* AMOLED interactive hover micro-states (elevated subtle contrast on hover) */
-:root:not([data-theme="light"]) .hover\:bg-workshop-surface:hover {
-  background-color: rgba(255, 255, 255, 0.035);
-}
-
-:root:not([data-theme="light"]) .hover\:bg-workshop-surface\/50:hover {
-  background-color: rgba(255, 255, 255, 0.045);
-}
-
-:root:not([data-theme="light"]) .hover\:bg-workshop-card\/50:hover {
-  background-color: rgba(255, 255, 255, 0.045);
-}
-
-

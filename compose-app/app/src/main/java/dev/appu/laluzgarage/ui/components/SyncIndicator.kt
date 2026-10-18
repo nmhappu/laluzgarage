@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import dev.appu.laluzgarage.data.sync.SyncPhase
 import dev.appu.laluzgarage.data.sync.SyncUiState
 import dev.appu.laluzgarage.ui.theme.Spacing
+import androidx.compose.ui.unit.Dp
 
 /**
  * [LaluzTopBar] with the sync chrome overlaid: a status pill centred in the bar and an M3
@@ -62,6 +63,8 @@ fun LaluzSyncTopBar(
     sync: SyncUiState,
     modifier: Modifier = Modifier,
     scrolled: Boolean = false,
+    height: Dp = 64.dp,
+    startPadding: Dp = Spacing.md,
     content: @Composable RowScope.() -> Unit
 ) {
     // The bar grows by a strip while the run is visible, so the progress line sits in its own
@@ -73,7 +76,7 @@ fun LaluzSyncTopBar(
     )
     Column(modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth()) {
-            LaluzTopBar(scrolled = scrolled, content = content)
+            LaluzTopBar(scrolled = scrolled, height = height, startPadding = startPadding, content = content)
             // Same box as the bar row (below the status bar), so the pill centres on the row.
             Box(
                 Modifier

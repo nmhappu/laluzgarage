@@ -310,6 +310,14 @@ class AuthRepository @Inject constructor(
             }
         }
 
+        // Publish the Google photo on the user's own doc so teammates' lists can show it.
+        val photoUrl = authUser.photoUrl?.toString()
+        if (photoUrl != null && photoUrl != userRef.get().await().getString("photoURL")) {
+            runCatching {
+                userRef.update(mapOf("photoURL" to photoUrl, "updatedAt" to FieldValue.serverTimestamp())).await()
+            }
+        }
+
         val finalSnap = userRef.get().await()
         return runCatching { WorkshopUser.fromDocument(finalSnap) }.getOrNull()
     }

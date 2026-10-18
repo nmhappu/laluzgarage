@@ -2,6 +2,17 @@ package dev.appu.laluzgarage.ui.inventory
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import dev.appu.laluzgarage.ui.theme.LaluzShape
+import dev.appu.laluzgarage.ui.intake.IntakeField
+import dev.appu.laluzgarage.ui.components.LaluzIcons
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -175,9 +186,9 @@ fun PartDetailScreen(
     if (editing) {
         PartFormSheet(
             part = part,
-            categories = categories,
             onDismiss = { editing = false },
-            onSave = { updated -> onSave(updated) { editing = false } }
+            onSave = { updated -> onSave(updated) { editing = false } },
+            onDelete = { editing = false; confirmDelete = true }
         )
     }
 }
@@ -191,14 +202,14 @@ private fun StockFigure(label: String, value: String, color: androidx.compose.ui
     }
 }
 
-/** Add / edit part sheet. A blank [part] id creates a new part. */
+/** Create / edit part sheet. A null [part] creates a new part; [onDelete] shows Delete in edit mode. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartFormSheet(
     part: Part?,
-    categories: List<String>,
     onDismiss: () -> Unit,
-    onSave: (Part) -> Unit
+    onSave: (Part) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val cs = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -206,11 +217,19 @@ fun PartFormSheet(
     var name by rememberSaveable { mutableStateOf(source.name) }
     var category by rememberSaveable { mutableStateOf(source.category) }
     var price by rememberSaveable { mutableStateOf(if (part != null) source.price.toLong().toString() else "") }
-    var stock by rememberSaveable { mutableStateOf(if (part != null) source.stockQuantity.toString() else "") }
-    var minimum by rememberSaveable { mutableStateOf(source.minStockLevel.toString()) }
+    var stock by rememberSaveable { mutableStateOf(source.stockQuantity) }
+    var minimum by rememberSaveable { mutableStateOf(source.minStockLevel) }
     var location by rememberSaveable { mutableStateOf(source.location) }
-    val valid = name.isNotBlank() && price.toLongOrNull() != null && stock.toIntOrNull() != null
+    val valid = name.isNotBlank() && price.toLongOrNull() != null
     val digits = { raw: String -> raw.filter(Char::isDigit).take(7) }
+    val changes = if (part == null) 0 else listOf(
+        name.trim() != source.name,
+        category.trim() != source.category,
+        price != source.price.toLong().toString(),
+        stock != source.stockQuantity,
+        minimum != source.minStockLevel,
+        location.trim() != source.location
+    ).count { it }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = cs.surfaceContainerLow) {
         Column(
@@ -218,44 +237,64 @@ fun PartFormSheet(
                 .verticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Text(
-                if (part == null) "Add part" else "Edit part",
-                style = MaterialTheme.typography.titleLarge,
-                color = cs.onSurface,
-                modifier = Modifier.semantics { heading() }
-            )
-            LaluzFilledField(name, { name = it }, "Part name", "e.g. Oil filter · Hyundai")
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                LaluzFilledField(category, { category = it }, "Category", "e.g. Filters")
-                if (categories.isNotEmpty()) {
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        categories.forEach { c ->
-                            LaluzFilterChip(c, category.trim().equals(c, ignoreCase = true), onClick = { category = c })
-                        }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (part == null) "Create part" else "Edit part",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = cs.onSurface,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    if (part != null) {
+                        Text(
+                            when (changes) {
+                                0 -> "No changes yet"
+                                1 -> "1 unsaved change"
+                                else -> "$changes unsaved changes"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = cs.onSurfaceVariant
+                        )
+                    }
+                }
+                if (part != null && onDelete != null) {
+                    TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = cs.error)) {
+                        Text("Delete", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
-            LaluzFilledField(price, { price = digits(it) }, "Unit price (₹)", "e.g. 420", keyboardType = KeyboardType.Number)
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                LaluzFilledField(stock, { stock = digits(it) }, "In stock", "0", keyboardType = KeyboardType.Number, modifier = Modifier.weight(1f))
-                LaluzFilledField(minimum, { minimum = digits(it) }, "Minimum stock", "5", keyboardType = KeyboardType.Number, modifier = Modifier.weight(1f))
+            IntakeField(name, { name = it }, "Part name", "e.g. Oil filter · Hyundai")
+            IntakeField(category, { category = it }, "Category", "e.g. Filters")
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                StepperField("In stock", stock, { stock = it }, Modifier.weight(1f))
+                StepperField("Minimum stock", minimum, { minimum = it }, Modifier.weight(1f))
             }
-            LaluzFilledField(location, { location = it }, "Location", "e.g. Cabinet B, Shelf 2")
+            IntakeField(
+                price, { price = digits(it) }, "Unit price", "e.g. 420",
+                keyboardType = KeyboardType.Number,
+                trailing = { Text("₹", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant) }
+            )
+            IntakeField(location, { location = it }, "Location", "e.g. Cabinet B, Shelf 2")
+            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xxs), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Stock value", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+                Text(
+                    formatInrWhole((price.toLongOrNull() ?: 0L).toDouble() * stock),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = cs.onSurface
+                )
+            }
             PillButton(
-                text = if (part == null) "Add part" else "Save part",
+                text = if (part == null) "Create part" else "Save changes",
                 onClick = {
                     onSave(
                         source.copy(
                             name = name.trim(),
                             category = category.trim(),
                             price = price.toLongOrNull()?.toDouble() ?: 0.0,
-                            stockQuantity = stock.toIntOrNull() ?: 0,
-                            minStockLevel = minimum.toIntOrNull() ?: 0,
+                            stockQuantity = stock,
+                            minStockLevel = minimum,
                             location = location.trim()
                         )
                     )
@@ -265,6 +304,36 @@ fun PartFormSheet(
                 contentColor = cs.onPrimary,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+/** Intake-style field (label above, 56dp surfaceContainerHigh box) with the count, then + and -, inside it. */
+@Composable
+private fun StepperField(label: String, value: Int, onValueChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(cs.surfaceContainerHigh, LaluzShape.field)
+                .padding(start = Spacing.md, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = cs.onSurface,
+                modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }
+            )
+            IconButton(onClick = { onValueChange((value + 1).coerceAtMost(9_999_999)) }, modifier = Modifier.size(44.dp)) {
+                Icon(LaluzIcons.Plus, "Increase ${label.lowercase()}", tint = cs.onSurface, modifier = Modifier.size(22.dp))
+            }
+            IconButton(onClick = { onValueChange((value - 1).coerceAtLeast(0)) }, modifier = Modifier.size(44.dp)) {
+                Icon(LaluzIcons.Minus, "Decrease ${label.lowercase()}", tint = cs.onSurface, modifier = Modifier.size(22.dp))
+            }
         }
     }
 }

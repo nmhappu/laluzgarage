@@ -35,6 +35,8 @@ object LaluzIcons {
     private fun circle(cx: Float, cy: Float, r: Float) =
         "M${cx - r} ${cy}a$r $r 0 1 0 ${2 * r} 0a$r $r 0 1 0 ${-2 * r} 0"
 
+    val Menu by lazy { stroke("Menu", 2f, "M4 6h16M4 12h16M4 18h16") }
+    val MenuOpen by lazy { stroke("MenuOpen", 2f, "M3 6h12M3 12h8M3 18h12M21 8l-4 4 4 4") }
     val Search by lazy { stroke("Search", 2f, circle(11f, 11f, 7f), "M20 20l-3.5 -3.5") }
     val ArrowBack by lazy { stroke("ArrowBack", 2f, "M19 12H5M12 19l-7 -7 7 -7") }
     val ArrowBackShort by lazy { stroke("ArrowBackShort", 2f, "M19 12H5M11 6l-6 6 6 6") }
@@ -84,6 +86,7 @@ object LaluzIcons {
     val Grid by lazy { stroke("Grid", 2f, "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z") }
     val Inventory by lazy { stroke("Inventory", 2f, "M3 4h18v5H3zM5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1 -1V9M10 13h4") }
     val Plus by lazy { stroke("Plus", 2.5f, "M12 5v14M5 12h14") }
+    val Minus by lazy { stroke("Minus", 2.5f, "M5 12h14") }
     val Smartphone by lazy { stroke("Smartphone", 2f, "M9.5 2.5h5a2 2 0 0 1 2 2v15a2 2 0 0 1 -2 2h-5a2 2 0 0 1 -2 -2v-15a2 2 0 0 1 2 -2z", "M11 18.5h2") }
     val Phone by lazy {
         stroke("Phone", 2f, "M5 4h4l2 5 -2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1 -2 2A16 16 0 0 1 3 6a2 2 0 0 1 2 -2z")
@@ -154,6 +157,8 @@ object LaluzIcons {
         )
     }
     val Refresh by lazy { stroke("Refresh", 2f, "M21 12a9 9 0 1 1 -3 -6.7L21 8M21 3v5h-5") }
+    val Key by lazy { stroke("Key", 2f, circle(8f, 15f, 4f), "M11 12l9-9M16 7l3 3") }
+    val ShieldFilled by lazy { filled("ShieldFilled", "M12 22s8 -4 8 -10V5l-8 -3 -8 3v7c0 6 8 10 8 10z") }
     val Shield by lazy { stroke("Shield", 2f, "M12 22s8 -4 8 -10V5l-8 -3 -8 3v7c0 6 8 10 8 10z") }
     val ShieldAlert by lazy { stroke("ShieldAlert", 2f, "M12 22s8 -4 8 -10V5l-8 -3 -8 3v7c0 6 8 10 8 10zM12 8v4M12 16h.01") }
     val AlertTriangle by lazy {

@@ -24,11 +24,10 @@ Workshop management for vehicle service centres: customers, vehicles, job cards,
 
 | Application | Path | Stack | Target |
 | :--- | :--- | :--- | :--- |
-| Web app | `src/` | React 19, TypeScript, Vite, Tailwind CSS v4 | Browser (desktop and mobile layouts) |
-| Android (Capacitor) | `android/` | Capacitor 8 wrapping the web build (`dist/`) | minSdk 24, targetSdk 36, compileSdk 37 |
+| Web app | `src/` | React 19, TypeScript, Vite, Tailwind CSS v4 | Browser: desktop first, also tablets and phones |
 | Android (native) | `compose-app/` | Kotlin, Jetpack Compose, Material 3 Expressive, Hilt | minSdk 26, targetSdk 35, compileSdk 37 |
 
-All three share one Firebase project and the same Firestore schema. Both Android builds use the application ID `dev.appu.laluzgarage`, so only one can be installed on a device at a time.
+Both share one Firebase project and the same Firestore schema. The web app follows the native app's design system ([`compose-app/DESIGN_SYSTEM.md`](compose-app/DESIGN_SYSTEM.md)): the same colour roles, type scale, shapes, components and screens. The earlier Capacitor (WebView) Android build has been retired; Android uses the native app.
 
 ---
 
@@ -48,15 +47,14 @@ Native Android app, captured during device testing ([`compose-app/design-qa/`](c
 | Feature | Description |
 | :--- | :--- |
 | Authentication | Google sign-in and email/password. New accounts wait for an admin to assign a role. |
-| Dashboard | Service totals with a trend sparkline (45 days on web; 7 / 30 / 45-day ranges on native), open vs. completed jobs, overdue jobs. |
-| Vehicle intake | PIN-gated, three-step wizard: customer → vehicle → job specification. |
-| Services | Job cards with status, task checklist, parts allocation, labour charge and computed total. |
+| Dashboard | Service totals with a trend sparkline (7D / 45D / ALL), open vs. delivered jobs, jobs that need attention, workshop totals, recent activity. |
+| Vehicle intake | Advisor PIN, then find customer → (new customer) → (vehicle) → job specification → job card issued. |
+| Services | Job cards with status, battery level, task checklist, parts, labour charge and bill; date-range filter; screenshot sharing. |
 | Vehicles | Vehicle registry with per-vehicle service history and lifetime spend. |
 | Inventory | Parts with category, price, stock count, minimum stock level and shelf location. |
 | WhatsApp | Templated intake and delivery messages opened through `wa.me` links. |
-| Analytics (web) | Revenue, job flow, turnaround, technician, client spend, fleet, inventory, invoice tiers, retention, service categories, vehicle health and workload heatmap. |
-| Settings | Accounts and roles (admin only), general, WhatsApp templates, tags, date-wise history, system, statistics, app updates. |
-| Theming | Light and dark themes in all apps. |
+| Settings | Team management and Statistics (admins only), Theme, WhatsApp templates, Log out; App Updates on Android only. |
+| Theming | System, light and dark themes (Material You on Android 12+). |
 | OTA updates (Android) | Download and install APKs from GitHub Releases on a stable or dev channel. |
 
 ---
@@ -66,16 +64,16 @@ Native Android app, captured during device testing ([`compose-app/design-qa/`](c
 ### 4.1 Overview
 
 ```text
-Web app ─────────────┐
-Android (Capacitor) ─┼──► Firebase Authentication
-Android (native) ────┘    Cloud Firestore  ◄── firestore.rules
+Web app ──────────┐
+                  ├──► Firebase Authentication
+Android (native) ─┘    Cloud Firestore  ◄── firestore.rules
 ```
 
 Clients call Firebase directly. Authorization is enforced only by `firestore.rules`; anyone holding the client config can call Firestore without the UI, so the rules are the security boundary.
 
 **Data loading:**
 
-- **Web:** most views load collections with one-shot `getDocs` reads and reload after writes. The signed-in user's profile (`users/{uid}`) and the parts list use `onSnapshot` listeners.
+- **Web:** the same model as the native app: `onSnapshot` listeners on `serviceRecords` (newest 500), `vehicles`, `customers` and `parts` over Firestore's persistent IndexedDB cache (shared across tabs), so data shows offline and offline writes queue. A top-bar sync indicator runs once per sign-in (`src/data/store.tsx`).
 - **Native Android:** repositories use Firestore snapshot listeners with a 100 MB persistent disk cache (`PersistentCacheSettings`). Data is available offline, and offline writes are queued until the device reconnects. `SyncManager` drives a top-bar sync indicator on cold start and on pull-to-refresh.
 
 ### 4.2 Authentication and roles
@@ -83,10 +81,9 @@ Clients call Firebase directly. Authorization is enforced only by `firestore.rul
 **Sign-in**
 
 - Web: `signInWithPopup` with Google, falling back to `signInWithRedirect` when popups are blocked; `signInWithEmailAndPassword` for email.
-- Capacitor: `@capacitor-firebase/authentication` performs native Google sign-in, then the ID token is passed to the web SDK via `signInWithCredential`.
 - Native: Credential Manager (Google ID) and `signInWithEmailAndPassword`.
 
-**Profile sync** (`syncUserProfile` in `src/contexts/AuthContext.tsx`, `AuthRepository.kt` in the native app):
+**Profile sync** (`syncUserProfile` in `src/data/auth.tsx`, `AuthRepository.kt` in the native app):
 
 1. Read `users/{uid}`.
 2. If missing, look for a pre-registered profile with the same email (lowercased). If found, copy it to `users/{uid}` and delete the old document.
@@ -172,9 +169,9 @@ Messages open as `https://wa.me/<phone>?text=<urlencoded message>`. The intake a
 3. Take the newest release with an `.apk` asset and compare it to the installed `versionName` using semver. A version without a pre-release suffix ranks above the same version with one.
 4. Download and install through the system package installer. This requires `REQUEST_INSTALL_PACKAGES`.
 
-Versioning (native app): the current version is `2.1.0`, set as `AppVersion` in `compose-app/app/build.gradle.kts`. Stable releases are tagged `MAJOR.MINOR.PATCH` (`2.0.0`) and dev builds `MAJOR.MINOR.PATCH-dev` or `-dev.N` (`2.1.0-dev`, `2.1.0-dev.2`); a leading `v` is accepted. Pushing a tag runs `.github/workflows/release.yml`, which picks the channel from the tag and rejects any other format. `versionCode` is computed from the version (`MAJOR·10^7 + MINOR·10^5 + PATCH·10^3 + 999` for stable, `+ N` for `-dev.N`), so Android's install order matches the tags.
+Versioning (native app): the current version is `2.1.4`, set as `AppVersion` in `compose-app/app/build.gradle.kts`. Stable releases are tagged `MAJOR.MINOR.PATCH` (`2.0.0`) and dev builds `MAJOR.MINOR.PATCH-dev` or `-dev.N` (`2.1.0-dev`, `2.1.0-dev.2`); a leading `v` is accepted. Pushing a tag runs `.github/workflows/release.yml`, which picks the channel from the tag and rejects any other format. `versionCode` is computed from the version (`MAJOR·10^7 + MINOR·10^5 + PATCH·10^3 + 999` for stable, `+ N` for `-dev.N`), so Android's install order matches the tags.
 
-Implementations: `src/services/otaUpdateService.ts` with the native plugin `android/app/src/main/java/dev/appu/laluzgarage/OtaUpdaterPlugin.kt` (Capacitor), and `compose-app/.../data/update/AppUpdater.kt` (native). The web app checks 2.5 s after sign-in when auto-check is on.
+Implementation: `compose-app/.../data/update/AppUpdater.kt`. The web app has no updater; it is always the deployed build.
 
 ### 4.7 Runtime configuration (web)
 
@@ -187,9 +184,9 @@ Implementations: `src/services/otaUpdateService.ts` with the native plugin `andr
 
 One image can therefore serve any Firebase project without a rebuild. The Firestore database ID defaults to `(default)`.
 
-### 4.8 Build-time colour sync
+### 4.8 Design tokens (web)
 
-The `sync-colours` plugin in `vite.config.ts` reads `src/styles/colours.xml` on `buildStart` and rewrites the matching CSS variables in `src/index.css` (dark, `[data-theme="light"]` and `@theme` blocks). Edit colours in the XML file.
+`src/index.css` holds the tokens mirrored from `compose-app/.../ui/theme`: colour roles (dark default, light under `[data-theme="light"]`), the type scale as `t-*` utilities, radii, the level-3 shadow and the emphasized easing. Components read tokens only. Window classes follow the tablet spec: under 600px the phone layout with the floating toolbar; 600–1199px a collapsed 96px rail; from 840px two panes; from 1200px the expanded 220px rail and the Services status board (`src/app/layout.ts`).
 
 ---
 
@@ -213,7 +210,7 @@ Types are defined in `src/types.ts` (web) and `data/model/` (native). Validation
 
 ## 6. Sources
 
-### 6.1 Web and Capacitor (`package.json`)
+### 6.1 Web (`package.json`)
 
 | Purpose | Package | Version |
 | :--- | :--- | :--- |
@@ -223,22 +220,15 @@ Types are defined in `src/types.ts` (web) and `data/model/` (native). Validation
 | Build / dev server | [vite](https://vitejs.dev/), @vitejs/plugin-react | `^8.3.4`, `^6.1.2` |
 | Styling | [tailwindcss](https://tailwindcss.com/), @tailwindcss/vite | `^4.3.3` |
 | Animation | [motion](https://motion.dev/) | `^13.5.1` |
-| Charts | [echarts](https://echarts.apache.org/) | `^6.1.0` |
 | Firebase | [firebase](https://firebase.google.com/docs/web/setup) | `^12.19.0` |
-| Native runtime | [@capacitor/core, android, cli](https://capacitorjs.com/) | `^8.5.3` |
-| Native auth | [@capacitor-firebase/authentication](https://github.com/capawesome-team/capacitor-firebase) | `^8.5.2` |
-| Native plugins | @capacitor/app, status-bar, splash-screen | `^8.1.2`, `^8.0.4`, `^8.0.2` |
-| Components | [radix-ui](https://www.radix-ui.com/), @radix-ui/react-select, [@material/web](https://github.com/material-components/material-web) | `^1.8.1`, `^2.4.1`, `^2.5.0` |
-| Icons | [lucide-react](https://lucide.dev/), [Material Symbols](https://fonts.google.com/icons) | `^1.57.0`, Google Fonts |
-| Numbers | [@number-flow/react](https://number-flow.barvian.me/) | `^0.6.2` |
-| Dates | [date-fns](https://date-fns.org/) | `^4.4.0` |
-| Class utilities | class-variance-authority, clsx, tailwind-merge | `^0.7.1`, `^2.1.1`, `^3.7.0` |
+| Screenshot sharing | [html-to-image](https://github.com/bubkoo/html-to-image) | `^1.11.11` |
+| Class utilities | clsx, tailwind-merge | `^2.1.1`, `^3.7.0` |
 | Tests | [vitest](https://vitest.dev/), [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) | `^5.0.4`, `^5.0.2` |
 | Lint | [eslint](https://eslint.org/), typescript-eslint, @firebase/eslint-plugin-security-rules | `^10.12.0`, `^8.71.2`, `^0.0.2` |
 
-Fonts (Google Fonts): Google Sans, Google Sans Text, Plus Jakarta Sans, JetBrains Mono.
+Icons are the native app's LaluzIcons stroke paths, ported to `src/ui/icons.tsx`. Fonts are the native app's own files, self-hosted from `src/assets/fonts/`: Plus Jakarta Sans (UI), Google Sans Flex (plates), JetBrains Mono (plates in lists, PINs, phone numbers).
 
-The production build splits vendor code into `vendor-react`, `vendor-firebase`, `vendor-charts` and `vendor-ui` chunks.
+The production build splits vendor code into `vendor-react`, `vendor-firebase` and `vendor-motion` chunks.
 
 ### 6.2 Native Android (`compose-app/gradle/libs.versions.toml`)
 
@@ -272,8 +262,8 @@ Bundled fonts (`res/font/`): Google Sans Flex, Plus Jakarta Sans, JetBrains Mono
 
 | File | Content |
 | :--- | :--- |
-| [`compose-app/DESIGN_SYSTEM.md`](compose-app/DESIGN_SYSTEM.md) | Native design tokens: colour roles, type, shape, spacing, motion |
-| [`compose-app/MIGRATION_PLAN.md`](compose-app/MIGRATION_PLAN.md) | Capacitor → native Compose migration plan |
+| [`compose-app/DESIGN_SYSTEM.md`](compose-app/DESIGN_SYSTEM.md) | Design tokens shared by both apps: colour roles, type, shape, spacing, motion |
+| [`compose-app/MIGRATION_PLAN.md`](compose-app/MIGRATION_PLAN.md) | Capacitor → native Compose migration plan (historical) |
 | [`compose-app/SECURITY_REVIEW.md`](compose-app/SECURITY_REVIEW.md) | Security review of the native app and Firestore rules |
 | [`security_spec.md`](security_spec.md) | Data invariants and adversarial payloads for the rules |
 
@@ -285,32 +275,20 @@ Bundled fonts (`res/font/`): Google Sans Flex, Plus Jakarta Sans, JetBrains Mono
 laluzgarage/
 ├── src/                            Web app
 │   ├── main.tsx                    Entry point
-│   ├── App.tsx                     Routes, layout shell, OTA check
-│   ├── index.css                   Theme variables, fonts, Tailwind config
+│   ├── App.tsx                     Providers, router, sign-in states
+│   ├── index.css                   Design tokens, @font-face, type utilities
 │   ├── types.ts                    Domain types and role resolution
-│   ├── components/
-│   │   ├── analytics/              Analytics view, chart cards, detail pages
-│   │   ├── auth/                   Login, pending approval, loading screen
-│   │   ├── dashboard/              Stat cards, sparkline, recent activity
-│   │   ├── intake/                 Advisor PIN, intake steps 1–3
-│   │   ├── inventory/              Parts list, part form, delete dialog
-│   │   ├── nav/                    Desktop rail, mobile top/bottom bars
-│   │   ├── services/               Job cards, edit sheet, delivery bill
-│   │   ├── settings/               Settings pages
-│   │   ├── shared/                 Search bar, status badge, WhatsApp popup, update prompt
-│   │   ├── ui/                     Primitives: button, select, calendar, logo
-│   │   └── vehicle/                Vehicle cards, form, ledger drawer
-│   ├── contexts/                   AuthContext, ThemeContext, UIContext
-│   ├── hooks/                      Data loading and view logic per screen
-│   ├── lib/                        Firebase init, env resolver, utils, analytics calculators
-│   ├── services/                   WhatsApp presets, inventory, contacts (vCard), OTA
-│   └── styles/colours.xml          Colour source synced into index.css
+│   ├── assets/fonts/               Self-hosted fonts (from compose-app)
+│   ├── app/                        Shell: rail / floating toolbar, layers, transitions, layout classes
+│   ├── core/                       Pure logic ported from the native app (dates, jobs, dashboard,
+│   │                               lists, statistics, WhatsApp messages) and its tests
+│   ├── data/                       Auth, Firestore streams and sync, writes, theme, view state
+│   ├── screens/                    auth, dashboard, services, vehicles, inventory, intake, settings
+│   ├── ui/                         Components: chips, buttons, fields, dialogs, date pickers,
+│   │                               battery, icons, logo, chrome
+│   └── lib/                        Firebase init, env resolver
 ├── public/                         env-config.js stub, static assets
-├── index.html                      HTML shell
-├── android/                        Capacitor Android project
-│   └── app/src/main/java/dev/appu/laluzgarage/
-│       ├── MainActivity.kt
-│       └── OtaUpdaterPlugin.kt     APK download/install plugin
+├── index.html                      HTML shell and pre-boot splash
 ├── compose-app/                    Native Android project
 │   ├── app/src/main/java/dev/appu/laluzgarage/
 │   │   ├── data/                   model, repository, sync, update
@@ -328,12 +306,10 @@ laluzgarage/
 │   └── dependabot.yml
 ├── firestore.rules                 Security rules
 ├── firestore.rules.test.ts         Rules tests (emulator)
-├── capacitor.config.ts             Capacitor config
-├── vite.config.ts                  Vite config and colour sync plugin
+├── vite.config.ts                  Vite config
 ├── Dockerfile                      Multi-stage build: Node → Nginx
 ├── compose.example.yml             Docker Compose template
 ├── nginx.conf                      Static Nginx config (port 2266)
-├── deploy.ps1                      install → build → cap sync android
 ├── .env.example                    Environment template
 └── package.json
 ```
@@ -346,11 +322,11 @@ laluzgarage/
 
 | Tool | Version | Used by |
 | :--- | :--- | :--- |
-| Node.js | ≥ 20 (Dockerfile: 20, CI: 22) | Web, Capacitor |
-| npm | bundled with Node.js | Web, Capacitor |
-| JDK | 21 (`sourceCompatibility` / `jvmToolchain`) | Both Android projects |
-| Gradle | 9.8.1 via wrapper | Both Android projects |
-| Gradle daemon JVM | 21 (`android/`), 25 (`compose-app/`); auto-provisioned from `gradle-daemon-jvm.properties` | Both Android projects |
+| Node.js | ≥ 20 (Dockerfile: 20) | Web |
+| npm | bundled with Node.js | Web |
+| JDK | 21 (`sourceCompatibility` / `jvmToolchain`) | Native Android |
+| Gradle | 9.8.1 via wrapper | Native Android |
+| Gradle daemon JVM | 25; auto-provisioned from `gradle-daemon-jvm.properties` | Native Android |
 | Android SDK | Platform 37 | Both Android projects |
 | Docker | — | Container build and run |
 | Firebase CLI | — | Firestore emulator for rules tests (optional) |
@@ -395,30 +371,14 @@ In containers, each `VITE_FIREBASE_*` variable can also be given as `FIREBASE_*`
 | `build` | `vite build` → `dist/` |
 | `preview` | `vite preview` |
 | `clean` | `rm -rf dist` |
-| `test` | `vitest run src/lib/` |
+| `test` | `vitest run src/` |
 | `lint` | `eslint . && tsc --noEmit` |
 | `docker:build` | `docker build -t laluzgarage .` |
 | `docker:run` | `docker run -p 2266:2266 --env-file .env laluzgarage` |
-| `mobile:build` | `npm run build && npx cap copy` |
-| `mobile:sync` | `npm run build && npx cap sync` |
-| `mobile:open` | `npx cap open android` |
 
 `firestore.rules.test.ts` is not included in `npm run test`. It requires the Firestore emulator on `localhost:8080`.
 
-### 8.4 Android (Capacitor)
-
-1. Place `google-services.json` in `android/app/` (template: `google-services.json.example`). Without it the Google Services plugin is skipped.
-2. Build and sync, then open in Android Studio:
-   ```bash
-   npm run mobile:sync
-   ```
-   ```bash
-   npm run mobile:open
-   ```
-
-`capacitor.config.ts`: `webDir: dist`, splash background `#07080A` with manual hide, status bar overlays the WebView, and native Firebase Auth with the `google.com` provider. `deploy.ps1` runs `npm install`, `npm run build` and `npx cap sync android`.
-
-### 8.5 Android (native)
+### 8.4 Android (native)
 
 1. Place `google-services.json` in `compose-app/app/`. The Google Services plugin is always applied, so the build fails without it.
 2. Build:
@@ -429,15 +389,14 @@ In containers, each `VITE_FIREBASE_*` variable can also be given as `FIREBASE_*`
 
 Release builds enable R8 minification and resource shrinking and ship the baseline profile from `app/src/release/generated/baselineProfiles/`. Pass `-PcomposeReports` to write Compose compiler stability reports to `build/compose_reports`.
 
-### 8.6 CI/CD
+### 8.5 CI/CD
 
 | Workflow | Trigger | Output |
 | :--- | :--- | :--- |
 | `docker-publish.yml` | push / PR to `main` or `master`, tags `v*.*.*`, manual | Multi-arch image (`linux/amd64`, `linux/arm64`) pushed to GHCR, except on PRs. Tags: `latest` (default branch), semver, branch, tag, short SHA. |
-| `release.yml` | tags `v*`, manual (channel, tag, notes) | Node 22 build → `cap sync android` → JDK 21 `assembleDebug` → GitHub Release with `laluzgarage-<channel>-<tag>.apk`. Tags containing `-dev`, `-alpha`, `-beta`, `-canary` or `-rc` are published as pre-releases on the `dev` channel. |
+| `release.yml` | version tags (`2.0.0`, `2.1.0-dev`, optional `v`), manual | Signed `compose-app` release APK (`:app:assembleRelease`) published as `laluzgarage-<channel>-<tag>.apk` to the public `nmhappu/laluzgarage-releases` repo; `-dev` tags are pre-releases on the `dev` channel. |
 | `dependabot.yml` | monthly | npm production dependency updates (max 10 open PRs) |
 
-`release.yml` builds and releases `android/` (Capacitor) only. `compose-app/` has no CI workflow.
 
 ---
 

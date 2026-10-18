@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,8 +81,10 @@ import dev.appu.laluzgarage.ui.components.ConnectedSegments
 import dev.appu.laluzgarage.ui.components.ContactRow
 import dev.appu.laluzgarage.ui.components.LaluzConfirmDialog
 import dev.appu.laluzgarage.ui.components.DetailField
+import dev.appu.laluzgarage.ui.components.LaluzFilterChip
 import dev.appu.laluzgarage.ui.components.LaluzIcons
 import dev.appu.laluzgarage.ui.components.LaluzOutlinedField
+import dev.appu.laluzgarage.ui.components.LaluzSearchField
 import dev.appu.laluzgarage.ui.components.LaluzTextButton
 import dev.appu.laluzgarage.ui.components.LaluzTopBar
 import dev.appu.laluzgarage.ui.components.MaxContentWidth
@@ -91,6 +94,7 @@ import dev.appu.laluzgarage.ui.components.PinBadge
 import dev.appu.laluzgarage.ui.components.SectionCard
 import dev.appu.laluzgarage.ui.components.SegmentColors
 import dev.appu.laluzgarage.ui.components.StatusChip
+import dev.appu.laluzgarage.ui.inventory.PartFormSheet
 import dev.appu.laluzgarage.ui.components.bleedEnd
 import dev.appu.laluzgarage.ui.components.formatGrouped
 import dev.appu.laluzgarage.ui.components.formatInrWhole
@@ -127,6 +131,7 @@ fun JobCardScreen(
     onToggleTask: (Int) -> Unit,
     onProblemsTextChange: (String) -> Unit,
     onAddPart: (Part) -> Unit,
+    onCreatePart: (Part, () -> Unit) -> Unit,
     onUpdatePartQuantity: (Int, Int) -> Unit,
     onLaborCostChange: (Double) -> Unit,
     onRemarksChange: (String) -> Unit,
@@ -149,6 +154,7 @@ fun JobCardScreen(
     val snackbar = remember { SnackbarHostState() }
     var confirmLeave by remember { mutableStateOf(false) }
     var showParts by remember { mutableStateOf(false) }
+    var creatingPart by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     LaunchedEffect(statusMessage) {
@@ -367,6 +373,29 @@ fun JobCardScreen(
                             )
                         }
 
+                        // Job status
+                        SectionCard("Job status", gap = Spacing.sm) {
+                            val ext = LaluzTheme.extendedColors
+                            ConnectedSegments(
+                                options = CardStatus.entries,
+                                selected = cardStatus,
+                                onSelect = { onStatusChange(it.status.value) },
+                                label = { it.label },
+                                colors = {
+                                    when (it) {
+                                        CardStatus.PENDING -> SegmentColors(ext.warningContainer, ext.onWarningContainer, cs.surfaceContainerHigh, cs.onSurface)
+                                        CardStatus.IN_PROGRESS -> SegmentColors(cs.tertiaryContainer, cs.onTertiaryContainer, cs.surfaceContainerHigh, cs.onSurface)
+                                        CardStatus.DELIVERED -> SegmentColors(cs.primary, cs.onPrimary, cs.surfaceContainerHigh, cs.onSurface)
+                                    }
+                                },
+                                height = 56.dp,
+                                fill = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics { contentDescription = "Job status" }
+                            )
+                        }
+
                         // Bill
                         BillSection(
                             record = record,
@@ -382,13 +411,11 @@ fun JobCardScreen(
             }
 
             StatusBar(
-                selected = cardStatus,
-                onSelect = { onStatusChange(it.status.value) },
                 isDirty = isDirty,
                 justSaved = justSaved,
                 isSaving = isSaving,
                 canSave = odometerValid,
-                onDiscard = onDiscard,
+                onDiscard = { onDiscard(); onBack() },
                 onSave = onSave
             )
         }
@@ -448,26 +475,72 @@ fun JobCardScreen(
             sheetState = sheetState,
             containerColor = cs.surfaceContainerLow
         ) {
-            Text(
-                "Add part",
-                style = MaterialTheme.typography.titleLarge,
-                color = cs.onSurface,
-                modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.xs)
-            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.xl, end = Spacing.md, top = Spacing.xs, bottom = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Add part",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = cs.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                LaluzTextButton("+ Create", onClick = { creatingPart = true })
+            }
+            var partQuery by rememberSaveable { mutableStateOf("") }
+            var partCategory by rememberSaveable { mutableStateOf<String?>(null) }
+            val categories = remember(availableParts) {
+                availableParts.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct().sortedBy { it.lowercase() }
+            }
+            val needle = partQuery.trim().lowercase()
+            val shownParts = availableParts.filter { p ->
+                (partCategory == null || p.category.trim() == partCategory) &&
+                    (needle.isEmpty() || p.name.lowercase().contains(needle) || p.category.lowercase().contains(needle))
+            }
+            if (availableParts.isNotEmpty()) {
+                Column(
+                    Modifier.padding(horizontal = Spacing.xl).padding(bottom = Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    LaluzSearchField(
+                        value = partQuery,
+                        onValueChange = { partQuery = it },
+                        placeholder = "Search parts or category",
+                        onClear = { partQuery = "" },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (categories.isNotEmpty()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .semantics { contentDescription = "Filter parts by category" },
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            LaluzFilterChip("All", selected = partCategory == null, onClick = { partCategory = null })
+                            categories.forEach { c ->
+                                LaluzFilterChip(c, selected = partCategory == c, onClick = { partCategory = if (partCategory == c) null else c })
+                            }
+                        }
+                    }
+                }
+            }
             Column(
                 Modifier
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = Spacing.xl)
             ) {
-                if (availableParts.isEmpty()) {
+                if (availableParts.isEmpty() || shownParts.isEmpty()) {
                     Text(
-                        "No parts in inventory yet.",
+                        if (availableParts.isEmpty()) "No parts in inventory yet." else "No parts match.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = cs.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.md)
                     )
                 }
-                availableParts.forEach { part ->
+                shownParts.forEach { part ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -491,6 +564,14 @@ fun JobCardScreen(
             }
         }
     }
+
+    if (creatingPart) {
+        PartFormSheet(
+            part = null,
+            onDismiss = { creatingPart = false },
+            onSave = { created -> onCreatePart(created) { creatingPart = false } }
+        )
+    }
 }
 
 @Composable
@@ -498,11 +579,6 @@ private fun OdometerOut(record: ServiceRecord, valid: Boolean, onChange: (Int?) 
     val cs = MaterialTheme.colorScheme
     val inKm = formatGrouped(record.mileage.toLong())
     val out = record.completionMileage
-    val help = when {
-        out == null -> "Enter the reading when the customer collects the vehicle."
-        !valid -> "Must be at least $inKm km (odometer in)."
-        else -> "Driven ${formatGrouped((out - record.mileage).toLong())} km in the shop."
-    }
     val isError = out != null && !valid
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         Text(
@@ -520,14 +596,6 @@ private fun OdometerOut(record: ServiceRecord, valid: Boolean, onChange: (Int?) 
             isError = isError,
             suffix = "km",
             modifier = Modifier.semantics { contentDescription = "Odometer out" }
-        )
-        Text(
-            help,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isError) cs.error else cs.onSurfaceVariant,
-            modifier = Modifier
-                .padding(horizontal = Spacing.md)
-                .semantics { liveRegion = LiveRegionMode.Polite }
         )
     }
 }
@@ -725,8 +793,6 @@ private fun BillSection(
 
 @Composable
 private fun StatusBar(
-    selected: CardStatus,
-    onSelect: (CardStatus) -> Unit,
     isDirty: Boolean,
     justSaved: Boolean,
     isSaving: Boolean,
@@ -751,7 +817,7 @@ private fun StatusBar(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Row(Modifier.padding(horizontal = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                Text("Job status", style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text("Changes", style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant, modifier = Modifier.weight(1f))
                 val note = when {
                     isDirty -> "Unsaved changes"
                     justSaved -> "All changes saved"
@@ -764,25 +830,7 @@ private fun StatusBar(
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
-            ConnectedSegments(
-                options = CardStatus.entries,
-                selected = selected,
-                onSelect = onSelect,
-                label = { it.label },
-                colors = {
-                    when (it) {
-                        CardStatus.PENDING -> SegmentColors(ext.warningContainer, ext.onWarningContainer, cs.surfaceContainerHigh, cs.onSurface)
-                        CardStatus.IN_PROGRESS -> SegmentColors(cs.tertiaryContainer, cs.onTertiaryContainer, cs.surfaceContainerHigh, cs.onSurface)
-                        CardStatus.DELIVERED -> SegmentColors(cs.primary, cs.onPrimary, cs.surfaceContainerHigh, cs.onSurface)
-                    }
-                },
-                height = 56.dp,
-                fill = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Job status" }
-            )
-            Row(Modifier.padding(top = Spacing.xxs), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 OutlinedPillButton(
                     text = "Discard",
                     onClick = onDiscard,

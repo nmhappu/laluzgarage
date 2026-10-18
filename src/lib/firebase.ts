@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getEnv } from './env';
 
 const firebaseConfig = {
@@ -14,47 +14,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(
+
+/**
+ * Offline-first like the Compose app: the persistent cache serves the first snapshot instantly
+ * (and while offline); writes queue and replay on reconnect. Shared across open tabs.
+ */
+export const db = initializeFirestore(
   app,
+  { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) },
   getEnv('VITE_FIREBASE_FIRESTORE_DATABASE_ID', '(default)')
 );
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
-  path: string | null;
-  authInfo: {
-    userId: string;
-    email: string;
-    emailVerified: boolean;
-    isAnonymous: boolean;
-    providerInfo: { providerId: string; displayName: string; email: string; }[];
-  }
-}
-
-export function handleFirestoreError(error: unknown, operationType: FirestoreErrorInfo['operationType'], path: string | null = null): never {
-  const err = error as { code?: string; message?: string };
-  if (err?.code === 'permission-denied' || err?.message?.includes('insufficient permissions')) {
-    const user = auth.currentUser;
-    const info: FirestoreErrorInfo = {
-      error: err.message || 'Missing or insufficient permissions',
-      operationType,
-      path,
-      authInfo: {
-        userId: user?.uid || 'anonymous',
-        email: user?.email || '',
-        emailVerified: user?.emailVerified || false,
-        isAnonymous: user?.isAnonymous || false,
-        providerInfo: user?.providerData.map(p => ({
-          providerId: p.providerId,
-          displayName: p.displayName || '',
-          email: p.email || ''
-        })) || []
-      }
-    };
-    throw new Error(JSON.stringify(info));
-  }
-  throw error;
-}
-
-

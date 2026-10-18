@@ -7,6 +7,6 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   firebaseRulesPlugin.configs['flat/recommended'],
   {
-    ignores: ['node_modules/', 'dist/', 'android/', 'flutter/', 'external-items/', '.next/', 'public/']
+    ignores: ['node_modules/', 'dist/', 'compose-app/', 'external-items/', '.next/', 'public/']
   }
 );

@@ -88,6 +88,7 @@ fun LaluzTopBar(
     startPadding: androidx.compose.ui.unit.Dp = Spacing.md,
     // The app background (surface) by default; it does not tint on scroll. Transparent over a glow.
     container: Color = MaterialTheme.colorScheme.surface,
+    height: androidx.compose.ui.unit.Dp = 64.dp,
     content: @Composable RowScope.() -> Unit
 ) {
     Row(
@@ -95,7 +96,7 @@ fun LaluzTopBar(
             .fillMaxWidth()
             .drawBehind { drawRect(container) }
             .statusBarsPadding()
-            .height(64.dp)
+            .height(height)
             .padding(start = startPadding, end = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),

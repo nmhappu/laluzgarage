@@ -67,6 +67,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.BoxWithConstraints
+import dev.appu.laluzgarage.ui.layout.LocalAdaptive
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -113,6 +115,7 @@ import dev.appu.laluzgarage.ui.components.IconTile
 import dev.appu.laluzgarage.ui.components.LaluzIcons
 import dev.appu.laluzgarage.ui.components.LaluzTextButton
 import dev.appu.laluzgarage.ui.components.LaluzSyncTopBar
+import dev.appu.laluzgarage.ui.layout.sheetInsetPadding
 import dev.appu.laluzgarage.ui.components.MaxContentWidth
 import dev.appu.laluzgarage.ui.components.OperatorAvatarButton
 import dev.appu.laluzgarage.ui.components.SegmentColors
@@ -449,13 +452,8 @@ fun DashboardScreen(
                     .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = MaxContentWidth)
-                        .fillMaxWidth()
-                        .padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = 168.dp),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xl)
-                ) {
+                // Sections, shared by the phone column and the tablet columns.
+                val greetingSection: @Composable () -> Unit = {
                     Column(Modifier.enterStaggered(entrance, 0)) {
                         Column(
                             Modifier.padding(horizontal = Spacing.xs),
@@ -473,17 +471,72 @@ fun DashboardScreen(
                         // them travels with the expand so nothing jumps when they arrive or go.
                         LaunchUpdateCards(launchUpdates, onOpenUpdate, onDismissUpdate)
                     }
-
+                }
+                val heroSection: @Composable () -> Unit = {
                     Box(Modifier.enterStaggered(entrance, 1)) {
                         HeroCard(stats = stats, range = dashboard.range, onRange = onRangeChange)
                     }
+                }
+                val statusSection: @Composable () -> Unit = {
                     Box(Modifier.enterStaggered(entrance, 2)) { StatusTiles(stats, onOpenPendingJobs, onOpenCompletedJobs) }
+                }
+                val attentionSection: @Composable () -> Unit = {
                     if (stats.attention.isNotEmpty()) {
                         Box(Modifier.enterStaggered(entrance, 3)) { NeedsAttention(stats, onOpenRecord) }
                     }
+                }
+                val totalsSection: @Composable () -> Unit = {
                     Box(Modifier.enterStaggered(entrance, 4)) { WorkshopTotals(stats, onOpenVehicles, onOpenInventory) }
+                }
+                val recentSection: @Composable () -> Unit = {
                     Box(Modifier.enterStaggered(entrance, 5)) {
                         RecentActivity(stats, onOpenRecord, onViewAllServices, isLoading = dashboard.isLoading)
+                    }
+                }
+                val tablet = LocalAdaptive.current.isTablet
+                if (!tablet) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = MaxContentWidth)
+                            .fillMaxWidth()
+                            .padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = 168.dp),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xl)
+                    ) {
+                        greetingSection()
+                        heroSection()
+                        statusSection()
+                        attentionSection()
+                        totalsSection()
+                        recentSection()
+                    }
+                } else {
+                    // Tablets: two columns once the content is wide enough (it narrows when a side sheet is open);
+                    // otherwise one column that uses the full width.
+                    BoxWithConstraints(Modifier.fillMaxWidth().sheetInsetPadding()) {
+                        val gutter = Modifier.padding(start = Spacing.xl, end = Spacing.xl, top = Spacing.xs, bottom = Spacing.xl)
+                        if (maxWidth >= 760.dp) {
+                            Row(gutter.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                                    greetingSection()
+                                    heroSection()
+                                    statusSection()
+                                    totalsSection()
+                                }
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                                    attentionSection()
+                                    recentSection()
+                                }
+                            }
+                        } else {
+                            Column(gutter.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                                greetingSection()
+                                heroSection()
+                                statusSection()
+                                attentionSection()
+                                totalsSection()
+                                recentSection()
+                            }
+                        }
                     }
                 }
             }

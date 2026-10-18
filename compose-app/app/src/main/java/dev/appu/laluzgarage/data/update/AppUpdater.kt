@@ -133,10 +133,12 @@ class AppUpdater @Inject constructor(
 
     private fun pickRelease(all: JSONArray, channel: ReleaseChannel): ReleaseInfo? {
         val releases = List(all.length()) { all.getJSONObject(it) }.filter { !it.optBoolean("draft") }
-        // Stable never falls back to dev builds. Highest version first, whatever order they were uploaded in.
-        val eligible = (if (channel == ReleaseChannel.STABLE) {
-            releases.filter { !it.optBoolean("prerelease") && !PreTag.containsMatchIn(it.optString("tag_name")) }
-        } else releases).sortedWith { a, b -> compareVersions(b.optString("tag_name"), a.optString("tag_name")) }
+        // Each channel only sees its own kind of release: stable has no dev builds, dev has only dev builds.
+        // Highest version first, whatever order they were uploaded in.
+        val eligible = releases.filter {
+            val isDev = it.optBoolean("prerelease") || PreTag.containsMatchIn(it.optString("tag_name"))
+            isDev == (channel == ReleaseChannel.DEV)
+        }.sortedWith { a, b -> compareVersions(b.optString("tag_name"), a.optString("tag_name")) }
         for (r in eligible) {
             val assets = r.optJSONArray("assets") ?: continue
             val apk = List(assets.length()) { assets.getJSONObject(it) }.firstOrNull {

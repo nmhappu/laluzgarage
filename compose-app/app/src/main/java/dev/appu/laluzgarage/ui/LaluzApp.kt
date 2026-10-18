@@ -82,6 +82,12 @@ import dev.appu.laluzgarage.ui.inventory.InventoryScreen
 import dev.appu.laluzgarage.ui.inventory.PartDetailScreen
 import dev.appu.laluzgarage.ui.inventory.PartFormSheet
 import dev.appu.laluzgarage.ui.navigation.AppDestination
+import dev.appu.laluzgarage.ui.layout.LocalAdaptive
+import dev.appu.laluzgarage.ui.layout.TabletShell
+import dev.appu.laluzgarage.ui.layout.rememberAdaptive
+import dev.appu.laluzgarage.data.model.Part
+import dev.appu.laluzgarage.data.model.ServiceRecord
+import dev.appu.laluzgarage.data.model.Vehicle
 import dev.appu.laluzgarage.ui.vehicles.VehicleDetailScreen
 import dev.appu.laluzgarage.ui.vehicles.VehiclesScreen
 import dev.appu.laluzgarage.ui.services.JobCardScreen
@@ -127,6 +133,10 @@ fun LaluzApp(
     var editingRecordId by rememberSaveable { mutableStateOf<String?>(null) }
     var focusServicesSearch by remember { mutableStateOf(false) }
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
+    val adaptive = rememberAdaptive()
+    val tablet = adaptive.isTablet
+    // Tablets: the rail starts expanded on wide windows; the menu button toggles it.
+    var railExpanded by rememberSaveable { mutableStateOf(adaptive.isLarge) }
 
     Crossfade(
         targetState = authState.screenState,
@@ -183,6 +193,11 @@ fun LaluzApp(
                     settingsViewModel.checkOnLaunch()
                 }
                 val activeRecord = serviceState.activeEditingRecord
+                val closeDetails = {
+                    if (serviceState.activeEditingRecord != null) serviceViewModel.closeRecord()
+                    openPartId = null
+                    openVehicleId = null
+                }
                 val operator = activeOperator ?: authState.profile
                 val operatorName = operator?.name?.ifEmpty { null }
                     ?: authState.user?.displayName?.ifEmpty { null }
@@ -240,9 +255,9 @@ fun LaluzApp(
                     isSwitchingOperator -> AppLayer.PIN
                     isIntakeOpen -> AppLayer.INTAKE
                     editingRecord != null -> AppLayer.JOB_EDIT
-                    activeRecord != null -> AppLayer.JOB
-                    openPart != null -> AppLayer.PART
-                    openVehicle != null -> AppLayer.VEHICLE
+                    activeRecord != null && !tablet -> AppLayer.JOB
+                    openPart != null && !tablet -> AppLayer.PART
+                    openVehicle != null && !tablet -> AppLayer.VEHICLE
                     isSettingsOpen -> AppLayer.SETTINGS
                     else -> AppLayer.TABS
                 }
@@ -285,19 +300,102 @@ fun LaluzApp(
                     AppLayer.VEHICLE -> if (isSettingsOpen) AppLayer.SETTINGS else AppLayer.TABS
                     else -> null
                 }
+                // The detail screens, shared by the full-screen layers (phones) and the side sheet (tablets).
+                val jobContent: @Composable (ServiceRecord) -> Unit = { record ->
+                    JobCardScreen(
+                                record = record,
+                                original = serviceState.originalRecord,
+                                vehicle = serviceState.vehiclesMap[record.vehicleId],
+                                customer = serviceState.customersMap[record.customerId],
+                                availableParts = serviceState.availableParts,
+                                deliveryTemplate = serviceState.deliveryTemplate,
+                                isDirty = serviceState.isDirty,
+                                isSaving = serviceState.isSaving,
+                                justSaved = serviceState.justSaved,
+                                statusMessage = serviceState.statusMessage,
+                                onBack = serviceViewModel::closeRecord,
+                                onStatusChange = serviceViewModel::updateStatus,
+                                onToggleTask = serviceViewModel::toggleTask,
+                                onProblemsTextChange = serviceViewModel::setProblemsText,
+                                onAddPart = serviceViewModel::addPart,
+                                onCreatePart = serviceViewModel::savePart,
+                                onUpdatePartQuantity = serviceViewModel::updatePartQuantity,
+                                onLaborCostChange = serviceViewModel::updateLaborCost,
+                                onRemarksChange = serviceViewModel::updateFinalRemarks,
+                                onCompletionMileageChange = serviceViewModel::updateCompletionMileage,
+                                onBatteryChange = serviceViewModel::updateBattery,
+                                onDiscard = serviceViewModel::discardChanges,
+                                onDelete = { serviceViewModel.deleteRecord(record.id, onDeleted = serviceViewModel::closeRecord) },
+                                onSave = { serviceViewModel.saveActiveRecord(onSaved = serviceViewModel::closeRecord) },
+                                onStatusMessageShown = serviceViewModel::clearStatusMessage
+                            )
+                }
+                val partContent: @Composable (Part) -> Unit = { part ->
+                    PartDetailScreen(
+                                part = part,
+                                categories = inventoryUi.categories,
+                                message = serviceState.catalogMessage,
+                                onMessageShown = serviceViewModel::clearCatalogMessage,
+                                onBack = { openPartId = null },
+                                onSave = serviceViewModel::savePart,
+                                onDelete = { serviceViewModel.deletePart(part.id) { openPartId = null } }
+                            )
+                }
+                val vehicleContent: @Composable (Vehicle) -> Unit = { vehicle ->
+                    VehicleDetailScreen(
+                                vehicle = vehicle,
+                                customer = serviceState.customersMap[vehicle.customerId],
+                                records = remember(serviceState.records, vehicle.id) {
+                                    serviceState.records.filter { it.vehicleId == vehicle.id }
+                                },
+                                message = serviceState.catalogMessage,
+                                onMessageShown = serviceViewModel::clearCatalogMessage,
+                                onBack = { openVehicleId = null },
+                                onOpenRecord = serviceViewModel::openRecord,
+                                onSave = serviceViewModel::saveVehicle,
+                                onDelete = { serviceViewModel.deleteVehicle(vehicle.id) { openVehicleId = null } }
+                            )
+                }
                 val backScope = rememberCoroutineScope()
-                CompositionLocalProvider(LocalContainerTransform provides container) {
+                CompositionLocalProvider(LocalContainerTransform provides container, LocalAdaptive provides adaptive) {
                 Box(Modifier.fillMaxSize()) {
                     // Tabs stay composed under detail screens, so going back doesn't rebuild the dashboard or lists.
                     TabsLayer(layers, container, covered = layer != AppLayer.TABS) {
                         MainShell(
                             currentDestination = currentDestination,
+                            tablet = tablet,
+                            railExpanded = railExpanded,
+                            onToggleRail = { railExpanded = !railExpanded },
+                            sheetOpen = tablet && (activeRecord != null || openPart != null || openVehicle != null),
+                            onDismissSheet = {
+                                when {
+                                    activeRecord != null -> serviceViewModel.closeRecord()
+                                    openPart != null -> openPartId = null
+                                    else -> openVehicleId = null
+                                }
+                            },
+                            sheet = {
+                                // Top-most detail wins, as the layers stack: job over part over vehicle. Held values keep it drawn while it closes.
+                                val kind = rememberLastNonNull(if (activeRecord != null) 0 else if (openPart != null) 1 else if (openVehicle != null) 2 else null)
+                                when (kind) {
+                                    // Keyed, so opening another job, part or vehicle starts a fresh screen state.
+                                    0 -> heldRecord?.let { key(it.id) { jobContent(it) } }
+                                    1 -> heldPart?.let { key(it.id) { partContent(it) } }
+                                    2 -> heldVehicle?.let { key(it.id) { vehicleContent(it) } }
+                                }
+                            },
                             toolbarExpanded = toolbarExpanded,
                             onToolbarExpandedChange = { toolbarExpanded = it },
-                            onNavigate = { currentDestination = it; toolbarExpanded = true },
+                            onNavigate = {
+                                // A detail open in the side sheet belongs to the tab it was opened from.
+                                if (tablet) closeDetails()
+                                currentDestination = it
+                                toolbarExpanded = true
+                            },
                             // On Inventory the FAB adds a part (as drawn); everywhere else it starts an intake.
-                            fabContentDescription = if (currentDestination == AppDestination.INVENTORY) "Add part" else "New intake",
+                            fabContentDescription = if (currentDestination == AppDestination.INVENTORY) "Create part" else "New intake",
                             onFabClick = {
+                                if (tablet) closeDetails()
                                 if (currentDestination == AppDestination.INVENTORY) {
                                     isAddingPart = true
                                 } else {
@@ -362,7 +460,8 @@ fun LaluzApp(
                                     onMessageShown = serviceViewModel::clearCatalogMessage,
                                     focusSearch = focusServicesSearch,
                                     onSearchFocused = { focusServicesSearch = false },
-                                    listState = servicesList
+                                    listState = servicesList,
+                                    selectedRecordId = activeRecord?.id
                                 )
 
                                 AppDestination.VEHICLES -> VehiclesScreen(
@@ -372,7 +471,8 @@ fun LaluzApp(
                                     account = account,
                                     onSearchQueryChange = serviceViewModel::setVehicleSearch,
                                     onOpenVehicle = { openVehicleId = it.id },
-                                    listState = vehiclesListState
+                                    listState = vehiclesListState,
+                                    selectedVehicleId = openVehicleId
                                 )
 
                                 AppDestination.INVENTORY -> InventoryScreen(
@@ -383,9 +483,10 @@ fun LaluzApp(
                                     account = account,
                                     onSearchQueryChange = serviceViewModel::setPartSearch,
                                     onFilterChange = serviceViewModel::setPartFilter,
-                                    onToggleSort = serviceViewModel::togglePartsSort,
+                                    onSortChange = serviceViewModel::setPartSort,
                                     onOpenPart = { openPartId = it.id },
-                                    listState = inventoryListState
+                                    listState = inventoryListState,
+                                    selectedPartId = openPartId
                                 )
                             }
                         }
@@ -438,32 +539,7 @@ fun LaluzApp(
                                 }
                             )
 
-                            AppLayer.JOB -> if (activeRecord != null) JobCardScreen(
-                                record = activeRecord,
-                                original = serviceState.originalRecord,
-                                vehicle = serviceState.vehiclesMap[activeRecord.vehicleId],
-                                customer = serviceState.customersMap[activeRecord.customerId],
-                                availableParts = serviceState.availableParts,
-                                deliveryTemplate = serviceState.deliveryTemplate,
-                                isDirty = serviceState.isDirty,
-                                isSaving = serviceState.isSaving,
-                                justSaved = serviceState.justSaved,
-                                statusMessage = serviceState.statusMessage,
-                                onBack = serviceViewModel::closeRecord,
-                                onStatusChange = serviceViewModel::updateStatus,
-                                onToggleTask = serviceViewModel::toggleTask,
-                                onProblemsTextChange = serviceViewModel::setProblemsText,
-                                onAddPart = serviceViewModel::addPart,
-                                onUpdatePartQuantity = serviceViewModel::updatePartQuantity,
-                                onLaborCostChange = serviceViewModel::updateLaborCost,
-                                onRemarksChange = serviceViewModel::updateFinalRemarks,
-                                onCompletionMileageChange = serviceViewModel::updateCompletionMileage,
-                                onBatteryChange = serviceViewModel::updateBattery,
-                                onDiscard = serviceViewModel::discardChanges,
-                                onDelete = { serviceViewModel.deleteRecord(activeRecord.id, onDeleted = serviceViewModel::closeRecord) },
-                                onSave = { serviceViewModel.saveActiveRecord(onSaved = serviceViewModel::closeRecord) },
-                                onStatusMessageShown = serviceViewModel::clearStatusMessage
-                            )
+                            AppLayer.JOB -> if (activeRecord != null) jobContent(activeRecord)
 
                             AppLayer.JOB_EDIT -> heldEditing?.let { record ->
                                 JobEditScreen(
@@ -501,29 +577,9 @@ fun LaluzApp(
                                 startRoute = settingsStartRoute
                             )
 
-                            AppLayer.PART -> if (openPart != null) PartDetailScreen(
-                                part = openPart,
-                                categories = inventoryUi.categories,
-                                message = serviceState.catalogMessage,
-                                onMessageShown = serviceViewModel::clearCatalogMessage,
-                                onBack = { openPartId = null },
-                                onSave = serviceViewModel::savePart,
-                                onDelete = { serviceViewModel.deletePart(openPart.id) { openPartId = null } }
-                            )
+                            AppLayer.PART -> if (openPart != null) partContent(openPart)
 
-                            AppLayer.VEHICLE -> if (openVehicle != null) VehicleDetailScreen(
-                                vehicle = openVehicle,
-                                customer = serviceState.customersMap[openVehicle.customerId],
-                                records = remember(serviceState.records, openVehicle.id) {
-                                    serviceState.records.filter { it.vehicleId == openVehicle.id }
-                                },
-                                message = serviceState.catalogMessage,
-                                onMessageShown = serviceViewModel::clearCatalogMessage,
-                                onBack = { openVehicleId = null },
-                                onOpenRecord = serviceViewModel::openRecord,
-                                onSave = serviceViewModel::saveVehicle,
-                                onDelete = { serviceViewModel.deleteVehicle(openVehicle.id) { openVehicleId = null } }
-                            )
+                            AppLayer.VEHICLE -> if (openVehicle != null) vehicleContent(openVehicle)
                             AppLayer.TABS -> Unit
                             }
                             // Composed after the screen so it registers after the screen's own BackHandler:
@@ -558,7 +614,6 @@ fun LaluzApp(
                 if (isAddingPart) {
                     PartFormSheet(
                         part = null,
-                        categories = inventoryUi.categories,
                         onDismiss = { isAddingPart = false },
                         onSave = { part -> serviceViewModel.savePart(part) { isAddingPart = false } }
                     )
@@ -668,6 +723,12 @@ private fun Modifier.blockTouchesBelow(): Modifier = pointerInput(Unit) {
 @Composable
 private fun MainShell(
     currentDestination: AppDestination,
+    tablet: Boolean,
+    railExpanded: Boolean,
+    onToggleRail: () -> Unit,
+    sheetOpen: Boolean,
+    onDismissSheet: () -> Unit,
+    sheet: @Composable () -> Unit,
     toolbarExpanded: Boolean,
     onToolbarExpandedChange: (Boolean) -> Unit,
     onNavigate: (AppDestination) -> Unit,
@@ -677,40 +738,64 @@ private fun MainShell(
 ) {
     val items = remember { AppDestination.entries.map { ToolbarItem(it.route, it.label, it.icon) } }
     val focusManager = LocalFocusManager.current
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .nestedScroll(rememberToolbarScrollConnection(toolbarExpanded, onToolbarExpandedChange))
-    ) {
-        // Visited tabs stay composed and are only placed while shown, so a switch never rebuilds a
-        // screen from scratch. After launch the remaining tabs are pre-composed one at a time.
-        val tabs = updateTransition(currentDestination, label = "Tab")
-        val visited = remember { mutableSetOf<AppDestination>() }.apply { add(currentDestination) }
-        var warmed by remember { mutableIntStateOf(0) }
-        LaunchedEffect(Unit) {
-            delay(TabPrewarmDelayMs)
-            for (i in 1..AppDestination.entries.size) { warmed = i; delay(TabPrewarmGapMs) }
-        }
-        AppDestination.entries.forEachIndexed { i, dest ->
-            if (dest in visited || i < warmed) {
-                visited += dest
-                key(dest) { TabPage(dest, tabs) { content(dest) } }
+    val select: (String) -> Unit = {
+        // Hidden tabs stay composed, so drop focus (and the keyboard) rather than leave it behind.
+        focusManager.clearFocus()
+        onNavigate(AppDestination.fromRoute(it))
+    }
+    val tabsBox: @Composable () -> Unit = {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .then(if (tablet) Modifier else Modifier.nestedScroll(rememberToolbarScrollConnection(toolbarExpanded, onToolbarExpandedChange)))
+        ) {
+            // Visited tabs stay composed and are only placed while shown, so a switch never rebuilds a
+            // screen from scratch. After launch the remaining tabs are pre-composed one at a time.
+            val tabs = updateTransition(currentDestination, label = "Tab")
+            val visited = remember { mutableSetOf<AppDestination>() }.apply { add(currentDestination) }
+            var warmed by remember { mutableIntStateOf(0) }
+            LaunchedEffect(Unit) {
+                delay(TabPrewarmDelayMs)
+                for (i in 1..AppDestination.entries.size) { warmed = i; delay(TabPrewarmGapMs) }
+            }
+            AppDestination.entries.forEachIndexed { i, dest ->
+                if (dest in visited || i < warmed) {
+                    visited += dest
+                    key(dest) { TabPage(dest, tabs, fade = tablet) { content(dest) } }
+                }
+            }
+            if (!tablet) {
+                FloatingNavToolbar(
+                    items = items,
+                    currentKey = currentDestination.route,
+                    onSelect = select,
+                    fabContentDescription = fabContentDescription,
+                    onFabClick = onFabClick,
+                    expanded = toolbarExpanded,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
         }
-        FloatingNavToolbar(
+    }
+    if (tablet) {
+        TabletShell(
             items = items,
             currentKey = currentDestination.route,
-            onSelect = {
-                // Hidden tabs stay composed, so drop focus (and the keyboard) rather than leave it behind.
-                focusManager.clearFocus()
-                onNavigate(AppDestination.fromRoute(it))
-            },
-            fabContentDescription = fabContentDescription,
-            onFabClick = onFabClick,
-            expanded = toolbarExpanded,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            onSelect = select,
+            railExpanded = railExpanded,
+            onToggleRail = onToggleRail,
+            fabLabel = fabContentDescription,
+            onFab = onFabClick,
+            sheetOpen = sheetOpen,
+            // Dashboard has the 64dp bar; the list tabs the 96dp tablet bar.
+            sheetTop = if (currentDestination == AppDestination.DASHBOARD) 64.dp else 96.dp,
+            onDismissSheet = onDismissSheet,
+            sheet = sheet,
+            content = tabsBox
         )
+    } else {
+        tabsBox()
     }
 }
 
@@ -720,7 +805,7 @@ private fun MainShell(
  * so it isn't drawn, hit-tested or announced.
  */
 @Composable
-private fun TabPage(dest: AppDestination, tabs: Transition<AppDestination>, content: @Composable () -> Unit) {
+private fun TabPage(dest: AppDestination, tabs: Transition<AppDestination>, fade: Boolean = false, content: @Composable () -> Unit) {
     val shown = tabs.animateFloat(
         transitionSpec = { tween(MotionMs, easing = EmphasizedEasing) },
         label = "Tab ${dest.route}"
@@ -741,7 +826,7 @@ private fun TabPage(dest: AppDestination, tabs: Transition<AppDestination>, cont
                 val v = shown.value
                 val incoming = dest == tabs.targetState
                 val dir = if (tabs.targetState.ordinal >= tabs.currentState.ordinal) 1f else -1f
-                val shift = size.width * 0.1f * (1f - v)
+                val shift = if (fade) 0f else size.width * 0.1f * (1f - v)
                 translationX = if (incoming) dir * shift else -dir * shift
                 alpha = if (incoming) ((v - 0.3f) / 0.7f).coerceIn(0f, 1f) else ((v - 0.7f) / 0.3f).coerceIn(0f, 1f)
             }

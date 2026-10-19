@@ -3,7 +3,6 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  limit,
   orderBy,
   query,
   serverTimestamp,
@@ -23,9 +22,6 @@ export const PARTS = 'parts';
 export const ALL_COLLECTIONS = [SERVICE_RECORDS, VEHICLES, CUSTOMERS, PARTS] as const;
 export type CollectionName = (typeof ALL_COLLECTIONS)[number];
 
-/** Newest N records streamed live; bounds read cost and parse time as history grows. */
-const SERVICE_RECORD_LIMIT = 500;
-
 /**
  * The query behind each collection. Live listeners and sync fetches share it, so the cache that
  * answers one also answers the other.
@@ -33,7 +29,9 @@ const SERVICE_RECORD_LIMIT = 500;
 export function collectionQuery(name: CollectionName): Query {
   switch (name) {
     case SERVICE_RECORDS:
-      return query(collection(db, name), orderBy('date', 'desc'), limit(SERVICE_RECORD_LIMIT));
+      // Every job card, like vehicles and customers: stats, history, counts and search need all of
+      // them. A capped window silently dropped older cards once the history outgrew it.
+      return query(collection(db, name), orderBy('date', 'desc'));
     case PARTS:
       return query(collection(db, name), orderBy('name', 'asc'));
     default:

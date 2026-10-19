@@ -10,9 +10,6 @@ object SyncCollections {
     const val CUSTOMERS = "customers"
     const val PARTS = "parts"
 
-    /** Newest N records streamed live; bounds read cost and parse time as history grows. */
-    const val SERVICE_RECORD_LIMIT = 500L
-
     val all = listOf(SERVICE_RECORDS, VEHICLES, CUSTOMERS, PARTS)
 
     /**
@@ -20,9 +17,10 @@ object SyncCollections {
      * caches results per query, so a different query would leave the listener cold when offline.
      */
     fun query(firestore: FirebaseFirestore, collection: String): Query = when (collection) {
+        // Every job card, like vehicles and customers: stats, history, counts and search need all
+        // of them. A capped window silently dropped older cards once the history outgrew it.
         SERVICE_RECORDS -> firestore.collection(collection)
             .orderBy("date", Query.Direction.DESCENDING)
-            .limit(SERVICE_RECORD_LIMIT)
         PARTS -> firestore.collection(collection).orderBy("name", Query.Direction.ASCENDING)
         else -> firestore.collection(collection)
     }

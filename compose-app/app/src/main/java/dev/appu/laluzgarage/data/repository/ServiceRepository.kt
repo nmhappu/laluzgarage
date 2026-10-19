@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import dev.appu.laluzgarage.data.model.Customer
+import dev.appu.laluzgarage.data.model.JobUpdate
 import dev.appu.laluzgarage.data.model.Part
 import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.Vehicle
@@ -16,6 +17,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -40,6 +42,7 @@ class ServiceRepository @Inject constructor(
 
     fun getServiceRecordsStream(): Flow<List<ServiceRecord>> =
         cachedStream(SyncCollections.SERVICE_RECORDS, ServiceRecord::class.java)
+            .map { records -> records.map(ServiceRecord::withPartsFromMap) }
 
     fun getVehiclesStream(): Flow<List<Vehicle>> =
         cachedStream(SyncCollections.VEHICLES, Vehicle::class.java)
@@ -151,7 +154,7 @@ class ServiceRepository @Inject constructor(
                 "laborCost" to 0.0,
                 "partsCost" to 0.0,
                 "totalCost" to 0.0,
-                "partsUsed" to emptyList<Map<String, Any>>(),
+                "parts" to emptyMap<String, Any>(),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp()
             )
@@ -161,13 +164,18 @@ class ServiceRepository @Inject constructor(
     }
 
     /**
-     * Saves only [changes] (from jobChanges), so a field another person edited meanwhile is kept.
-     * update() fails instead of recreating a card that was deleted while it was open.
+     * Saves a job card update from jobChanges: edited fields are set, parts and money move by
+     * increments, and legacy fields are deleted. update() fails instead of recreating a card that
+     * was deleted while it was open.
      */
-    suspend fun updateServiceRecord(recordId: String, changes: Map<String, Any?>): Result<Unit> = withContext(ioDispatcher) {
+    suspend fun updateServiceRecord(recordId: String, update: JobUpdate): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            if (changes.isEmpty()) return@runCatching
-            val data = HashMap<String, Any?>(changes)
+            if (update.isEmpty) return@runCatching
+            val data = HashMap<String, Any?>(update.set)
+            update.add.forEach { (field, by) ->
+                data[field] = if (by is Int || by is Long) FieldValue.increment(by.toLong()) else FieldValue.increment(by.toDouble())
+            }
+            update.remove.forEach { data[it] = FieldValue.delete() }
             data["updatedAt"] = FieldValue.serverTimestamp()
             awaitWrite(firestore.collection(SyncCollections.SERVICE_RECORDS).document(recordId).update(data))
             Unit

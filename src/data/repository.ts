@@ -1,8 +1,10 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -13,6 +15,7 @@ import {
 import { db } from '../lib/firebase';
 import type { Part, ServiceRecord, UserRole, Vehicle, WorkshopUser } from '../types';
 import { DEFAULT_PRESETS, type WhatsAppPresets } from '../core/whatsapp';
+import { isEmptyUpdate, type JobUpdate } from '../core/jobs';
 
 /** The collections the app mirrors (SyncCollections.kt). */
 export const SERVICE_RECORDS = 'serviceRecords';
@@ -97,7 +100,7 @@ export async function createVehicle(v: {
   return ref.id;
 }
 
-export async function createServiceRecord(r: Omit<ServiceRecord, 'id' | 'status' | 'laborCost' | 'partsCost' | 'totalCost' | 'partsUsed'>): Promise<string> {
+export async function createServiceRecord(r: Omit<ServiceRecord, 'id' | 'status' | 'laborCost' | 'partsCost' | 'totalCost' | 'partsUsed' | 'legacyParts'>): Promise<string> {
   const ref = doc(collection(db, SERVICE_RECORDS));
   await awaitWrite(
     setDoc(ref, {
@@ -118,7 +121,7 @@ export async function createServiceRecord(r: Omit<ServiceRecord, 'id' | 'status'
       laborCost: 0,
       partsCost: 0,
       totalCost: 0,
-      partsUsed: [],
+      parts: {},
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -127,12 +130,16 @@ export async function createServiceRecord(r: Omit<ServiceRecord, 'id' | 'status'
 }
 
 /**
- * Saves only [changes] (from jobChanges), so a field another person edited meanwhile is kept.
- * updateDoc fails instead of recreating a card that was deleted while it was open.
+ * Saves a job card update from jobChanges: edited fields are set, parts and money move by
+ * increments, and legacy fields are deleted. updateDoc fails instead of recreating a card that was
+ * deleted while it was open.
  */
-export async function updateServiceRecord(id: string, changes: Record<string, unknown>): Promise<void> {
-  if (Object.keys(changes).length === 0) return;
-  await awaitWrite(updateDoc(doc(db, SERVICE_RECORDS, id), { ...changes, updatedAt: serverTimestamp() }));
+export async function updateServiceRecord(id: string, update: JobUpdate): Promise<void> {
+  if (isEmptyUpdate(update)) return;
+  const data: Record<string, unknown> = { ...update.set, updatedAt: serverTimestamp() };
+  for (const [field, by] of Object.entries(update.add)) data[field] = increment(by);
+  for (const field of update.remove) data[field] = deleteField();
+  await awaitWrite(updateDoc(doc(db, SERVICE_RECORDS, id), data));
 }
 
 export async function deleteServiceRecord(id: string): Promise<void> {

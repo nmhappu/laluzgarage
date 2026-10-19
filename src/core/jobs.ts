@@ -1,4 +1,4 @@
-import type { Customer, ServiceRecord, Vehicle } from '../types';
+import type { Customer, PartUsed, ServiceRecord, Vehicle } from '../types';
 import { daysBetween, parseRecordDate, today, type LocalDate } from './dates';
 
 /** Job status as stored in Firestore (`serviceRecords.status`). "completed" reads "Delivered". */
@@ -154,30 +154,86 @@ function editableFields(r: ServiceRecord): Record<string, unknown> {
   };
 }
 
-/** Labour, parts and the totals derived from them; saved together so they always add up. */
-function moneyFields(r: ServiceRecord): Record<string, unknown> {
-  return {
-    laborCost: r.laborCost,
-    partsCost: r.partsCost,
-    totalCost: r.totalCost,
-    partsUsed: r.partsUsed.map((p) => ({ partId: p.partId, name: p.name, quantity: p.quantity, unitPrice: p.unitPrice })),
-  };
+/** A job card save: fields to set, numbers to add to (Firestore increments) and fields to delete. */
+export interface JobUpdate {
+  set: Record<string, unknown>;
+  add: Record<string, number>;
+  remove: string[];
+}
+
+export function isEmptyUpdate(u: JobUpdate): boolean {
+  return Object.keys(u.set).length === 0 && Object.keys(u.add).length === 0 && u.remove.length === 0;
+}
+
+/** The `parts` map key for a line: its part id, made safe for a Firestore field path. */
+export function partKey(p: PartUsed, index: number): string {
+  const id = p.partId.replace(/[^A-Za-z0-9_-]/g, '_');
+  return id || `line${index}`;
+}
+
+function lineValue(p: PartUsed, now: number): Record<string, unknown> {
+  return { partId: p.partId, name: p.name, unitPrice: p.unitPrice, quantity: p.quantity, addedAt: p.addedAt || now };
 }
 
 /**
- * Only the fields that differ between [before] (the card as it was when editing began) and
- * [after]. Saving just these leaves fields someone else changed meanwhile alone. Money fields go
- * as one block whenever any of them changed. Empty when nothing changed.
+ * What to save, given [before] (the card as it was when editing began) and [after]. Only edited
+ * fields are set, so a field someone else changed meanwhile is kept. Parts and money go as
+ * increments (quantity, partsCost, totalCost), so two people adding parts at once both count;
+ * labour is set and the total moves by the difference. A card still in the legacy `partsUsed`
+ * format is converted on its first save: the whole `parts` map and totals are written and
+ * `partsUsed` is deleted. Same rule as the Compose app's jobChanges (JobChanges.kt).
  */
-export function jobChanges(before: ServiceRecord, after: ServiceRecord): Record<string, unknown> {
-  const changes: Record<string, unknown> = {};
+export function jobChanges(before: ServiceRecord, after: ServiceRecord, now: number = Date.now()): JobUpdate {
+  const update: JobUpdate = { set: {}, add: {}, remove: [] };
   const a = editableFields(before);
   const b = editableFields(after);
   for (const key of Object.keys(b)) {
-    if (a[key] !== b[key]) changes[key] = b[key];
+    if (a[key] !== b[key]) update.set[key] = b[key];
   }
-  const moneyBefore = moneyFields(before);
-  const moneyAfter = moneyFields(after);
-  if (JSON.stringify(moneyBefore) !== JSON.stringify(moneyAfter)) Object.assign(changes, moneyAfter);
-  return changes;
+
+  if (before.legacyParts) {
+    const moneyChanged =
+      before.laborCost !== after.laborCost ||
+      JSON.stringify(before.partsUsed.map((p) => [p.partId, p.quantity, p.unitPrice])) !== JSON.stringify(after.partsUsed.map((p) => [p.partId, p.quantity, p.unitPrice]));
+    if (!moneyChanged && Object.keys(update.set).length === 0) return update;
+    const parts: Record<string, unknown> = {};
+    after.partsUsed.forEach((p, i) => {
+      const key = partKey(p, i);
+      const same = parts[key] as { quantity: number } | undefined;
+      // The legacy list could hold the same part twice; the map keeps one line per part.
+      if (same) same.quantity += p.quantity;
+      else parts[key] = lineValue(p, now + i);
+    });
+    const partsCost = after.partsUsed.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
+    update.set.parts = parts;
+    update.set.laborCost = after.laborCost;
+    update.set.partsCost = partsCost;
+    update.set.totalCost = after.laborCost + partsCost;
+    update.remove.push('partsUsed');
+    return update;
+  }
+
+  const beforeLines = new Map(before.partsUsed.map((p, i) => [partKey(p, i), p]));
+  const afterLines = new Map(after.partsUsed.map((p, i) => [partKey(p, i), p]));
+  let partsDelta = 0;
+  for (const key of new Set([...beforeLines.keys(), ...afterLines.keys()])) {
+    const was = beforeLines.get(key);
+    const is = afterLines.get(key);
+    const delta = (is?.quantity ?? 0) - (was?.quantity ?? 0);
+    if (delta === 0) continue;
+    const line = (is ?? was) as PartUsed;
+    if (!was && is) {
+      update.set[`parts.${key}.partId`] = is.partId;
+      update.set[`parts.${key}.name`] = is.name;
+      update.set[`parts.${key}.unitPrice`] = is.unitPrice;
+      update.set[`parts.${key}.addedAt`] = is.addedAt || now;
+    }
+    update.add[`parts.${key}.quantity`] = delta;
+    partsDelta += delta * line.unitPrice;
+  }
+  const labourDelta = after.laborCost - before.laborCost;
+  if (labourDelta !== 0) update.set.laborCost = after.laborCost;
+  if (partsDelta !== 0) update.add.partsCost = partsDelta;
+  if (partsDelta + labourDelta !== 0) update.add.totalCost = partsDelta + labourDelta;
+  return update;
 }

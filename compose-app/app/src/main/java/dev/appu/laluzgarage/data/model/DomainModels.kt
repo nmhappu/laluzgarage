@@ -2,6 +2,7 @@ package dev.appu.laluzgarage.data.model
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.ServerTimestamp
 
 data class Customer(
@@ -54,7 +55,9 @@ data class PartUsed(
     val partId: String = "",
     val name: String = "",
     val quantity: Int = 1,
-    val unitPrice: Double = 0.0
+    val unitPrice: Double = 0.0,
+    /** When the line was added (epoch ms); orders lines stored in the `parts` map. */
+    val addedAt: Long = 0L
 ) {
     val total: Double
         get() = quantity * unitPrice
@@ -83,7 +86,10 @@ data class ServiceRecord(
     val laborCost: Double = 0.0,
     val partsCost: Double = 0.0,
     val totalCost: Double = 0.0,
+    /** The card's parts; read from [parts] by [withPartsFromMap], or the legacy `partsUsed` array. */
     val partsUsed: List<PartUsed> = emptyList(),
+    /** One line per part, quantities changed by increments; null while the card is still in the legacy format. */
+    val parts: Map<String, PartUsed>? = null,
     @ServerTimestamp
     val createdAt: Timestamp? = null,
     @ServerTimestamp
@@ -97,4 +103,19 @@ data class ServiceRecord(
 
     val isPending: Boolean
         get() = status.equals("pending", ignoreCase = true)
+
+    /** True while the stored card still uses the legacy `partsUsed` array; its next save converts it. */
+    @get:Exclude
+    val legacyParts: Boolean
+        get() = parts == null
+
+    /** [partsUsed] taken from the [parts] map when the card has one; lines at zero or below were removed. */
+    fun withPartsFromMap(): ServiceRecord {
+        val map = parts ?: return this
+        val lines = map.entries
+            .map { (key, line) -> line.copy(partId = line.partId.ifBlank { key }) }
+            .filter { it.quantity > 0 }
+            .sortedWith(compareBy<PartUsed>({ it.addedAt }, { it.name }))
+        return copy(partsUsed = lines)
+    }
 }

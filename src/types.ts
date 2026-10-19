@@ -43,6 +43,8 @@ export interface PartUsed {
   name: string;
   quantity: number;
   unitPrice: number;
+  /** When the line was added (epoch ms); orders lines stored in the `parts` map. */
+  addedAt?: number;
 }
 
 export type ServiceStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
@@ -69,7 +71,10 @@ export interface ServiceRecord {
   laborCost: number;
   partsCost: number;
   totalCost: number;
+  /** The card's parts, read from the `parts` map (or the legacy `partsUsed` array). */
   partsUsed: PartUsed[];
+  /** True while the stored card still uses the legacy `partsUsed` array; its next save converts it. */
+  legacyParts?: boolean;
   createdAt?: FireTime;
   updatedAt?: FireTime;
 }

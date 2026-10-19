@@ -51,7 +51,26 @@ export function toPart(d: QueryDocumentSnapshot<DocumentData>): Part {
 function toPartUsed(v: unknown): PartUsed | null {
   if (!v || typeof v !== 'object') return null;
   const x = v as Record<string, unknown>;
-  return { partId: str(x.partId), name: str(x.name), quantity: Math.trunc(num(x.quantity, 1)), unitPrice: num(x.unitPrice) };
+  return { partId: str(x.partId), name: str(x.name), quantity: Math.trunc(num(x.quantity, 1)), unitPrice: num(x.unitPrice), addedAt: num(x.addedAt) };
+}
+
+/**
+ * Parts from the `parts` map (one entry per part, quantities changed by increments) or, for cards
+ * not converted yet, the legacy `partsUsed` array. Map lines at zero or below were removed.
+ */
+function toParts(x: DocumentData): { partsUsed: PartUsed[]; legacyParts: boolean } {
+  if (x.parts && typeof x.parts === 'object' && !Array.isArray(x.parts)) {
+    const lines = Object.entries(x.parts as Record<string, unknown>)
+      .map(([key, v]) => {
+        const p = toPartUsed(v);
+        return p ? { ...p, partId: p.partId || key, quantity: Math.trunc(num((v as Record<string, unknown>).quantity, 0)) } : null;
+      })
+      .filter((p): p is PartUsed => p !== null && p.quantity > 0)
+      .sort((a, b) => (a.addedAt ?? 0) - (b.addedAt ?? 0) || a.name.localeCompare(b.name));
+    return { partsUsed: lines, legacyParts: false };
+  }
+  const list = Array.isArray(x.partsUsed) ? x.partsUsed.map(toPartUsed).filter((p): p is PartUsed => p !== null) : [];
+  return { partsUsed: list, legacyParts: true };
 }
 
 export function toServiceRecord(d: QueryDocumentSnapshot<DocumentData>): ServiceRecord {
@@ -77,7 +96,7 @@ export function toServiceRecord(d: QueryDocumentSnapshot<DocumentData>): Service
     laborCost: num(x.laborCost),
     partsCost: num(x.partsCost),
     totalCost: num(x.totalCost),
-    partsUsed: Array.isArray(x.partsUsed) ? x.partsUsed.map(toPartUsed).filter((p): p is PartUsed => p !== null) : [],
+    ...toParts(x),
     createdAt: x.createdAt,
     updatedAt: x.updatedAt,
   };

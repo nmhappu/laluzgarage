@@ -6,8 +6,8 @@ import {
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { setDoc, getDoc, updateDoc, deleteDoc, doc, collection } from 'firebase/firestore';
-import { jobChanges } from './src/core/jobs';
+import { setDoc, getDoc, updateDoc, deleteDoc, doc, collection, increment, deleteField } from 'firebase/firestore';
+import { jobChanges, type JobUpdate } from './src/core/jobs';
 import type { ServiceRecord } from './src/types';
 
 describe('Firestore Security Rules', () => {
@@ -306,48 +306,98 @@ describe('Firestore Security Rules', () => {
     await assertFails(setDoc(doc(userDb, 'test', 'ping'), { ok: true }));
   });
 
-  it('keeps both edits when two people save the same job card', async () => {
-    const card: ServiceRecord = {
-      id: 'rec_two',
-      vehicleId: 'veh_1',
-      customerId: 'cust_1',
-      technicianId: 'tech_a',
-      date: '2026-10-19',
-      mileage: 42180,
-      isDeadVehicle: false,
-      isUnknownMileage: false,
-      description: '[ ] General service',
-      remarks: null,
-      status: 'in-progress',
-      laborCost: 800,
-      partsCost: 0,
-      totalCost: 800,
-      partsUsed: [],
-    };
+  // The same payload the apps' updateServiceRecord builds from a JobUpdate.
+  const payload = (u: JobUpdate): Record<string, unknown> => {
+    const data: Record<string, unknown> = { ...u.set, updatedAt: new Date() };
+    for (const [field, by] of Object.entries(u.add)) data[field] = increment(by);
+    for (const field of u.remove) data[field] = deleteField();
+    return data;
+  };
+
+  const card = (over: Partial<ServiceRecord> = {}): ServiceRecord => ({
+    id: 'rec_two',
+    vehicleId: 'veh_1',
+    customerId: 'cust_1',
+    technicianId: 'tech_a',
+    date: '2026-10-19',
+    mileage: 42180,
+    isDeadVehicle: false,
+    isUnknownMileage: false,
+    description: '[ ] General service',
+    remarks: null,
+    status: 'in-progress',
+    laborCost: 800,
+    partsCost: 0,
+    totalCost: 800,
+    partsUsed: [],
+    ...over,
+  });
+
+  const seed = async (stored: Record<string, unknown>) => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
       for (const id of ['tech_a', 'tech_b']) {
         await setDoc(doc(db, 'users', id), { name: id, email: id + '@laluz.com', status: 'online', role: 'technician', createdAt: new Date(), updatedAt: new Date() });
       }
-      const { id, ...data } = card;
-      await setDoc(doc(db, 'serviceRecords', id), { ...data, createdAt: new Date(), updatedAt: new Date() });
+      await setDoc(doc(db, 'serviceRecords', 'rec_two'), { ...stored, createdAt: new Date(), updatedAt: new Date() });
     });
+  };
 
-    // Both open the card at the same time. A adds a part; B changes the odometer and remarks.
-    const line = { partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 };
-    const fromA = jobChanges(card, { ...card, partsUsed: [line], partsCost: 350, totalCost: 1150 });
-    const fromB = jobChanges(card, { ...card, mileage: 42200, remarks: 'Noise from front left' });
-    expect(Object.keys(fromB).sort()).toEqual(['mileage', 'remarks']);
+  // The fields a card stores apart from its parts; the tests add `parts` or `partsUsed` themselves.
+  const storedFields = (r: ServiceRecord): Record<string, unknown> => {
+    const rest: Record<string, unknown> = { ...r };
+    delete rest.id;
+    delete rest.partsUsed;
+    delete rest.legacyParts;
+    return rest;
+  };
+
+  it('keeps every part and edit when two people save the same job card', async () => {
+    const opened = card();
+    await seed({ ...storedFields(opened), parts: {} });
+
+    // Both open the card at once. A adds an oil filter and raises labour; B adds engine oil and a remark.
+    const fromA = jobChanges(opened, { ...opened, laborCost: 1000, partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350.5 }] }, 1);
+    const fromB = jobChanges(opened, { ...opened, remarks: 'Noise from front left', partsUsed: [{ partId: 'p2', name: 'Engine oil', quantity: 3, unitPrice: 440 }] }, 2);
 
     const aDb = testEnv.authenticatedContext('tech_a').firestore();
     const bDb = testEnv.authenticatedContext('tech_b').firestore();
-    await assertSucceeds(updateDoc(doc(aDb, 'serviceRecords', card.id), { ...fromA, updatedAt: new Date() }));
-    await assertSucceeds(updateDoc(doc(bDb, 'serviceRecords', card.id), { ...fromB, updatedAt: new Date() }));
+    await assertSucceeds(updateDoc(doc(aDb, 'serviceRecords', 'rec_two'), payload(fromA)));
+    await assertSucceeds(updateDoc(doc(bDb, 'serviceRecords', 'rec_two'), payload(fromB)));
 
-    const saved = (await getDoc(doc(aDb, 'serviceRecords', card.id))).data();
-    expect(saved?.partsUsed).toEqual([line]);
-    expect(saved?.totalCost).toBe(1150);
-    expect(saved?.mileage).toBe(42200);
+    const saved = (await getDoc(doc(aDb, 'serviceRecords', 'rec_two'))).data();
+    expect(saved?.parts?.p1?.quantity).toBe(1);
+    expect(saved?.parts?.p2?.quantity).toBe(3);
     expect(saved?.remarks).toBe('Noise from front left');
+    expect(saved?.laborCost).toBe(1000);
+    expect(saved?.partsCost).toBeCloseTo(1670.5);
+    expect(saved?.totalCost).toBeCloseTo(2670.5);
+  });
+
+  it('converts a legacy card on its first save', async () => {
+    const line = { partId: 'p1', name: 'Oil filter', quantity: 2, unitPrice: 350 };
+    const opened = card({ legacyParts: true, laborCost: 500, partsCost: 700, totalCost: 900, partsUsed: [line] });
+    await seed({ ...storedFields(opened), partsUsed: [line] });
+
+    const techDb = testEnv.authenticatedContext('tech_a').firestore();
+    const update = jobChanges(opened, { ...opened, status: 'completed' }, 5);
+    await assertSucceeds(updateDoc(doc(techDb, 'serviceRecords', 'rec_two'), payload(update)));
+
+    const saved = (await getDoc(doc(techDb, 'serviceRecords', 'rec_two'))).data();
+    expect(saved?.partsUsed).toBeUndefined();
+    expect(saved?.parts?.p1?.quantity).toBe(2);
+    expect(saved?.totalCost).toBe(1200);
+    expect(saved?.status).toBe('completed');
+  });
+
+  it('refuses job card writes from apps older than 2.1.5', async () => {
+    const opened = card();
+    await seed({ ...storedFields(opened), parts: {} });
+    const techDb = testEnv.authenticatedContext('tech_a').firestore();
+    // What 2.1.4 sends on save: every field plus the partsUsed array, merged.
+    await assertFails(setDoc(doc(techDb, 'serviceRecords', 'rec_two'), { status: 'completed', partsUsed: [], updatedAt: new Date() }, { merge: true }));
+    // And on intake.
+    await assertFails(setDoc(doc(techDb, 'serviceRecords', 'rec_new'), { ...storedFields(card()), partsUsed: [], createdAt: new Date(), updatedAt: new Date() }));
+    await assertSucceeds(setDoc(doc(techDb, 'serviceRecords', 'rec_new'), { ...storedFields(card()), parts: {}, createdAt: new Date(), updatedAt: new Date() }));
   });
 });

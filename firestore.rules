@@ -114,9 +114,18 @@ service cloud.firestore {
              (!('finalRemarks' in data.keys()) || data.finalRemarks == null || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
     }
 
-    // The job total is always labour plus parts; both apps compute it that way before saving.
+    // The job total is always labour plus parts. Increments add decimal prices one at a time, so
+    // allow a paisa of floating-point drift.
     function totalsAddUp(data) {
-      return data.totalCost == data.laborCost + data.partsCost;
+      return math.abs(data.totalCost - (data.laborCost + data.partsCost)) < 0.01;
+    }
+
+    // Parts live in the `parts` map (one line per part, quantities changed by increments). Apps
+    // older than 2.1.5 write the legacy `partsUsed` array, which would overwrite the map, so a
+    // write that still carries it is refused: those apps must update before saving job cards.
+    function usesPartsMap(data) {
+      return !('partsUsed' in data) &&
+             (!('parts' in data) || (data.parts is map && data.parts.size() <= 200));
     }
 
     // Older cards may not add up; they stay editable as long as an edit leaves the money alone.
@@ -175,9 +184,10 @@ service cloud.firestore {
 
     match /serviceRecords/{recordId} {
       allow read: if hasActiveRole();
-      allow create: if (isTechnician() || isAssistant()) && isValidServiceRecord(incoming()) && totalsAddUp(incoming());
+      allow create: if (isTechnician() || isAssistant()) && isValidServiceRecord(incoming()) && totalsAddUp(incoming()) &&
+                    usesPartsMap(incoming());
       allow update: if isTechnician() && isValidServiceRecord(incoming()) && isImmutable('createdAt') &&
-                    (costsUnchanged() || totalsAddUp(incoming()));
+                    (costsUnchanged() || totalsAddUp(incoming())) && usesPartsMap(incoming());
       allow delete: if isAdmin();
     }
 

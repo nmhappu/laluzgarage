@@ -189,31 +189,55 @@ describe('statistics', () => {
 });
 
 describe('jobChanges', () => {
+  const NOW = 1_760_000_000_000;
+  const filter = { partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350, addedAt: 1 };
+  const oil = { partId: 'p2', name: 'Engine oil', quantity: 3, unitPrice: 440, addedAt: 2 };
+
   it('is empty when nothing changed', () => {
-    expect(jobChanges(record({ remarks: null }), record({ remarks: undefined }))).toEqual({});
+    expect(jobChanges(record({ remarks: null }), record({ remarks: undefined }), NOW)).toEqual({ set: {}, add: {}, remove: [] });
   });
 
-  it('sends only the edited fields', () => {
+  it('sets only the edited fields', () => {
     const before = record({ status: 'pending', remarks: 'Check brakes' });
-    expect(jobChanges(before, { ...before, status: 'in-progress' })).toEqual({ status: 'in-progress' });
-    expect(jobChanges(before, { ...before, remarks: '', battery: 80 })).toEqual({ remarks: '', battery: 80 });
+    expect(jobChanges(before, { ...before, status: 'in-progress' }, NOW)).toEqual({ set: { status: 'in-progress' }, add: {}, remove: [] });
   });
 
-  it('sends labour, parts and totals together when any of them changed', () => {
-    const before = record({ laborCost: 800, partsCost: 350, totalCost: 1150, partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 }] });
-    const after = { ...before, laborCost: 1200, totalCost: 1550 };
-    expect(jobChanges(before, after)).toEqual({
-      laborCost: 1200,
-      partsCost: 350,
-      totalCost: 1550,
-      partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 }],
+  it('adds a new part with increments', () => {
+    const before = record({ laborCost: 800, partsCost: 0, totalCost: 800 });
+    const after = { ...before, partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 }], partsCost: 350, totalCost: 1150 };
+    expect(jobChanges(before, after, NOW)).toEqual({
+      set: { 'parts.p1.partId': 'p1', 'parts.p1.name': 'Oil filter', 'parts.p1.unitPrice': 350, 'parts.p1.addedAt': NOW },
+      add: { 'parts.p1.quantity': 1, partsCost: 350, totalCost: 350 },
+      remove: [],
     });
   });
 
-  it('notices a parts quantity change', () => {
-    const line = { partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 };
-    const before = record({ partsCost: 350, totalCost: 350, partsUsed: [line] });
-    const after = { ...before, partsCost: 700, totalCost: 700, partsUsed: [{ ...line, quantity: 2 }] };
-    expect(Object.keys(jobChanges(before, after)).sort()).toEqual(['laborCost', 'partsCost', 'partsUsed', 'totalCost']);
+  it('changes quantities, removes lines and labour by difference', () => {
+    const before = record({ laborCost: 800, partsCost: 1670, totalCost: 2470, partsUsed: [filter, oil] });
+    const after = { ...before, laborCost: 1000, partsUsed: [{ ...oil, quantity: 4 }] };
+    expect(jobChanges(before, after, NOW)).toEqual({
+      set: { laborCost: 1000 },
+      add: { 'parts.p1.quantity': -1, 'parts.p2.quantity': 1, partsCost: 90, totalCost: 290 },
+      remove: [],
+    });
+  });
+
+  it('converts a legacy card on its first save', () => {
+    const before = record({ legacyParts: true, laborCost: 500, partsCost: 700, totalCost: 900, partsUsed: [{ ...filter, addedAt: undefined }, { ...filter, addedAt: undefined }] });
+    const update = jobChanges(before, { ...before, remarks: 'Checked' }, NOW);
+    expect(update.remove).toEqual(['partsUsed']);
+    expect(update.set).toEqual({
+      remarks: 'Checked',
+      parts: { p1: { partId: 'p1', name: 'Oil filter', unitPrice: 350, quantity: 2, addedAt: NOW } },
+      laborCost: 500,
+      partsCost: 700,
+      totalCost: 1200,
+    });
+    expect(update.add).toEqual({});
+  });
+
+  it('leaves an untouched legacy card alone', () => {
+    const before = record({ legacyParts: true, partsUsed: [filter] });
+    expect(jobChanges(before, { ...before }, NOW)).toEqual({ set: {}, add: {}, remove: [] });
   });
 });

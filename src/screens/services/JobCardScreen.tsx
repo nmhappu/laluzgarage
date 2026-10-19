@@ -110,7 +110,7 @@ export function JobCardScreen() {
   const save = async () => {
     setSaving(true);
     try {
-      await updateServiceRecord(record.id, original ? jobChanges(original, record) : {});
+      if (original) await updateServiceRecord(record.id, jobChanges(original, record));
       setOriginal(record);
       setJustSaved(true);
       setSaving(false);

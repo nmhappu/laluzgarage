@@ -8,7 +8,7 @@ plugins {
 }
 
 /** Version of local builds. Stable: MAJOR.MINOR.PATCH (2.0.0). Dev: MAJOR.MINOR.PATCH-dev[.N] (2.1.0-dev). */
-val AppVersion = "2.1.4"
+val AppVersion = "2.1.5"
 
 /**
  * versionCode from the version name, so Android's install order matches the tags:

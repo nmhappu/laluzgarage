@@ -160,35 +160,16 @@ class ServiceRepository @Inject constructor(
         }
     }
 
-    suspend fun updateServiceRecord(record: ServiceRecord): Result<Unit> = withContext(ioDispatcher) {
+    /**
+     * Saves only [changes] (from jobChanges), so a field another person edited meanwhile is kept.
+     * update() fails instead of recreating a card that was deleted while it was open.
+     */
+    suspend fun updateServiceRecord(recordId: String, changes: Map<String, Any?>): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            val recordRef = firestore.collection(SyncCollections.SERVICE_RECORDS).document(record.id)
-            val data = hashMapOf<String, Any?>(
-                "status" to record.status,
-                "description" to record.description,
-                "remarks" to record.remarks,
-                "finalRemarks" to record.finalRemarks,
-                "mileage" to record.mileage,
-                "completionMileage" to record.completionMileage,
-                "isDeadVehicle" to record.isDeadVehicle,
-                "isUnknownMileage" to record.isUnknownMileage,
-                "battery" to record.battery,
-                "personalItems" to record.personalItems,
-                "expectedDeliveryDate" to record.expectedDeliveryDate,
-                "laborCost" to record.laborCost,
-                "partsCost" to record.partsCost,
-                "totalCost" to record.totalCost,
-                "partsUsed" to record.partsUsed.map {
-                    mapOf(
-                        "partId" to it.partId,
-                        "name" to it.name,
-                        "quantity" to it.quantity,
-                        "unitPrice" to it.unitPrice
-                    )
-                },
-                "updatedAt" to FieldValue.serverTimestamp()
-            )
-            awaitWrite(recordRef.set(data, SetOptions.merge()))
+            if (changes.isEmpty()) return@runCatching
+            val data = HashMap<String, Any?>(changes)
+            data["updatedAt"] = FieldValue.serverTimestamp()
+            awaitWrite(firestore.collection(SyncCollections.SERVICE_RECORDS).document(recordId).update(data))
             Unit
         }
     }

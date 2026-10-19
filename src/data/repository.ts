@@ -128,31 +128,13 @@ export async function createServiceRecord(r: Omit<ServiceRecord, 'id' | 'status'
   return ref.id;
 }
 
-export async function updateServiceRecord(r: ServiceRecord): Promise<void> {
-  await awaitWrite(
-    setDoc(
-      doc(db, SERVICE_RECORDS, r.id),
-      {
-        status: r.status,
-        description: r.description,
-        remarks: r.remarks ?? null,
-        finalRemarks: r.finalRemarks ?? null,
-        mileage: r.mileage,
-        completionMileage: r.completionMileage ?? null,
-        isDeadVehicle: r.isDeadVehicle,
-        isUnknownMileage: r.isUnknownMileage,
-        battery: r.battery ?? null,
-        personalItems: r.personalItems ?? null,
-        expectedDeliveryDate: r.expectedDeliveryDate ?? null,
-        laborCost: r.laborCost,
-        partsCost: r.partsCost,
-        totalCost: r.totalCost,
-        partsUsed: r.partsUsed.map((p) => ({ partId: p.partId, name: p.name, quantity: p.quantity, unitPrice: p.unitPrice })),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    )
-  );
+/**
+ * Saves only [changes] (from jobChanges), so a field another person edited meanwhile is kept.
+ * updateDoc fails instead of recreating a card that was deleted while it was open.
+ */
+export async function updateServiceRecord(id: string, changes: Record<string, unknown>): Promise<void> {
+  if (Object.keys(changes).length === 0) return;
+  await awaitWrite(updateDoc(doc(db, SERVICE_RECORDS, id), { ...changes, updatedAt: serverTimestamp() }));
 }
 
 export async function deleteServiceRecord(id: string): Promise<void> {

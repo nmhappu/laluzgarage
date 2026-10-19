@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ServiceRecord, Vehicle } from '../../types';
 import { fieldDateLabel, parseRecordDate, today, type LocalDate } from '../../core/dates';
-import { formatPlate, modelWithColor, parseTasks, securityOf, serializeTasks, tasksFromText } from '../../core/jobs';
+import { formatPlate, jobChanges, modelWithColor, parseTasks, securityOf, serializeTasks, tasksFromText } from '../../core/jobs';
 import { errorText, updateServiceRecord } from '../../data/repository';
 import { useData } from '../../data/store';
 import { useBack } from '../../app/shellContext';
@@ -41,6 +41,8 @@ function JobEditForm({ record, vehicle, back, showMessage }: { record: ServiceRe
   const initialLocked = record.isUnknownMileage && !record.isDeadVehicle;
   const initialDelivery = parseRecordDate(record.expectedDeliveryDate);
 
+  // The card as it was when the form opened: a save sends only what differs from it.
+  const [base] = useState(record);
   const [odometer, setOdometer] = useState(initialOdo);
   const [dead, setDead] = useState(record.isDeadVehicle);
   const [locked, setLocked] = useState(initialLocked);
@@ -71,19 +73,24 @@ function JobEditForm({ record, vehicle, back, showMessage }: { record: ServiceRe
       setShowOdoError(true);
       return;
     }
-    const tasks = tasksFromText(problems, parseTasks(record.description));
+    // Untouched inputs keep the stored value as is, so a save never rewrites them in a new format.
+    const description = problems !== initialProblems ? serializeTasks(tasksFromText(problems, parseTasks(base.description))) : base.description;
+    const expectedDeliveryDate = delivery !== initialDelivery ? delivery : (base.expectedDeliveryDate ?? null);
     setSaving(true);
     try {
-      await updateServiceRecord({
-        ...record,
-        mileage: special ? 0 : reading,
-        isDeadVehicle: dead,
-        isUnknownMileage: locked,
-        battery,
-        description: serializeTasks(tasks),
-        personalItems: belongings.trim() || null,
-        expectedDeliveryDate: delivery,
-      });
+      await updateServiceRecord(
+        base.id,
+        jobChanges(base, {
+          ...base,
+          mileage: special ? 0 : reading,
+          isDeadVehicle: dead,
+          isUnknownMileage: locked,
+          battery,
+          description,
+          personalItems: belongings.trim() || null,
+          expectedDeliveryDate,
+        })
+      );
       showMessage('Job card updated');
       back();
     } catch (e) {

@@ -3,7 +3,7 @@ import { useBlocker, useNavigate, useParams } from 'react-router-dom';
 import type { Part, ServiceRecord } from '../../types';
 import { parseRecordDate, relativeDayLabel, timestampDate, today, weekdayLabel } from '../../core/dates';
 import { cn, formatGrouped, formatInrWhole } from '../../core/format';
-import { displayName, dueFlag, formatPlate, jobStatusOf, modelLabel, parseTasks, securityOf, serializeTasks, tasksFromText } from '../../core/jobs';
+import { displayName, dueFlag, formatPlate, jobChanges, jobStatusOf, modelLabel, parseTasks, securityOf, serializeTasks, tasksFromText } from '../../core/jobs';
 import { isLowStock } from '../../core/catalog';
 import { buildWhatsAppUrl, formatDeliveryMessage, telUrl } from '../../core/whatsapp';
 import { deleteServiceRecord, errorText, updateServiceRecord } from '../../data/repository';
@@ -110,7 +110,7 @@ export function JobCardScreen() {
   const save = async () => {
     setSaving(true);
     try {
-      await updateServiceRecord(record);
+      await updateServiceRecord(record.id, original ? jobChanges(original, record) : {});
       setOriginal(record);
       setJustSaved(true);
       setSaving(false);

@@ -114,6 +114,18 @@ service cloud.firestore {
              (!('finalRemarks' in data.keys()) || data.finalRemarks == null || (data.finalRemarks is string && data.finalRemarks.size() <= 2000));
     }
 
+    // The job total is always labour plus parts; both apps compute it that way before saving.
+    function totalsAddUp(data) {
+      return data.totalCost == data.laborCost + data.partsCost;
+    }
+
+    // Older cards may not add up; they stay editable as long as an edit leaves the money alone.
+    function costsUnchanged() {
+      return incoming().laborCost == existing().laborCost &&
+             incoming().partsCost == existing().partsCost &&
+             incoming().totalCost == existing().totalCost;
+    }
+
     function isValidWorkshopUser(data) {
       return data.keys().hasAll(['name', 'email', 'status', 'createdAt', 'updatedAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
@@ -163,13 +175,10 @@ service cloud.firestore {
 
     match /serviceRecords/{recordId} {
       allow read: if hasActiveRole();
-      allow create: if (isTechnician() || isAssistant()) && isValidServiceRecord(incoming());
-      allow update: if isTechnician() && isValidServiceRecord(incoming()) && isImmutable('createdAt');
+      allow create: if (isTechnician() || isAssistant()) && isValidServiceRecord(incoming()) && totalsAddUp(incoming());
+      allow update: if isTechnician() && isValidServiceRecord(incoming()) && isImmutable('createdAt') &&
+                    (costsUnchanged() || totalsAddUp(incoming()));
       allow delete: if isAdmin();
-    }
-
-    match /test/{docId} {
-      allow read, write: if isSignedIn();
     }
 
     match /settings/{settingId} {

@@ -8,6 +8,7 @@ import dev.appu.laluzgarage.data.model.Part
 import dev.appu.laluzgarage.data.model.PartUsed
 import dev.appu.laluzgarage.data.model.ServiceRecord
 import dev.appu.laluzgarage.data.model.Vehicle
+import dev.appu.laluzgarage.data.model.jobChanges
 import dev.appu.laluzgarage.data.repository.AuthRepository
 import dev.appu.laluzgarage.data.repository.ServiceRepository
 import dev.appu.laluzgarage.data.sync.NetworkMonitor
@@ -406,9 +407,10 @@ class ServiceViewModel @Inject constructor(
 
     fun saveActiveRecord(onSaved: () -> Unit = {}) {
         val record = _uiState.value.activeEditingRecord ?: return
+        val original = _uiState.value.originalRecord ?: record
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            val result = serviceRepository.updateServiceRecord(record)
+            val result = serviceRepository.updateServiceRecord(record.id, jobChanges(original, record))
             result.onSuccess {
                 _uiState.update { it.copy(isSaving = false, originalRecord = record, justSaved = true, statusMessage = null) }
                 onSaved()
@@ -455,10 +457,10 @@ class ServiceViewModel @Inject constructor(
     fun deletePart(partId: String, onDeleted: () -> Unit) =
         catalogWrite("Couldn't delete the part.", "Part deleted", onDeleted) { serviceRepository.deletePart(partId) }
 
-    /** Saves the Edit job card form (odometer, problems, belongings, delivery date). */
-    fun saveJobEdit(record: ServiceRecord, onSaved: () -> Unit) =
+    /** Saves the Edit job card form (odometer, problems, belongings, delivery date): only what changed since [before]. */
+    fun saveJobEdit(before: ServiceRecord, after: ServiceRecord, onSaved: () -> Unit) =
         catalogWrite("Couldn't save the job card.", "Job card updated", onSaved) {
-            serviceRepository.updateServiceRecord(record)
+            serviceRepository.updateServiceRecord(before.id, jobChanges(before, after))
         }
 
     /** Deletes a job card (admins only, per the Firestore rules); the result shows as a snackbar. */

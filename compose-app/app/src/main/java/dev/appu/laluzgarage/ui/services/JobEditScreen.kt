@@ -76,9 +76,11 @@ fun JobEditScreen(
     message: String?,
     onMessageShown: () -> Unit,
     onBack: () -> Unit,
-    onSave: (ServiceRecord, onSaved: () -> Unit) -> Unit
+    onSave: (before: ServiceRecord, after: ServiceRecord, onSaved: () -> Unit) -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
+    // The card as it was when the form opened: a save sends only what differs from it.
+    val base = remember(record.id) { record }
     val initialProblems = remember(record.id) { parseTasks(record.description).joinToString("\n") { it.text } }
     val initialOdo = remember(record.id) { if (record.isDeadVehicle || record.isUnknownMileage || record.mileage <= 0) "" else record.mileage.toString() }
     val initialDelivery = remember(record.id) { parseRecordDate(record.expectedDeliveryDate) }
@@ -119,19 +121,28 @@ fun JobEditScreen(
             showOdoError = true
             return
         }
-        val previous = parseTasks(record.description)
-        val tasks = problems.lines().map { it.trim() }.filter { it.isNotEmpty() }
-            .mapIndexed { i, t -> TaskLine(t, previous.getOrNull(i)?.done == true) }
+        // Untouched inputs keep the stored value as is, so a save never rewrites them in a new format.
+        val description = if (problems != initialProblems) {
+            val previous = parseTasks(base.description)
+            serializeTasks(
+                problems.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                    .mapIndexed { i, t -> TaskLine(t, previous.getOrNull(i)?.done == true) }
+            )
+        } else {
+            base.description
+        }
+        val expectedDeliveryDate = if (delivery != initialDelivery) delivery?.toString() else base.expectedDeliveryDate
         saving = true
         onSave(
-            record.copy(
+            base,
+            base.copy(
                 mileage = if (special) 0 else reading,
                 isDeadVehicle = dead,
                 isUnknownMileage = locked,
                 battery = battery,
-                description = serializeTasks(tasks),
+                description = description,
                 personalItems = belongings.trim().ifBlank { null },
-                expectedDeliveryDate = delivery?.toString()
+                expectedDeliveryDate = expectedDeliveryDate
             ),
             onBack
         )

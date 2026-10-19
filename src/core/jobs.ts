@@ -134,3 +134,50 @@ export function securityOf(passwordOrPin: string | null | undefined): VehicleSec
   if (raw.toLowerCase() === 'physical key' || raw.toLowerCase() === 'key') return { kind: 'key' };
   return { kind: 'pin', value: raw };
 }
+
+// ---- Field-level saves (shared rule with the Compose app's jobChanges) ----
+
+/** The editable fields of a job card, in the shape they are stored. */
+function editableFields(r: ServiceRecord): Record<string, unknown> {
+  return {
+    status: r.status,
+    description: r.description,
+    remarks: r.remarks ?? null,
+    finalRemarks: r.finalRemarks ?? null,
+    mileage: r.mileage,
+    completionMileage: r.completionMileage ?? null,
+    isDeadVehicle: r.isDeadVehicle,
+    isUnknownMileage: r.isUnknownMileage,
+    battery: r.battery ?? null,
+    personalItems: r.personalItems ?? null,
+    expectedDeliveryDate: r.expectedDeliveryDate ?? null,
+  };
+}
+
+/** Labour, parts and the totals derived from them; saved together so they always add up. */
+function moneyFields(r: ServiceRecord): Record<string, unknown> {
+  return {
+    laborCost: r.laborCost,
+    partsCost: r.partsCost,
+    totalCost: r.totalCost,
+    partsUsed: r.partsUsed.map((p) => ({ partId: p.partId, name: p.name, quantity: p.quantity, unitPrice: p.unitPrice })),
+  };
+}
+
+/**
+ * Only the fields that differ between [before] (the card as it was when editing began) and
+ * [after]. Saving just these leaves fields someone else changed meanwhile alone. Money fields go
+ * as one block whenever any of them changed. Empty when nothing changed.
+ */
+export function jobChanges(before: ServiceRecord, after: ServiceRecord): Record<string, unknown> {
+  const changes: Record<string, unknown> = {};
+  const a = editableFields(before);
+  const b = editableFields(after);
+  for (const key of Object.keys(b)) {
+    if (a[key] !== b[key]) changes[key] = b[key];
+  }
+  const moneyBefore = moneyFields(before);
+  const moneyAfter = moneyFields(after);
+  if (JSON.stringify(moneyBefore) !== JSON.stringify(moneyAfter)) Object.assign(changes, moneyAfter);
+  return changes;
+}

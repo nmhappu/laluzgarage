@@ -3,7 +3,7 @@ import type { ServiceRecord, Vehicle } from '../types';
 import { addDays, dateRangeShortText, fieldDateLabel, parseRecordDate, relativeDayLabel, weekdayLabel } from './dates';
 import { computeDashboard, sparklinePaths } from './dashboard';
 import { formatInr, formatInrWhole, initialsOf } from './format';
-import { compactPlate, dueFlag, formatPhone, formatPlate, parseTasks, securityOf, serializeTasks, tasksFromText } from './jobs';
+import { compactPlate, dueFlag, formatPhone, formatPlate, jobChanges, parseTasks, securityOf, serializeTasks, tasksFromText } from './jobs';
 import { groupByArrivalDay, ServicesListIndex } from './servicesList';
 import { axisLabel, buildPeriod, comparisonText, dailyTotals, formatCount, span } from './statistics';
 import { buildWhatsAppUrl, formatDeliveryMessage, whatsAppDigits } from './whatsapp';
@@ -185,5 +185,35 @@ describe('statistics', () => {
     expect(p.bars).toHaveLength(31);
     expect(p.bars[13].isFuture).toBe(false);
     expect(p.bars[14].isFuture).toBe(true);
+  });
+});
+
+describe('jobChanges', () => {
+  it('is empty when nothing changed', () => {
+    expect(jobChanges(record({ remarks: null }), record({ remarks: undefined }))).toEqual({});
+  });
+
+  it('sends only the edited fields', () => {
+    const before = record({ status: 'pending', remarks: 'Check brakes' });
+    expect(jobChanges(before, { ...before, status: 'in-progress' })).toEqual({ status: 'in-progress' });
+    expect(jobChanges(before, { ...before, remarks: '', battery: 80 })).toEqual({ remarks: '', battery: 80 });
+  });
+
+  it('sends labour, parts and totals together when any of them changed', () => {
+    const before = record({ laborCost: 800, partsCost: 350, totalCost: 1150, partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 }] });
+    const after = { ...before, laborCost: 1200, totalCost: 1550 };
+    expect(jobChanges(before, after)).toEqual({
+      laborCost: 1200,
+      partsCost: 350,
+      totalCost: 1550,
+      partsUsed: [{ partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 }],
+    });
+  });
+
+  it('notices a parts quantity change', () => {
+    const line = { partId: 'p1', name: 'Oil filter', quantity: 1, unitPrice: 350 };
+    const before = record({ partsCost: 350, totalCost: 350, partsUsed: [line] });
+    const after = { ...before, partsCost: 700, totalCost: 700, partsUsed: [{ ...line, quantity: 2 }] };
+    expect(Object.keys(jobChanges(before, after)).sort()).toEqual(['laborCost', 'partsCost', 'partsUsed', 'totalCost']);
   });
 });
